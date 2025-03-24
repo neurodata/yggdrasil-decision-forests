@@ -64,3 +64,16 @@ cc_binary(
         "@com_google_absl//absl/strings",
     ],
 )
+
+
+cc_binary(
+    name = "ariel_ydf_train",
+    srcs = ["ariel_ydf_train.cc"],
+    deps = [
+        "//yggdrasil_decision_forests/learner:all_learners",
+        "//yggdrasil_decision_forests/model:all_models",
+        "//yggdrasil_decision_forests/dataset:data_spec",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+    ],
+)
