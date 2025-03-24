@@ -40,7 +40,7 @@ absl::Status TrainRandomForest(const std::string& csv_path,
   // Ariel - TrainingConfig is defined in learner/abstract_learner.proto
   model::proto::TrainingConfig train_config;
   train_config.set_learner("RANDOM_FOREST");
-  train_config.set_task(model::Task::CLASSIFICATION);
+  train_config.set_task(model::proto::Task::CLASSIFICATION);
   train_config.set_label(label_column_name);
 
   // If you need single-threaded training, do so in the `DeploymentConfig`.
