@@ -77,7 +77,7 @@ cc_binary(
         "//yggdrasil_decision_forests/learner:all_learners",
         "//yggdrasil_decision_forests/model:all_models",
         "//yggdrasil_decision_forests/dataset:data_spec",
-"//yggdrasil_decision_forests/dataset:csv",
+"//yggdrasil_decision_forests/dataset:csv_example_reader",
     "//yggdrasil_decision_forests/utils:logging",
     "//yggdrasil_decision_forests/utils:distribution",
     "@com_google_absl//absl/log",

@@ -17,7 +17,7 @@
 #include "yggdrasil_decision_forests/learner/random_forest/random_forest.h"
 
 // Ariel - Profiling
-#include <gperftools/profiler.h>
+// #include <gperftools/profiler.h>
 
 using namespace yggdrasil_decision_forests;
 
@@ -101,7 +101,7 @@ absl::Status TrainRandomForest(const std::string& csv_path,
 }
 
 int main(int argc, char** argv) {
-  ProfilerStart("profile.prof");
+  // ProfilerStart("profile.prof");
   if (argc < 4) {
     std::cerr << "Usage: " << argv[0]
               << " train_data.csv label_column output_model_dir\n"
@@ -124,6 +124,6 @@ int main(int argc, char** argv) {
 
   std::cout << "Training complete.\n";
 
-  ProfilerStop();
+  // ProfilerStop();
   return 0;
 }
