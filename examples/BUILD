@@ -69,6 +69,9 @@ cc_binary(
 cc_binary(
     name = "ariel_ydf_train",
     srcs = ["ariel_ydf_train.cc"],
+    copts = ["-pg"], # Ariel - for profiling
+    linkopts = ["-pg"],
+    features = ["c++17"],
     deps = [
         "//yggdrasil_decision_forests/learner:all_learners",
         "//yggdrasil_decision_forests/model:all_models",
