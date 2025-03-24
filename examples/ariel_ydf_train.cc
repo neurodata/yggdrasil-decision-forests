@@ -33,7 +33,7 @@ absl::Status TrainRandomForest(const std::string& csv_path,
     // Build a guide that explicitly sets the label column type to CATEGORICAL
     dataset::proto::DataSpecificationGuide guide;
     auto* col_guide = guide.add_column_guides();
-    col_guide->set_column_name(label_column_name);
+    col_guide->set_column_name_pattern(label_column_name);
     col_guide->set_type(dataset::proto::ColumnType::CATEGORICAL);
 
     dataset::CreateDataSpec(
