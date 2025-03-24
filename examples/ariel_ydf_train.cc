@@ -45,13 +45,13 @@ absl::Status TrainRandomForest(const std::string& csv_path,
 
   // If you need single-threaded training, do so in the `DeploymentConfig`.
   model::proto::DeploymentConfig deployment_config;
-  deployment_config.mutable_deployment()->set_num_threads(1);
+  deployment_config.set_num_threads(1);
 
   // Example of random forest hyperparameters:
   auto& rf_config = *train_config.MutableExtension(
-      model::random_forest::random_forest_config);
+      model::random_forest::proto::random_forest_config);
   rf_config.set_num_trees(1000);
-  rf_config.set_max_depth(-1);  // -1 => unlimited
+  rf_config.mutable_decision_tree()->set_max_depth(-1);  // -1 => unlimited
   rf_config.set_bootstrap_training_dataset(true);
   rf_config.set_bootstrap_size_ratio(1.0);
 
