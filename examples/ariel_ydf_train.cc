@@ -30,10 +30,16 @@ absl::Status TrainRandomForest(const std::string& csv_path,
     std::cout << "Inferring DataSpec from CSV: " << csv_path << std::endl;
     // "csv:" prefix means a CSV dataset recognized by YDF.
     // CreateDataSpec(...) is now a void function (it no longer returns absl::Status).
+    // Build a guide that explicitly sets the label column type to CATEGORICAL
+    dataset::proto::DataSpecificationGuide guide;
+    auto* col_guide = guide.add_column_guides();
+    col_guide->set_name(label_column_name);
+    col_guide->mutable_type()->set_type(dataset::proto::ColumnType::CATEGORICAL);
+
     dataset::CreateDataSpec(
         "csv:" + csv_path,
         /*require_same_dataset_fields=*/false,
-        dataset::proto::DataSpecificationGuide(),  // no special guide
+        guide,
         &data_spec);
     // (Optional) Print the resulting dataspec:
     std::cout << dataset::PrintHumanReadable(data_spec) << std::endl;
