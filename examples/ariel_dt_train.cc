@@ -9,19 +9,15 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 
-// YDF dataset
+// For reading & writing datasets
 #include "yggdrasil_decision_forests/dataset/data_spec_inference.h"
-
-// YDF model
-#include "yggdrasil_decision_forests/model/abstract_model.h"
+// For creating & saving the model
 #include "yggdrasil_decision_forests/model/model_library.h"
+// For the generic "GetLearner" factory function
+#include "yggdrasil_decision_forests/learner/learner_library.h"
 
-// YDF learner
-#include "yggdrasil_decision_forests/learner/decision_tree/decision_tree.h"
+// For controlling the Decision Tree hyperparams:
 #include "yggdrasil_decision_forests/learner/decision_tree/decision_tree.pb.h"
-
-// If you want to use oblique splits.
-#include "yggdrasil_decision_forests/learner/decision_tree/oblique_split.proto.h"
 
 using namespace yggdrasil_decision_forests;
 
@@ -32,52 +28,44 @@ absl::Status TrainSingleObliqueDecisionTree(const std::string& csv_path,
   dataset::proto::DataSpecification data_spec;
   {
     std::cout << "Inferring DataSpec from CSV: " << csv_path << std::endl;
-    // "csv:" prefix indicates a CSV dataset recognized by YDF.
-    // Optionally configure a DataSpecificationGuide for the label column
     dataset::proto::DataSpecificationGuide guide;
     {
       auto* label_guide = guide.add_column_guides();
       label_guide->set_column_name(label_column_name);
+      // Example: treat the label as a categorical classification problem.
       label_guide->set_type(dataset::proto::ColumnType::CATEGORICAL);
     }
 
-    // CreateDataSpec populates 'data_spec'.
+    // Generate the dataspec:
     dataset::CreateDataSpec("csv:" + csv_path,
                             /*require_same_dataset_fields=*/false,
                             guide,
                             &data_spec);
-    // Optional: Print data_spec to see what it inferred
+    // Print the resulting DataSpec (optional).
     std::cout << dataset::PrintHumanReadable(data_spec) << std::endl;
   }
 
-  // 2) Configure a single DecisionTree learner (NOT a random forest).
+  // 2) Configure a single Decision Tree learner.
   model::proto::TrainingConfig train_config;
-  // Pick "DECISION_TREE" instead of "RANDOM_FOREST"
-  train_config.set_learner("DECISION_TREE");
+  train_config.set_learner("DECISION_TREE");  // Not RANDOM_FOREST
   train_config.set_task(model::proto::Task::CLASSIFICATION);
   train_config.set_label(label_column_name);
 
-  // If you need single-threaded training, do so in the `DeploymentConfig`.
+  // Deployment (e.g. single-thread training if you want):
   model::proto::DeploymentConfig deployment_config;
   deployment_config.set_num_threads(1);
 
-  // Access the specialized config:
+  // Access the specialized Decision Tree config extension:
   auto& dt_config =
       *train_config.MutableExtension(
           model::decision_tree::proto::decision_tree_config);
 
   // For an effectively unbounded tree:
-  dt_config.set_max_depth(-1);  // -1 = no limit
+  dt_config.set_max_depth(-1);  // -1 => unlimited
   dt_config.set_min_examples(2);
 
-  // If you want "honest" single-tree training, you can do:
-  // dt_config.mutable_honest()->set_ratio_leaf_examples(0.5);
-  // but that’s more common in an ensemble. For a single tree, it’s less typical.
-
-  // OBLIQUE SPLITS: We can choose "sparse" or "MHLD" oblique.
-  // Let’s do Sparse Oblique:
-  dt_config.mutable_sparse_oblique_split()
-           ->set_num_projections_exponent(1.0f);  // example tweak
+  // Turn on oblique splits (sparse oblique variant):
+  dt_config.mutable_sparse_oblique_split();
 
   // 3) Create the learner
   std::unique_ptr<model::AbstractLearner> learner;
@@ -85,14 +73,14 @@ absl::Status TrainSingleObliqueDecisionTree(const std::string& csv_path,
     absl::Status get_learner_status =
         model::GetLearner(train_config, &learner);
     if (!get_learner_status.ok()) {
-      return absl::InternalError("Could not create DecisionTree learner: " +
+      return absl::InternalError("Could not create single DT learner: " +
                                  std::string(get_learner_status.message()));
     }
-    // Also set the deployment config (number of threads, etc.)
+    // Also apply the deployment config
     learner->SetDeploymentConfig(deployment_config);
   }
 
-  // 4) Train the model from disk-based dataset
+  // 4) Train the model from the disk-based dataset
   absl::StatusOr<std::unique_ptr<model::AbstractModel>> model_or =
       learner->TrainWithStatus("csv:" + csv_path, data_spec);
   if (!model_or.ok()) {
@@ -104,8 +92,7 @@ absl::Status TrainSingleObliqueDecisionTree(const std::string& csv_path,
   // 5) Print a short textual description
   {
     std::string description;
-    model->AppendDescriptionAndStatistics(/*full_definition=*/false,
-                                          &description);
+    model->AppendDescriptionAndStatistics(/*full_definition=*/false, &description);
     std::cout << "Model trained. Summary:\n" << description << std::endl;
   }
 
