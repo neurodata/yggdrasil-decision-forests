@@ -1930,6 +1930,7 @@ absl::StatusOr<bool> FindBestCondition(
   return false;
 }
 
+// Ariel - I think this is most used - CART build
 absl::StatusOr<SplitSearchResult>
 FindSplitLabelClassificationFeatureNumericalHistogram(
     const absl::Span<const UnsignedExampleIdx> selected_examples,
