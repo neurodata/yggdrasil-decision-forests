@@ -5,3 +5,5 @@ tmp_package
 __pycache__
 no_sync*
 .clwb/
+**/.idea
+**/.DS_Store
