@@ -31,6 +31,19 @@
 #     tensorflow is used).
 #
 
+# Ariel - set C++ 17 and add debug flags
+build --cxxopt=-std=c++17
+build:debug --cxxopt=-std=c++17
+# TODO Ariel - remove - Debug build config
+build:debug --compilation_mode=dbg
+build:debug --strip=never
+build:debug --cxxopt=-std=c++17
+build:debug --cxxopt=-g
+build:debug --cxxopt=-O0
+build:debug --copt=-g
+build:debug --copt=-O0
+build:debug --linkopt=-g
+
 # Common flags.
 common --experimental_repo_remote_exec
 
