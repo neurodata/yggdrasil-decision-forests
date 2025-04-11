@@ -72,544 +72,586 @@
 #include "yggdrasil_decision_forests/utils/synchronization_primitives.h"
 #include "yggdrasil_decision_forests/utils/time.h"
 
-namespace yggdrasil_decision_forests {
-namespace model {
-namespace random_forest {
-
-constexpr double kAdaptativeWarmUpSeconds = 5.0;
-constexpr char RandomForestLearner::kRegisteredName[];
-constexpr char RandomForestLearner::kHParamNumTrees[];
-constexpr char RandomForestLearner::kHParamWinnerTakeAll[];
-constexpr char RandomForestLearner::
-    kHParamAdaptBootstrapSizeRatioForMaximumTrainingDuration[];
-constexpr char RandomForestLearner::kHParamComputeOOBPerformances[];
-constexpr char RandomForestLearner::kHParamComputeOOBVariableImportance[];
-constexpr char RandomForestLearner::kHParamBootstrapTrainingDataset[];
-constexpr char RandomForestLearner::kHParamBootstrapSizeRatio[];
-constexpr char
-    RandomForestLearner::kHParamNumOOBVariableImportancePermutations[];
-constexpr char RandomForestLearner::kHParamSamplingWithReplacement[];
-
-RandomForestLearner::RandomForestLearner(
-    const model::proto::TrainingConfig& training_config)
-    : AbstractLearner(training_config) {}
-
-absl::Status RandomForestLearner::SetHyperParametersImpl(
-    utils::GenericHyperParameterConsumer* generic_hyper_params) {
-  RETURN_IF_ERROR(
-      AbstractLearner::SetHyperParametersImpl(generic_hyper_params));
-  const auto& rf_config = training_config_.MutableExtension(
-      random_forest::proto::random_forest_config);
-
-  // Decision tree specific hyper-parameters.
-  absl::flat_hash_set<std::string> consumed_hparams;
-  RETURN_IF_ERROR(decision_tree::SetHyperParameters(
-      &consumed_hparams, rf_config->mutable_decision_tree(),
-      generic_hyper_params));
-
+namespace yggdrasil_decision_forests
+{
+  namespace model
   {
-    const auto hparam = generic_hyper_params->Get(kHParamNumTrees);
-    if (hparam.has_value()) {
-      rf_config->set_num_trees(hparam.value().value().integer());
-    }
-  }
-  {
-    const auto hparam = generic_hyper_params->Get(kHParamWinnerTakeAll);
-    if (hparam.has_value()) {
-      rf_config->set_winner_take_all_inference(
-          hparam.value().value().categorical() == "true");
-    }
-  }
-  {
-    const auto hparam = generic_hyper_params->Get(
-        kHParamAdaptBootstrapSizeRatioForMaximumTrainingDuration);
-    if (hparam.has_value()) {
-      rf_config->set_adapt_bootstrap_size_ratio_for_maximum_training_duration(
-          hparam.value().value().categorical() == "true");
-    }
-  }
-  {
-    const auto hparam =
-        generic_hyper_params->Get(kHParamComputeOOBPerformances);
-    if (hparam.has_value()) {
-      rf_config->set_compute_oob_performances(
-          hparam.value().value().categorical() == "true");
-    }
-  }
+    namespace random_forest
+    {
 
-  {
-    const auto hparam =
-        generic_hyper_params->Get(kHParamComputeOOBVariableImportance);
-    if (hparam.has_value()) {
-      rf_config->set_compute_oob_variable_importances(
-          hparam.value().value().categorical() == "true");
-      if (rf_config->compute_oob_variable_importances()) {
-        rf_config->set_compute_oob_performances(true);
+      constexpr double kAdaptativeWarmUpSeconds = 5.0;
+      constexpr char RandomForestLearner::kRegisteredName[];
+      constexpr char RandomForestLearner::kHParamNumTrees[];
+      constexpr char RandomForestLearner::kHParamWinnerTakeAll[];
+      constexpr char RandomForestLearner::
+          kHParamAdaptBootstrapSizeRatioForMaximumTrainingDuration[];
+      constexpr char RandomForestLearner::kHParamComputeOOBPerformances[];
+      constexpr char RandomForestLearner::kHParamComputeOOBVariableImportance[];
+      constexpr char RandomForestLearner::kHParamBootstrapTrainingDataset[];
+      constexpr char RandomForestLearner::kHParamBootstrapSizeRatio[];
+      constexpr char
+          RandomForestLearner::kHParamNumOOBVariableImportancePermutations[];
+      constexpr char RandomForestLearner::kHParamSamplingWithReplacement[];
+
+      RandomForestLearner::RandomForestLearner(
+          const model::proto::TrainingConfig &training_config)
+          : AbstractLearner(training_config) {}
+
+      absl::Status RandomForestLearner::SetHyperParametersImpl(
+          utils::GenericHyperParameterConsumer *generic_hyper_params)
+      {
+        RETURN_IF_ERROR(
+            AbstractLearner::SetHyperParametersImpl(generic_hyper_params));
+        const auto &rf_config = training_config_.MutableExtension(
+            random_forest::proto::random_forest_config);
+
+        // Decision tree specific hyper-parameters.
+        absl::flat_hash_set<std::string> consumed_hparams;
+        RETURN_IF_ERROR(decision_tree::SetHyperParameters(
+            &consumed_hparams, rf_config->mutable_decision_tree(),
+            generic_hyper_params));
+
+        {
+          const auto hparam = generic_hyper_params->Get(kHParamNumTrees);
+          if (hparam.has_value())
+          {
+            rf_config->set_num_trees(hparam.value().value().integer());
+          }
+        }
+        {
+          const auto hparam = generic_hyper_params->Get(kHParamWinnerTakeAll);
+          if (hparam.has_value())
+          {
+            rf_config->set_winner_take_all_inference(
+                hparam.value().value().categorical() == "true");
+          }
+        }
+        {
+          const auto hparam = generic_hyper_params->Get(
+              kHParamAdaptBootstrapSizeRatioForMaximumTrainingDuration);
+          if (hparam.has_value())
+          {
+            rf_config->set_adapt_bootstrap_size_ratio_for_maximum_training_duration(
+                hparam.value().value().categorical() == "true");
+          }
+        }
+        {
+          const auto hparam =
+              generic_hyper_params->Get(kHParamComputeOOBPerformances);
+          if (hparam.has_value())
+          {
+            rf_config->set_compute_oob_performances(
+                hparam.value().value().categorical() == "true");
+          }
+        }
+
+        {
+          const auto hparam =
+              generic_hyper_params->Get(kHParamComputeOOBVariableImportance);
+          if (hparam.has_value())
+          {
+            rf_config->set_compute_oob_variable_importances(
+                hparam.value().value().categorical() == "true");
+            if (rf_config->compute_oob_variable_importances())
+            {
+              rf_config->set_compute_oob_performances(true);
+            }
+          }
+        }
+
+        {
+          const auto hparam =
+              generic_hyper_params->Get(kHParamBootstrapTrainingDataset);
+          if (hparam.has_value())
+          {
+            rf_config->set_bootstrap_training_dataset(
+                hparam.value().value().categorical() == "true");
+          }
+        }
+
+        {
+          const auto hparam =
+              generic_hyper_params->Get(kHParamNumOOBVariableImportancePermutations);
+          if (hparam.has_value())
+          {
+            rf_config->set_num_oob_variable_importances_permutations(
+                hparam.value().value().integer());
+          }
+        }
+
+        {
+          const auto hparam = generic_hyper_params->Get(kHParamBootstrapSizeRatio);
+          if (hparam.has_value())
+          {
+            rf_config->set_bootstrap_size_ratio(hparam.value().value().real());
+          }
+        }
+
+        {
+          const auto hparam =
+              generic_hyper_params->Get(kHParamSamplingWithReplacement);
+          if (hparam.has_value())
+          {
+            rf_config->set_sampling_with_replacement(
+                hparam.value().value().categorical() == "true");
+          }
+        }
+
+        return absl::OkStatus();
       }
-    }
-  }
 
-  {
-    const auto hparam =
-        generic_hyper_params->Get(kHParamBootstrapTrainingDataset);
-    if (hparam.has_value()) {
-      rf_config->set_bootstrap_training_dataset(
-          hparam.value().value().categorical() == "true");
-    }
-  }
+      absl::StatusOr<model::proto::HyperParameterSpace>
+      RandomForestLearner::PredefinedHyperParameterSpace() const
+      {
+        // Note: We don't optimize the number of tree as it is always beneficial
+        // metric wise, and we don't optimize the inference time or model size (yet).
+        model::proto::HyperParameterSpace space;
 
-  {
-    const auto hparam =
-        generic_hyper_params->Get(kHParamNumOOBVariableImportancePermutations);
-    if (hparam.has_value()) {
-      rf_config->set_num_oob_variable_importances_permutations(
-          hparam.value().value().integer());
-    }
-  }
+        decision_tree::PredefinedHyperParameterAxisSplitSpace(&space);
+        decision_tree::PredefinedHyperParameterCategoricalSpace(&space);
 
-  {
-    const auto hparam = generic_hyper_params->Get(kHParamBootstrapSizeRatio);
-    if (hparam.has_value()) {
-      rf_config->set_bootstrap_size_ratio(hparam.value().value().real());
-    }
-  }
+        {
+          auto *field = space.add_fields();
+          field->set_name(kHParamWinnerTakeAll);
+          auto *cands = field->mutable_discrete_candidates();
+          cands->add_possible_values()->set_categorical("true");
+        }
 
-  {
-    const auto hparam =
-        generic_hyper_params->Get(kHParamSamplingWithReplacement);
-    if (hparam.has_value()) {
-      rf_config->set_sampling_with_replacement(
-          hparam.value().value().categorical() == "true");
-    }
-  }
+        {
+          auto *field = space.add_fields();
+          field->set_name(decision_tree::kHParamMaxDepth);
+          auto *cands = field->mutable_discrete_candidates();
+          cands->add_possible_values()->set_integer(12);
+          cands->add_possible_values()->set_integer(16);
+          cands->add_possible_values()->set_integer(20);
+          cands->add_possible_values()->set_integer(25);
+          cands->add_possible_values()->set_integer(30);
+        }
 
-  return absl::OkStatus();
-}
+        {
+          auto *field = space.add_fields();
+          field->set_name(decision_tree::kHParamMinExamples);
+          auto *cands = field->mutable_discrete_candidates();
+          cands->add_possible_values()->set_integer(1);
+          cands->add_possible_values()->set_integer(2);
+          cands->add_possible_values()->set_integer(5);
+          cands->add_possible_values()->set_integer(10);
+          cands->add_possible_values()->set_integer(40);
+        }
 
-absl::StatusOr<model::proto::HyperParameterSpace>
-RandomForestLearner::PredefinedHyperParameterSpace() const {
-  // Note: We don't optimize the number of tree as it is always beneficial
-  // metric wise, and we don't optimize the inference time or model size (yet).
-  model::proto::HyperParameterSpace space;
+        return space;
+      }
 
-  decision_tree::PredefinedHyperParameterAxisSplitSpace(&space);
-  decision_tree::PredefinedHyperParameterCategoricalSpace(&space);
+      absl::StatusOr<model::proto::GenericHyperParameterSpecification>
+      RandomForestLearner::GetGenericHyperParameterSpecification() const
+      {
+        ASSIGN_OR_RETURN(auto hparam_def,
+                         AbstractLearner::GetGenericHyperParameterSpecification());
+        model::proto::TrainingConfig config;
+        const auto proto_path = "learner/random_forest/random_forest.proto";
 
-  {
-    auto* field = space.add_fields();
-    field->set_name(kHParamWinnerTakeAll);
-    auto* cands = field->mutable_discrete_candidates();
-    cands->add_possible_values()->set_categorical("true");
-  }
-
-  {
-    auto* field = space.add_fields();
-    field->set_name(decision_tree::kHParamMaxDepth);
-    auto* cands = field->mutable_discrete_candidates();
-    cands->add_possible_values()->set_integer(12);
-    cands->add_possible_values()->set_integer(16);
-    cands->add_possible_values()->set_integer(20);
-    cands->add_possible_values()->set_integer(25);
-    cands->add_possible_values()->set_integer(30);
-  }
-
-  {
-    auto* field = space.add_fields();
-    field->set_name(decision_tree::kHParamMinExamples);
-    auto* cands = field->mutable_discrete_candidates();
-    cands->add_possible_values()->set_integer(1);
-    cands->add_possible_values()->set_integer(2);
-    cands->add_possible_values()->set_integer(5);
-    cands->add_possible_values()->set_integer(10);
-    cands->add_possible_values()->set_integer(40);
-  }
-
-  return space;
-}
-
-absl::StatusOr<model::proto::GenericHyperParameterSpecification>
-RandomForestLearner::GetGenericHyperParameterSpecification() const {
-  ASSIGN_OR_RETURN(auto hparam_def,
-                   AbstractLearner::GetGenericHyperParameterSpecification());
-  model::proto::TrainingConfig config;
-  const auto proto_path = "learner/random_forest/random_forest.proto";
-
-  hparam_def.mutable_documentation()->set_description(
-      R"(A [Random Forest](https://www.stat.berkeley.edu/~breiman/randomforest2001.pdf) is a collection of deep CART decision trees trained independently and without pruning. Each tree is trained on a random subset of the original training  dataset (sampled with replacement).
+        hparam_def.mutable_documentation()->set_description(
+            R"(A [Random Forest](https://www.stat.berkeley.edu/~breiman/randomforest2001.pdf) is a collection of deep CART decision trees trained independently and without pruning. Each tree is trained on a random subset of the original training  dataset (sampled with replacement).
 
 The algorithm is unique in that it is robust to overfitting, even in extreme cases e.g. when there are more features than training examples.
 
 It is probably the most well-known of the Decision Forest training algorithms.)");
 
-  auto& rf_config =
-      *config.MutableExtension(random_forest::proto::random_forest_config);
-  RETURN_IF_ERROR(internal::SetDefaultHyperParameters(&rf_config));
+        auto &rf_config =
+            *config.MutableExtension(random_forest::proto::random_forest_config);
+        RETURN_IF_ERROR(internal::SetDefaultHyperParameters(&rf_config));
 
-  {
-    auto& param = hparam_def.mutable_fields()->operator[](kHParamNumTrees);
-    param.mutable_integer()->set_minimum(0);
-    param.mutable_integer()->set_default_value(rf_config.num_trees());
-    param.mutable_documentation()->set_proto_path(proto_path);
-    param.mutable_documentation()->set_description(
-        R"(Number of individual decision trees. Increasing the number of trees can increase the quality of the model at the expense of size, training speed, and inference latency.)");
-  }
-  {
-    auto& param = hparam_def.mutable_fields()->operator[](kHParamWinnerTakeAll);
-    param.mutable_categorical()->set_default_value(
-        rf_config.winner_take_all_inference() ? "true" : "false");
-    param.mutable_categorical()->add_possible_values("true");
-    param.mutable_categorical()->add_possible_values("false");
-    param.mutable_documentation()->set_proto_path(proto_path);
-    param.mutable_documentation()->set_proto_field("winner_take_all_inference");
+        {
+          auto &param = hparam_def.mutable_fields()->operator[](kHParamNumTrees);
+          param.mutable_integer()->set_minimum(0);
+          param.mutable_integer()->set_default_value(rf_config.num_trees());
+          param.mutable_documentation()->set_proto_path(proto_path);
+          param.mutable_documentation()->set_description(
+              R"(Number of individual decision trees. Increasing the number of trees can increase the quality of the model at the expense of size, training speed, and inference latency.)");
+        }
+        {
+          auto &param = hparam_def.mutable_fields()->operator[](kHParamWinnerTakeAll);
+          param.mutable_categorical()->set_default_value(
+              rf_config.winner_take_all_inference() ? "true" : "false");
+          param.mutable_categorical()->add_possible_values("true");
+          param.mutable_categorical()->add_possible_values("false");
+          param.mutable_documentation()->set_proto_path(proto_path);
+          param.mutable_documentation()->set_proto_field("winner_take_all_inference");
 
-    param.mutable_documentation()->set_description(
-        R"(Control how classification trees vote. If true, each tree votes for one class. If false, each tree vote for a distribution of classes. winner_take_all_inference=false is often preferable.)");
-  }
-  {
-    auto& param = hparam_def.mutable_fields()->operator[](
-        kHParamAdaptBootstrapSizeRatioForMaximumTrainingDuration);
-    param.mutable_categorical()->set_default_value(
-        rf_config.adapt_bootstrap_size_ratio_for_maximum_training_duration()
-            ? "true"
-            : "false");
-    param.mutable_categorical()->add_possible_values("true");
-    param.mutable_categorical()->add_possible_values("false");
-    param.mutable_documentation()->set_proto_path(proto_path);
-    param.mutable_documentation()->set_description(
-        R"(Control how the maximum training duration (if set) is applied. If false, the training stops when the time is used. If true, adapts the size of the sampled dataset used to train each tree such that `num_trees` will train within `maximum_training_duration`. Has no effect if there is no maximum training duration specified.)");
-  }
-  {
-    auto& param =
-        hparam_def.mutable_fields()->operator[](kHParamComputeOOBPerformances);
-    param.mutable_categorical()->set_default_value(
-        rf_config.compute_oob_performances() ? "true" : "false");
-    param.mutable_categorical()->add_possible_values("true");
-    param.mutable_categorical()->add_possible_values("false");
-    param.mutable_documentation()->set_proto_path(proto_path);
-    param.mutable_documentation()->set_description(
-        R"(If true, compute the Out-of-bag evaluation (then available in the summary and model inspector). This evaluation is a cheap alternative to cross-validation evaluation.)");
-  }
+          param.mutable_documentation()->set_description(
+              R"(Control how classification trees vote. If true, each tree votes for one class. If false, each tree vote for a distribution of classes. winner_take_all_inference=false is often preferable.)");
+        }
+        {
+          auto &param = hparam_def.mutable_fields()->operator[](
+              kHParamAdaptBootstrapSizeRatioForMaximumTrainingDuration);
+          param.mutable_categorical()->set_default_value(
+              rf_config.adapt_bootstrap_size_ratio_for_maximum_training_duration()
+                  ? "true"
+                  : "false");
+          param.mutable_categorical()->add_possible_values("true");
+          param.mutable_categorical()->add_possible_values("false");
+          param.mutable_documentation()->set_proto_path(proto_path);
+          param.mutable_documentation()->set_description(
+              R"(Control how the maximum training duration (if set) is applied. If false, the training stops when the time is used. If true, adapts the size of the sampled dataset used to train each tree such that `num_trees` will train within `maximum_training_duration`. Has no effect if there is no maximum training duration specified.)");
+        }
+        {
+          auto &param =
+              hparam_def.mutable_fields()->operator[](kHParamComputeOOBPerformances);
+          param.mutable_categorical()->set_default_value(
+              rf_config.compute_oob_performances() ? "true" : "false");
+          param.mutable_categorical()->add_possible_values("true");
+          param.mutable_categorical()->add_possible_values("false");
+          param.mutable_documentation()->set_proto_path(proto_path);
+          param.mutable_documentation()->set_description(
+              R"(If true, compute the Out-of-bag evaluation (then available in the summary and model inspector). This evaluation is a cheap alternative to cross-validation evaluation.)");
+        }
 
-  {
-    auto& param = hparam_def.mutable_fields()->operator[](
-        kHParamComputeOOBVariableImportance);
-    param.mutable_categorical()->set_default_value(
-        rf_config.compute_oob_variable_importances() ? "true" : "false");
-    param.mutable_categorical()->add_possible_values("true");
-    param.mutable_categorical()->add_possible_values("false");
-    param.mutable_documentation()->set_proto_path(proto_path);
-    param.mutable_documentation()->set_description(
-        R"(If true, compute the Out-of-bag feature importance (then available in the summary and model inspector). Note that the OOB feature importance can be expensive to compute.)");
-  }
+        {
+          auto &param = hparam_def.mutable_fields()->operator[](
+              kHParamComputeOOBVariableImportance);
+          param.mutable_categorical()->set_default_value(
+              rf_config.compute_oob_variable_importances() ? "true" : "false");
+          param.mutable_categorical()->add_possible_values("true");
+          param.mutable_categorical()->add_possible_values("false");
+          param.mutable_documentation()->set_proto_path(proto_path);
+          param.mutable_documentation()->set_description(
+              R"(If true, compute the Out-of-bag feature importance (then available in the summary and model inspector). Note that the OOB feature importance can be expensive to compute.)");
+        }
 
-  {
-    auto& param = hparam_def.mutable_fields()->operator[](
-        kHParamBootstrapTrainingDataset);
-    param.mutable_categorical()->set_default_value(
-        rf_config.bootstrap_training_dataset() ? "true" : "false");
-    param.mutable_categorical()->add_possible_values("true");
-    param.mutable_categorical()->add_possible_values("false");
-    param.mutable_documentation()->set_proto_path(proto_path);
-    param.mutable_documentation()->set_description(
-        R"(If true (default), each tree is trained on a separate dataset sampled with replacement from the original dataset. If false, all the trees are trained on the entire same dataset. If bootstrap_training_dataset:false, OOB metrics are not available. bootstrap_training_dataset=false is used in "Extremely randomized trees" (https://link.springer.com/content/pdf/10.1007%2Fs10994-006-6226-1.pdf).)");
-  }
+        {
+          auto &param = hparam_def.mutable_fields()->operator[](
+              kHParamBootstrapTrainingDataset);
+          param.mutable_categorical()->set_default_value(
+              rf_config.bootstrap_training_dataset() ? "true" : "false");
+          param.mutable_categorical()->add_possible_values("true");
+          param.mutable_categorical()->add_possible_values("false");
+          param.mutable_documentation()->set_proto_path(proto_path);
+          param.mutable_documentation()->set_description(
+              R"(If true (default), each tree is trained on a separate dataset sampled with replacement from the original dataset. If false, all the trees are trained on the entire same dataset. If bootstrap_training_dataset:false, OOB metrics are not available. bootstrap_training_dataset=false is used in "Extremely randomized trees" (https://link.springer.com/content/pdf/10.1007%2Fs10994-006-6226-1.pdf).)");
+        }
 
-  {
-    auto& param = hparam_def.mutable_fields()->operator[](
-        kHParamNumOOBVariableImportancePermutations);
-    param.mutable_integer()->set_minimum(1);
-    param.mutable_integer()->set_default_value(
-        rf_config.num_oob_variable_importances_permutations());
-    param.mutable_documentation()->set_proto_path(proto_path);
-    param.mutable_documentation()->set_description(
-        R"(Number of time the dataset is re-shuffled to compute the permutation variable importances. Increasing this value increase the training time (if "compute_oob_variable_importances:true") as well as the stability of the oob variable importance metrics.)");
-  }
+        {
+          auto &param = hparam_def.mutable_fields()->operator[](
+              kHParamNumOOBVariableImportancePermutations);
+          param.mutable_integer()->set_minimum(1);
+          param.mutable_integer()->set_default_value(
+              rf_config.num_oob_variable_importances_permutations());
+          param.mutable_documentation()->set_proto_path(proto_path);
+          param.mutable_documentation()->set_description(
+              R"(Number of time the dataset is re-shuffled to compute the permutation variable importances. Increasing this value increase the training time (if "compute_oob_variable_importances:true") as well as the stability of the oob variable importance metrics.)");
+        }
 
-  {
-    auto& param =
-        hparam_def.mutable_fields()->operator[](kHParamBootstrapSizeRatio);
-    param.mutable_real()->set_minimum(0);
-    param.mutable_real()->set_default_value(rf_config.bootstrap_size_ratio());
-    param.mutable_documentation()->set_proto_path(proto_path);
-    param.mutable_documentation()->set_description(
-        R"(Number of examples used to train each tree; expressed as a ratio of the training dataset size.)");
-  }
+        {
+          auto &param =
+              hparam_def.mutable_fields()->operator[](kHParamBootstrapSizeRatio);
+          param.mutable_real()->set_minimum(0);
+          param.mutable_real()->set_default_value(rf_config.bootstrap_size_ratio());
+          param.mutable_documentation()->set_proto_path(proto_path);
+          param.mutable_documentation()->set_description(
+              R"(Number of examples used to train each tree; expressed as a ratio of the training dataset size.)");
+        }
 
-  {
-    auto& param =
-        hparam_def.mutable_fields()->operator[](kHParamSamplingWithReplacement);
-    param.mutable_categorical()->set_default_value(
-        rf_config.sampling_with_replacement() ? "true" : "false");
-    param.mutable_categorical()->add_possible_values("true");
-    param.mutable_categorical()->add_possible_values("false");
-    param.mutable_documentation()->set_proto_path(proto_path);
-    param.mutable_documentation()->set_description(
-        R"(If true, the training examples are sampled with replacement. If false, the training samples are sampled without replacement. Only used when "bootstrap_training_dataset=true". If false (sampling without replacement) and if "bootstrap_size_ratio=1" (default), all the examples are used to train all the trees (you probably do not want that).)");
-  }
+        {
+          auto &param =
+              hparam_def.mutable_fields()->operator[](kHParamSamplingWithReplacement);
+          param.mutable_categorical()->set_default_value(
+              rf_config.sampling_with_replacement() ? "true" : "false");
+          param.mutable_categorical()->add_possible_values("true");
+          param.mutable_categorical()->add_possible_values("false");
+          param.mutable_documentation()->set_proto_path(proto_path);
+          param.mutable_documentation()->set_description(
+              R"(If true, the training examples are sampled with replacement. If false, the training samples are sampled without replacement. Only used when "bootstrap_training_dataset=true". If false (sampling without replacement) and if "bootstrap_size_ratio=1" (default), all the examples are used to train all the trees (you probably do not want that).)");
+        }
 
-  RETURN_IF_ERROR(decision_tree::GetGenericHyperParameterSpecification(
-      rf_config.decision_tree(), &hparam_def));
-  return hparam_def;
-}
+        RETURN_IF_ERROR(decision_tree::GetGenericHyperParameterSpecification(
+            rf_config.decision_tree(), &hparam_def));
+        return hparam_def;
+      }
 
-absl::Status RandomForestLearner::CheckConfiguration(
-    const dataset::proto::DataSpecification& data_spec,
-    const model::proto::TrainingConfig& config,
-    const model::proto::TrainingConfigLinking& config_link,
-    const proto::RandomForestTrainingConfig& rf_config,
-    const model::proto::DeploymentConfig& deployment) {
-  RETURN_IF_ERROR(AbstractLearner::CheckConfiguration(data_spec, config,
-                                                      config_link, deployment));
-  // Check that the decision tree will contain prediction weighting is needed.
-  if (!rf_config.winner_take_all_inference()) {
-    if (!rf_config.decision_tree().store_detailed_label_distribution())
-      return absl::InvalidArgumentError(
-          "store_detailed_label_label_distribution should be true if "
-          "winner_take_all is false. The decision trees need to contain the "
-          "detailed label distributions.");
-  }
-  return absl::OkStatus();
-}
+      absl::Status RandomForestLearner::CheckConfiguration(
+          const dataset::proto::DataSpecification &data_spec,
+          const model::proto::TrainingConfig &config,
+          const model::proto::TrainingConfigLinking &config_link,
+          const proto::RandomForestTrainingConfig &rf_config,
+          const model::proto::DeploymentConfig &deployment)
+      {
+        RETURN_IF_ERROR(AbstractLearner::CheckConfiguration(data_spec, config,
+                                                            config_link, deployment));
+        // Check that the decision tree will contain prediction weighting is needed.
+        if (!rf_config.winner_take_all_inference())
+        {
+          if (!rf_config.decision_tree().store_detailed_label_distribution())
+            return absl::InvalidArgumentError(
+                "store_detailed_label_label_distribution should be true if "
+                "winner_take_all is false. The decision trees need to contain the "
+                "detailed label distributions.");
+        }
+        return absl::OkStatus();
+      }
 
-absl::StatusOr<std::unique_ptr<AbstractModel>>
-RandomForestLearner::TrainWithStatusImpl(
-    const dataset::VerticalDataset& train_dataset,
-    std::optional<std::reference_wrapper<const dataset::VerticalDataset>>
-        valid_dataset) const {
-  // TODO: Divide function into smaller blocks.
-  const auto begin_training = absl::Now();
+      // Ariel - RF training begins here
+      absl::StatusOr<std::unique_ptr<AbstractModel>>
+      RandomForestLearner::TrainWithStatusImpl(
+          const dataset::VerticalDataset &train_dataset,
+          std::optional<std::reference_wrapper<const dataset::VerticalDataset>>
+              valid_dataset) const
+      {
+        // TODO: Divide function into smaller blocks.
+        const auto begin_training = absl::Now();
 
-  // Timeout in the tree training.
-  std::optional<absl::Time> timeout;
-  if (training_config().has_maximum_training_duration_seconds()) {
-    timeout =
-        begin_training +
-        absl::Seconds(training_config().maximum_training_duration_seconds());
-  }
+        // Timeout in the tree training.
+        std::optional<absl::Time> timeout;
+        if (training_config().has_maximum_training_duration_seconds())
+        {
+          timeout =
+              begin_training +
+              absl::Seconds(training_config().maximum_training_duration_seconds());
+        }
 
-  RETURN_IF_ERROR(dataset::CheckNumExamples(train_dataset.nrow()));
+        RETURN_IF_ERROR(dataset::CheckNumExamples(train_dataset.nrow()));
 
-  if (training_config().task() != model::proto::Task::CLASSIFICATION &&
-      training_config().task() != model::proto::Task::REGRESSION &&
-      training_config().task() != model::proto::Task::CATEGORICAL_UPLIFT &&
-      training_config().task() != model::proto::Task::NUMERICAL_UPLIFT) {
-    std::string tip;
-    if (training_config().task() == model::proto::Task::RANKING) {
-      tip =
-          " You probably want to try the GRADIENT_BOOSTED_TREES learner that "
-          "supports ranking.";
-    }
-    return absl::InvalidArgumentError(absl::StrCat(
-        "The RANDOM_FOREST learner does not support the task ",
-        model::proto::Task_Name(training_config().task()), ".", tip));
-  }
+        if (training_config().task() != model::proto::Task::CLASSIFICATION &&
+            training_config().task() != model::proto::Task::REGRESSION &&
+            training_config().task() != model::proto::Task::CATEGORICAL_UPLIFT &&
+            training_config().task() != model::proto::Task::NUMERICAL_UPLIFT)
+        {
+          std::string tip;
+          if (training_config().task() == model::proto::Task::RANKING)
+          {
+            tip =
+                " You probably want to try the GRADIENT_BOOSTED_TREES learner that "
+                "supports ranking.";
+          }
+          return absl::InvalidArgumentError(absl::StrCat(
+              "The RANDOM_FOREST learner does not support the task ",
+              model::proto::Task_Name(training_config().task()), ".", tip));
+        }
 
-  auto config_with_default = training_config();
-  auto& rf_config = *config_with_default.MutableExtension(
-      random_forest::proto::random_forest_config);
-  RETURN_IF_ERROR(internal::SetDefaultHyperParameters(&rf_config));
+        auto config_with_default = training_config();
+        auto &rf_config = *config_with_default.MutableExtension(
+            random_forest::proto::random_forest_config);
+        RETURN_IF_ERROR(internal::SetDefaultHyperParameters(&rf_config));
 
-  // If the maximum model size is limited, "keep_non_leaf_label_distribution"
-  // defaults to false.
-  if (!rf_config.decision_tree().has_keep_non_leaf_label_distribution() &&
-      config_with_default.has_maximum_model_size_in_memory_in_bytes()) {
-    rf_config.mutable_decision_tree()->set_keep_non_leaf_label_distribution(
-        false);
-  }
+        // If the maximum model size is limited, "keep_non_leaf_label_distribution"
+        // defaults to false.
+        if (!rf_config.decision_tree().has_keep_non_leaf_label_distribution() &&
+            config_with_default.has_maximum_model_size_in_memory_in_bytes())
+        {
+          rf_config.mutable_decision_tree()->set_keep_non_leaf_label_distribution(
+              false);
+        }
 
-  if (training_config().task() == model::proto::Task::NUMERICAL_UPLIFT &&
-      rf_config.compute_oob_performances()) {
-    LOG(WARNING) << "RF does not support OOB performances with the numerical "
-                    "uplift task (yet).";
-    rf_config.set_compute_oob_performances(false);
-  }
+        if (training_config().task() == model::proto::Task::NUMERICAL_UPLIFT &&
+            rf_config.compute_oob_performances())
+        {
+          LOG(WARNING) << "RF does not support OOB performances with the numerical "
+                          "uplift task (yet).";
+          rf_config.set_compute_oob_performances(false);
+        }
 
-  model::proto::TrainingConfigLinking config_link;
-  RETURN_IF_ERROR(AbstractLearner::LinkTrainingConfig(
-      config_with_default, train_dataset.data_spec(), &config_link));
-  decision_tree::SetInternalDefaultHyperParameters(
-      config_with_default, config_link, train_dataset.data_spec(),
-      rf_config.mutable_decision_tree());
+        model::proto::TrainingConfigLinking config_link;
+        RETURN_IF_ERROR(AbstractLearner::LinkTrainingConfig(
+            config_with_default, train_dataset.data_spec(), &config_link));
+        decision_tree::SetInternalDefaultHyperParameters(
+            config_with_default, config_link, train_dataset.data_spec(),
+            rf_config.mutable_decision_tree());
 
-  auto mdl = std::make_unique<RandomForestModel>();
-  mdl->set_data_spec(train_dataset.data_spec());
-  internal::InitializeModelWithTrainingConfig(config_with_default, config_link,
-                                              mdl.get());
-  LOG(INFO) << "Training random forest on " << train_dataset.nrow()
-            << " example(s) and " << config_link.features().size()
-            << " feature(s).";
-  RETURN_IF_ERROR(CheckConfiguration(train_dataset.data_spec(),
-                                     config_with_default, config_link,
-                                     rf_config, deployment()));
+        auto mdl = std::make_unique<RandomForestModel>();
+        mdl->set_data_spec(train_dataset.data_spec());
+        internal::InitializeModelWithTrainingConfig(config_with_default, config_link,
+                                                    mdl.get());
+        LOG(INFO) << "Training random forest on " << train_dataset.nrow()
+                  << " example(s) and " << config_link.features().size()
+                  << " feature(s).";
+        RETURN_IF_ERROR(CheckConfiguration(train_dataset.data_spec(),
+                                           config_with_default, config_link,
+                                           rf_config, deployment()));
 
-  std::vector<float> weights;
+        std::vector<float> weights;
 
-  // Determines if the training code supports `weights` to be empty if
-  // all the examples have the same weight. This triggers special handling for
-  // improved performance.
-  //
-  // This feature is not supported for uplifting.
-  bool use_optimized_unit_weights = true;
-  if (training_config().task() == model::proto::Task::CATEGORICAL_UPLIFT ||
-      training_config().task() == model::proto::Task::NUMERICAL_UPLIFT) {
-    use_optimized_unit_weights = false;
-  }
+        // Determines if the training code supports `weights` to be empty if
+        // all the examples have the same weight. This triggers special handling for
+        // improved performance.
+        //
+        // This feature is not supported for uplifting.
+        bool use_optimized_unit_weights = true;
+        if (training_config().task() == model::proto::Task::CATEGORICAL_UPLIFT ||
+            training_config().task() == model::proto::Task::NUMERICAL_UPLIFT)
+        {
+          use_optimized_unit_weights = false;
+        }
 
-  RETURN_IF_ERROR(dataset::GetWeights(train_dataset, config_link, &weights,
-                                      use_optimized_unit_weights));
+        RETURN_IF_ERROR(dataset::GetWeights(train_dataset, config_link, &weights,
+                                            use_optimized_unit_weights));
 
-  ASSIGN_OR_RETURN(const auto preprocessing,
-                   decision_tree::PreprocessTrainingDataset(
-                       train_dataset, config_with_default, config_link,
-                       rf_config.decision_tree(), deployment_.num_threads()));
+        ASSIGN_OR_RETURN(const auto preprocessing,
+                         decision_tree::PreprocessTrainingDataset(
+                             train_dataset, config_with_default, config_link,
+                             rf_config.decision_tree(), deployment_.num_threads()));
 
-  std::vector<const dataset::VerticalDataset::NumericalVectorSequenceColumn*>
-      vector_sequence_columns(train_dataset.ncol(), nullptr);
-  for (int col_idx = 0; col_idx < train_dataset.ncol(); col_idx++) {
-    vector_sequence_columns[col_idx] = train_dataset.ColumnWithCastOrNull<
-        dataset::VerticalDataset::NumericalVectorSequenceColumn>(col_idx);
-  }
-  std::unique_ptr<decision_tree::gpu::VectorSequenceComputer>
-      vector_sequence_computer;
-  if (!vector_sequence_columns.empty()) {
-    ASSIGN_OR_RETURN(
-        vector_sequence_computer,
-        decision_tree::gpu::VectorSequenceComputer::Create(
-            vector_sequence_columns, /*use_gpu=*/deployment_.use_gpu()));
-  }
+        std::vector<const dataset::VerticalDataset::NumericalVectorSequenceColumn *>
+            vector_sequence_columns(train_dataset.ncol(), nullptr);
+        for (int col_idx = 0; col_idx < train_dataset.ncol(); col_idx++)
+        {
+          vector_sequence_columns[col_idx] = train_dataset.ColumnWithCastOrNull<
+              dataset::VerticalDataset::NumericalVectorSequenceColumn>(col_idx);
+        }
+        std::unique_ptr<decision_tree::gpu::VectorSequenceComputer>
+            vector_sequence_computer;
+        if (!vector_sequence_columns.empty())
+        {
+          ASSIGN_OR_RETURN(
+              vector_sequence_computer,
+              decision_tree::gpu::VectorSequenceComputer::Create(
+                  vector_sequence_columns, /*use_gpu=*/deployment_.use_gpu()));
+        }
 
-  utils::RandomEngine global_random(config_with_default.random_seed());
-  // Individual seeds for each tree.
-  std::vector<int64_t> tree_seeds;
-  tree_seeds.reserve(rf_config.num_trees());
+        utils::RandomEngine global_random(config_with_default.random_seed());
+        // Individual seeds for each tree.
+        std::vector<int64_t> tree_seeds;
+        tree_seeds.reserve(rf_config.num_trees());
 
-  if (!rf_config.internal().individual_tree_seeds().empty()) {
-    if (rf_config.internal().individual_tree_seeds().size() !=
-        rf_config.num_trees()) {
-      return absl::InternalError("Wrong number of trees");
-    }
-    tree_seeds = {rf_config.internal().individual_tree_seeds().begin(),
-                  rf_config.internal().individual_tree_seeds().end()};
-  } else {
-    for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++) {
-      tree_seeds.push_back(global_random());
-    }
-  }
-  for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++) {
-    mdl->AddTree(std::make_unique<decision_tree::DecisionTree>());
-  }
+        if (!rf_config.internal().individual_tree_seeds().empty())
+        {
+          if (rf_config.internal().individual_tree_seeds().size() !=
+              rf_config.num_trees())
+          {
+            return absl::InternalError("Wrong number of trees");
+          }
+          tree_seeds = {rf_config.internal().individual_tree_seeds().begin(),
+                        rf_config.internal().individual_tree_seeds().end()};
+        }
+        else
+        {
+          for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++)
+          {
+            tree_seeds.push_back(global_random());
+          }
+        }
+        for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++)
+        {
+          mdl->AddTree(std::make_unique<decision_tree::DecisionTree>());
+        }
 
-  // OOB (out-of-bag) predictions.
-  utils::concurrency::Mutex
-      oob_metrics_mutex;  // Protects all the "oob_*" fields.
+        // OOB (out-of-bag) predictions.
+        utils::concurrency::Mutex
+            oob_metrics_mutex; // Protects all the "oob_*" fields.
 
-  // Prediction accumulator for each example in the training dataset
-  // (oob_predictions.size()==training_dataset.nrow()).
-  std::vector<internal::PredictionAccumulator> oob_predictions;
+        // Prediction accumulator for each example in the training dataset
+        // (oob_predictions.size()==training_dataset.nrow()).
+        std::vector<internal::PredictionAccumulator> oob_predictions;
 
-  // Time of the last display of OOB metrics in the console. Expressed in
-  // seconds from an arbitrary referential. Protected by "oob_metrics_mutex".
-  absl::Time last_oob_computation_time = absl::InfinitePast();
-  // Number of trees the last time the OOB metrics was computed and displayed in
-  // the console.
-  int last_oob_computation_num_trees = 0;
+        // Time of the last display of OOB metrics in the console. Expressed in
+        // seconds from an arbitrary referential. Protected by "oob_metrics_mutex".
+        absl::Time last_oob_computation_time = absl::InfinitePast();
+        // Number of trees the last time the OOB metrics was computed and displayed in
+        // the console.
+        int last_oob_computation_num_trees = 0;
 
-  // Prediction accumulator for each example in the training dataset and
-  // shuffled according to each input feature:
-  // "oob_predictions_per_input_features[i][j]" is the prediction accumulator,
-  // for the example "j" (i.e. row "j" in training_dataset), where the value of
-  // the input feature "i" has been shuffled. "shuffled" means that, during
-  // inference, the value of feature "i" for the example "j" is replaced by the
-  // value of the example "k" (of the same feature), where "k" is uniformly
-  // sampled in [0, dataset.nrow()[.
-  std::vector<std::vector<internal::PredictionAccumulator>>
-      oob_predictions_per_input_features;
+        // Prediction accumulator for each example in the training dataset and
+        // shuffled according to each input feature:
+        // "oob_predictions_per_input_features[i][j]" is the prediction accumulator,
+        // for the example "j" (i.e. row "j" in training_dataset), where the value of
+        // the input feature "i" has been shuffled. "shuffled" means that, during
+        // inference, the value of feature "i" for the example "j" is replaced by the
+        // value of the example "k" (of the same feature), where "k" is uniformly
+        // sampled in [0, dataset.nrow()[.
+        std::vector<std::vector<internal::PredictionAccumulator>>
+            oob_predictions_per_input_features;
 
-  // OOB Performance and variable importance are only computed when training is
-  // bootstrapped.
-  const bool compute_oob_performances = rf_config.compute_oob_performances() &&
-                                        rf_config.bootstrap_training_dataset();
-  const bool compute_oob_variable_importances =
-      rf_config.compute_oob_variable_importances() &&
-      rf_config.bootstrap_training_dataset();
+        // OOB Performance and variable importance are only computed when training is
+        // bootstrapped.
+        const bool compute_oob_performances = rf_config.compute_oob_performances() &&
+                                              rf_config.bootstrap_training_dataset();
+        const bool compute_oob_variable_importances =
+            rf_config.compute_oob_variable_importances() &&
+            rf_config.bootstrap_training_dataset();
 
-  if (compute_oob_performances) {
-    internal::InitializeOOBPredictionAccumulators(
-        train_dataset.nrow(), config_with_default, config_link,
-        train_dataset.data_spec(), &oob_predictions);
-  }
-  if (compute_oob_variable_importances) {
-    if (!rf_config.compute_oob_performances())
-      return absl::InvalidArgumentError(
-          "The OOB metric computation should be enabled to compute the "
-          "Variable Importance i.e. \"compute_oob_variable_importances=true\" "
-          "requires \"compute_oob_performances=true\".");
-    oob_predictions_per_input_features.resize(
-        train_dataset.data_spec().columns_size());
-    for (const int feature_idx : config_link.features()) {
-      internal::InitializeOOBPredictionAccumulators(
-          train_dataset.nrow(), config_with_default, config_link,
-          train_dataset.data_spec(),
-          &oob_predictions_per_input_features[feature_idx]);
-    }
-  }
+        if (compute_oob_performances)
+        {
+          internal::InitializeOOBPredictionAccumulators(
+              train_dataset.nrow(), config_with_default, config_link,
+              train_dataset.data_spec(), &oob_predictions);
+        }
+        if (compute_oob_variable_importances)
+        {
+          if (!rf_config.compute_oob_performances())
+            return absl::InvalidArgumentError(
+                "The OOB metric computation should be enabled to compute the "
+                "Variable Importance i.e. \"compute_oob_variable_importances=true\" "
+                "requires \"compute_oob_performances=true\".");
+          oob_predictions_per_input_features.resize(
+              train_dataset.data_spec().columns_size());
+          for (const int feature_idx : config_link.features())
+          {
+            internal::InitializeOOBPredictionAccumulators(
+                train_dataset.nrow(), config_with_default, config_link,
+                train_dataset.data_spec(),
+                &oob_predictions_per_input_features[feature_idx]);
+          }
+        }
 
-  // If true, only a subset of trees will have been trained.
-  std::atomic<bool> training_stopped_early = false;
+        // If true, only a subset of trees will have been trained.
+        std::atomic<bool> training_stopped_early = false;
 
-  std::unique_ptr<utils::AdaptativeWork> adaptative_work;
-  if (rf_config.adapt_bootstrap_size_ratio_for_maximum_training_duration()) {
-    if (!rf_config.bootstrap_training_dataset()) {
-      return absl::InvalidArgumentError(
-          "\"bootstrap_training_dataset\" required for adaptive "
-          "bootstrap_size_ratio");
-    }
-    adaptative_work = std::make_unique<utils::AdaptativeWork>(
-        rf_config.num_trees(),
-        training_config().maximum_training_duration_seconds() *
-            deployment().num_threads(),
-        kAdaptativeWarmUpSeconds, rf_config.min_adapted_subsample());
-  }
+        std::unique_ptr<utils::AdaptativeWork> adaptative_work;
+        if (rf_config.adapt_bootstrap_size_ratio_for_maximum_training_duration())
+        {
+          if (!rf_config.bootstrap_training_dataset())
+          {
+            return absl::InvalidArgumentError(
+                "\"bootstrap_training_dataset\" required for adaptive "
+                "bootstrap_size_ratio");
+          }
+          adaptative_work = std::make_unique<utils::AdaptativeWork>(
+              rf_config.num_trees(),
+              training_config().maximum_training_duration_seconds() *
+                  deployment().num_threads(),
+              kAdaptativeWarmUpSeconds, rf_config.min_adapted_subsample());
+        }
 
-  // Various fields modified by the various training workers.
-  struct {
-    // Number of nodes in the "completed" trees.
-    std::vector<int64_t> num_nodes_completed_trees GUARDED_BY(mutex);
+        // Various fields modified by the various training workers.
+        struct
+        {
+          // Number of nodes in the "completed" trees.
+          std::vector<int64_t> num_nodes_completed_trees GUARDED_BY(mutex);
 
-    // Number of nodes in the accounted trees i.e. the first
-    // "next_tree_idx_to_account" trees.
-    int64_t total_num_nodes_accounted GUARDED_BY(mutex) = 0;
+          // Number of nodes in the accounted trees i.e. the first
+          // "next_tree_idx_to_account" trees.
+          int64_t total_num_nodes_accounted GUARDED_BY(mutex) = 0;
 
-    // Index of the next tree to account.
-    int next_tree_idx_to_account GUARDED_BY(mutex) = 0;
+          // Index of the next tree to account.
+          int next_tree_idx_to_account GUARDED_BY(mutex) = 0;
 
-    int64_t model_size_in_bytes GUARDED_BY(mutex);
+          int64_t model_size_in_bytes GUARDED_BY(mutex);
 
-    absl::Status status GUARDED_BY(mutex);
+          absl::Status status GUARDED_BY(mutex);
 
-    utils::concurrency::Mutex mutex;
-  } concurrent_fields;
+          utils::concurrency::Mutex mutex;
+        } concurrent_fields;
 
-  // Initialize the concurrent_fields.
-  {
-    utils::concurrency::MutexLock lock(&concurrent_fields.mutex);
-    concurrent_fields.num_nodes_completed_trees.assign(rf_config.num_trees(),
-                                                       -1);
-    concurrent_fields.model_size_in_bytes =
-        mdl->AbstractAttributesSizeInBytes().value_or(0);
-  }
+        // Initialize the concurrent_fields.
+        {
+          utils::concurrency::MutexLock lock(&concurrent_fields.mutex);
+          concurrent_fields.num_nodes_completed_trees.assign(rf_config.num_trees(),
+                                                             -1);
+          concurrent_fields.model_size_in_bytes =
+              mdl->AbstractAttributesSizeInBytes().value_or(0);
+        }
 
-  // Note: "num_trained_trees" is defined outside of the following brackets so
-  // to make use it is not released before "pool".
-  std::atomic<int> num_trained_trees{0};
-  const absl::Time begin_tree_grow = absl::Now();
-  {
-    yggdrasil_decision_forests::utils::concurrency::ThreadPool pool(
-        deployment().num_threads(), {.name_prefix = std::string("TrainRF")});
+        // Note: "num_trained_trees" is defined outside of the following brackets so
+        // to make use it is not released before "pool".
+        std::atomic<int> num_trained_trees{0};
+        const absl::Time begin_tree_grow = absl::Now();
+        {
+          yggdrasil_decision_forests::utils::concurrency::ThreadPool pool(
+              deployment().num_threads(), {.name_prefix = std::string("TrainRF")});
 
-    pool.StartWorkers();
-    for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++) {
-      pool.Schedule([&, tree_idx]() {
+          pool.StartWorkers();
+          for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++)
+          {
+            pool.Schedule([&, tree_idx]()
+                          {
         // The user interrupted the training.
         if (stop_training_trigger_ != nullptr && *stop_training_trigger_) {
           if (!training_stopped_early) {
@@ -889,482 +931,540 @@ RandomForestLearner::TrainWithStatusImpl(
         } else {
           LOG_EVERY_N_SEC(INFO, 20)
               << build_common_snippet() << build_common_snippet_extra();
+        } });
+          }
         }
-      });
-    }
-  }
 
-  if (training_stopped_early) {
-    // Remove the non-trained trees.
-    auto& trees = *mdl->mutable_decision_trees();
-    trees.erase(
-        std::remove_if(
-            trees.begin(), trees.end(),
-            [](const std::unique_ptr<decision_tree::DecisionTree>& tree)
-                -> bool { return !tree || tree->mutable_root() == nullptr; }),
-        trees.end());
-  }
-
-  {
-    // Note: At this point, there are not concurrent workers running.
-    utils::concurrency::MutexLock lock(&concurrent_fields.mutex);
-
-    // Check for any pending failure during the training.
-    RETURN_IF_ERROR(concurrent_fields.status);
-
-    if (rf_config.total_max_num_nodes() > 0 &&
-        concurrent_fields.total_num_nodes_accounted >
-            rf_config.total_max_num_nodes()) {
-      // Keep the first trees such that the maximum number of nodes constraint
-      // is satisfied.
-      auto& trees = *mdl->mutable_decision_trees();
-      int num_trees_to_keep = 0;
-      int64_t num_nodes = 0;
-      while (num_trees_to_keep < trees.size() &&
-             num_nodes + concurrent_fields
-                             .num_nodes_completed_trees[num_trees_to_keep] <
-                 rf_config.total_max_num_nodes()) {
-        num_nodes +=
-            concurrent_fields.num_nodes_completed_trees[num_trees_to_keep];
-        num_trees_to_keep++;
-      }
-      if (num_trees_to_keep == 0) {
-        return absl::InvalidArgumentError(absl::StrCat(
-            "The first tree alone exceeds the \"total_max_num_nodes\" "
-            "parameter with ",
-            concurrent_fields.num_nodes_completed_trees[0], ">",
-            rf_config.total_max_num_nodes(),
-            " nodes. Relax \"total_max_num_nodes\" or limit the "
-            "growth of the tree (e.g. maximum depth)"));
-      }
-      trees.erase(trees.begin() + num_trees_to_keep, trees.end());
-      LOG(INFO) << "Retaining the first " << num_trees_to_keep
-                << " trees to satisfy the "
-                   "\"total_max_num_nodes\" constraint.";
-    }
-  }
-
-  if (compute_oob_performances &&
-      !mdl->mutable_out_of_bag_evaluations()->empty()) {
-    LOG(INFO)
-        << "Final OOB metrics: "
-        << internal::EvaluationSnippet(
-               mdl->mutable_out_of_bag_evaluations()->back().evaluation());
-  }
-
-  if (compute_oob_variable_importances) {
-    RETURN_IF_ERROR(ComputeVariableImportancesFromAccumulatedPredictions(
-        oob_predictions, oob_predictions_per_input_features, train_dataset,
-        deployment().num_threads(), mdl.get()));
-  }
-
-  if (!rf_config.export_oob_prediction_path().empty()) {
-    RETURN_IF_ERROR(ExportOOBPredictions(
-        config_with_default, config_link, train_dataset.data_spec(),
-        oob_predictions, rf_config.export_oob_prediction_path()));
-  }
-
-  // Cache the structural variable importance in the model data.
-  RETURN_IF_ERROR(mdl->PrecomputeVariableImportances(
-      mdl->AvailableStructuralVariableImportances()));
-
-  decision_tree::SetLeafIndices(mdl->mutable_decision_trees());
-
-  if (vector_sequence_computer) {
-    RETURN_IF_ERROR(vector_sequence_computer->Release());
-  }
-  return std::move(mdl);
-}
-
-namespace internal {
-
-void InitializeOOBPredictionAccumulators(
-    const UnsignedExampleIdx num_predictions,
-    const model::proto::TrainingConfig& config,
-    const model::proto::TrainingConfigLinking& config_link,
-    const dataset::proto::DataSpecification& data_spec,
-    std::vector<PredictionAccumulator>* predictions) {
-  predictions->resize(num_predictions);
-
-  switch (config.task()) {
-    case model::proto::Task::CLASSIFICATION:
-      for (auto& prediction : *predictions) {
-        prediction.classification.SetNumClasses(
-            config_link.num_label_classes());
-      }
-      break;
-
-    case model::proto::Task::CATEGORICAL_UPLIFT:
-      // Note: -2 because: The value 0 is reserved for the out-of-vocab item,
-      // and there is one less predictions than treatments.
-      for (auto& prediction : *predictions) {
-        prediction.uplift.assign(
-            data_spec.columns(config_link.uplift_treatment())
-                    .categorical()
-                    .number_of_unique_values() -
-                2,
-            0);
-      }
-      break;
-
-    default:
-      // Nothing to do.
-      break;
-  }
-}
-
-absl::Status UpdateOOBPredictionsWithNewTree(
-    const dataset::VerticalDataset& train_dataset,
-    const model::proto::TrainingConfig& config,
-    std::vector<UnsignedExampleIdx> sorted_non_oob_example_indices,
-    const bool winner_take_all_inference,
-    const decision_tree::DecisionTree& new_decision_tree,
-    const std::optional<int> shuffled_attribute_idx, utils::RandomEngine* rnd,
-    std::vector<PredictionAccumulator>* oob_predictions) {
-  // "next_non_oob_example_idx" is the index in "sorted_non_oob_example_indices"
-  // of the example, with the smallest index which is greater or equal to the
-  // index of the example being iterator on in the following "for loop".
-  UnsignedExampleIdx next_non_oob_example_idx = 0;
-
-  std::uniform_int_distribution<UnsignedExampleIdx> row_distribution(
-      0, train_dataset.nrow() - 1);
-
-  for (UnsignedExampleIdx example_idx = 0; example_idx < train_dataset.nrow();
-       example_idx++) {
-    // Skip the example_idx in "sorted_non_oob_example_indices".
-    while (next_non_oob_example_idx < sorted_non_oob_example_indices.size() &&
-           sorted_non_oob_example_indices[next_non_oob_example_idx] <
-               example_idx) {
-      next_non_oob_example_idx++;
-    }
-    if (next_non_oob_example_idx < sorted_non_oob_example_indices.size() &&
-        sorted_non_oob_example_indices[next_non_oob_example_idx] ==
-            example_idx) {
-      continue;
-    }
-
-    // Apply the decision tree.
-    const decision_tree::proto::Node* leaf;
-    if (shuffled_attribute_idx.has_value()) {
-      const auto random_example_idx = row_distribution(*rnd);
-      leaf = &new_decision_tree.GetLeafWithSwappedAttribute(
-          train_dataset, example_idx, shuffled_attribute_idx.value(),
-          random_example_idx);
-    } else {
-      leaf = &new_decision_tree.GetLeaf(train_dataset, example_idx);
-    }
-
-    // Accumulate the decision prediction to the oob accumulator.
-    auto& accumulator = (*oob_predictions)[example_idx];
-    accumulator.num_trees++;
-    switch (config.task()) {
-      case model::proto::Task::CLASSIFICATION:
-        AddClassificationLeafToAccumulator(winner_take_all_inference, *leaf,
-                                           &accumulator.classification);
-        break;
-      case model::proto::Task::REGRESSION:
-        AddRegressionLeafToAccumulator(*leaf, &accumulator.regression);
-        break;
-      case model::proto::Task::RANKING:
-        return absl::InvalidArgumentError("OOB not implemented for Uplift.");
-        break;
-      case model::proto::Task::CATEGORICAL_UPLIFT:
-        AddUpliftLeafToAccumulator(*leaf, &accumulator.uplift);
-        break;
-      default:
-        LOG(WARNING) << "Not implemented";
-    }
-  }
-  return absl::OkStatus();
-}
-
-absl::StatusOr<metric::proto::EvaluationResults> EvaluateOOBPredictions(
-    const dataset::VerticalDataset& train_dataset,
-    const model::proto::Task task, const int label_col_idx,
-    const int uplift_treatment_col_idx,
-    const std::optional<dataset::proto::LinkedWeightDefinition>& weight_links,
-    const std::vector<PredictionAccumulator>& oob_predictions,
-    const bool for_permutation_importance) {
-  // Configure the evaluation options.
-  metric::proto::EvaluationOptions eval_options;
-  eval_options.set_task(task);
-  // Disable the computation of expensive metrics that are not needed for the
-  // monitoring of training.
-  eval_options.set_bootstrapping_samples(-1);
-  switch (task) {
-    case model::proto::Task::CLASSIFICATION:
-      eval_options.mutable_classification()->set_roc_enable(
-          for_permutation_importance);
-      break;
-    case model::proto::Task::REGRESSION:
-      eval_options.mutable_regression()->set_enable_regression_plots(false);
-      break;
-    case model::proto::Task::CATEGORICAL_UPLIFT:
-    case model::proto::Task::NUMERICAL_UPLIFT:
-      break;
-    default:
-      LOG(WARNING) << "Not implemented";
-  }
-  if (weight_links.has_value()) {
-    // Note: The "weights" of "eval_options" won't be used, but "has_weights()"
-    // needs to be true.
-    eval_options.mutable_weights();
-  }
-
-  const auto& label_column_spec =
-      train_dataset.data_spec().columns(label_col_idx);
-  utils::RandomEngine rnd;
-  metric::proto::EvaluationResults evaluation;
-  RETURN_IF_ERROR(metric::InitializeEvaluation(eval_options, label_column_spec,
-                                               &evaluation));
-  model::proto::Prediction prediction;
-
-  for (UnsignedExampleIdx example_idx = 0; example_idx < train_dataset.nrow();
-       example_idx++) {
-    auto& prediction_accumulator = oob_predictions[example_idx];
-    if (prediction_accumulator.num_trees == 0) {
-      // Not decision tree has been trained (yet) with this example in the oob
-      // set i.e. all the trees have been trained using this example for
-      // training.
-      continue;
-    }
-
-    switch (task) {
-      case model::proto::Task::CLASSIFICATION:
-        FinalizeClassificationLeafToAccumulator(
-            prediction_accumulator.classification, &prediction);
-        break;
-      case model::proto::Task::REGRESSION:
-        prediction.mutable_regression()->set_value(
-            prediction_accumulator.regression /
-            prediction_accumulator.num_trees);
-        break;
-      case model::proto::Task::CATEGORICAL_UPLIFT:
-        *prediction.mutable_uplift()->mutable_treatment_effect() = {
-            prediction_accumulator.uplift.begin(),
-            prediction_accumulator.uplift.end()};
-        break;
-      default:
-        LOG(WARNING) << "Not implemented";
-    }
-    RETURN_IF_ERROR(model::SetGroundTruth(
-        train_dataset, example_idx,
-        model::GroundTruthColumnIndices(label_col_idx, model::kNoRankingGroup,
-                                        uplift_treatment_col_idx),
-        eval_options.task(), &prediction));
-    if (weight_links.has_value()) {
-      ASSIGN_OR_RETURN(auto weight,
-                       dataset::GetWeightWithStatus(train_dataset, example_idx,
-                                                    weight_links.value()));
-      prediction.set_weight(weight);
-    }
-    RETURN_IF_ERROR(
-        metric::AddPrediction(eval_options, prediction, &rnd, &evaluation));
-  }
-  RETURN_IF_ERROR(
-      metric::FinalizeEvaluation(eval_options, label_column_spec, &evaluation));
-  if (!for_permutation_importance &&
-      evaluation.sampled_predictions_size() != 0) {
-    LOG(WARNING) << "Internal error: Non empty oob evaluation";
-    evaluation.clear_sampled_predictions();
-  }
-  return evaluation;
-}
-
-absl::Status ComputeVariableImportancesFromAccumulatedPredictions(
-    const std::vector<internal::PredictionAccumulator>& oob_predictions,
-    const std::vector<std::vector<internal::PredictionAccumulator>>&
-        oob_predictions_per_input_features,
-    const dataset::VerticalDataset& dataset, const int num_threads,
-    RandomForestModel* model) {
-  // Note: "for_permutation_importance=true" allows to compute AUC, PR-AUC and
-  // other expensive evaluation metrics.
-  ASSIGN_OR_RETURN(
-      const auto base_evaluation,
-      EvaluateOOBPredictions(dataset, model->task(), model->label_col_idx(),
-                             model->uplift_treatment_col_idx(),
-                             model->weights(), oob_predictions,
-                             /*for_permutation_importance=*/true));
-
-  const auto permutation_evaluation = [&](const int feature_idx)
-      -> absl::StatusOr<std::optional<metric::proto::EvaluationResults>> {
-    if (oob_predictions_per_input_features[feature_idx].empty()) {
-      return std::optional<metric::proto::EvaluationResults>{};
-    }
-    ASSIGN_OR_RETURN(auto eval,
-                     EvaluateOOBPredictions(
-                         dataset, model->task(), model->label_col_idx(),
-                         model->uplift_treatment_col_idx(), model->weights(),
-                         oob_predictions_per_input_features[feature_idx],
-                         /*for_permutation_importance=*/true));
-    return eval;
-  };
-
-  return utils::ComputePermutationFeatureImportance(
-      base_evaluation, permutation_evaluation, model,
-      model->mutable_precomputed_variable_importances(),
-      utils::ComputeFeatureImportanceOptions{/*num_threads =*/num_threads});
-}
-
-void InitializeModelWithTrainingConfig(
-    const model::proto::TrainingConfig& training_config,
-    const model::proto::TrainingConfigLinking& training_config_linking,
-    RandomForestModel* model) {
-  InitializeModelWithAbstractTrainingConfig(training_config,
-                                            training_config_linking, model);
-  const auto& rf_config =
-      training_config.GetExtension(random_forest::proto::random_forest_config);
-  model->set_winner_take_all_inference(rf_config.winner_take_all_inference());
-}
-
-void SampleTrainingExamples(const UnsignedExampleIdx num_examples,
-                            const UnsignedExampleIdx num_samples,
-                            const bool with_replacement,
-                            utils::RandomEngine* random,
-                            std::vector<UnsignedExampleIdx>* selected) {
-  selected->resize(num_samples);
-
-  if (with_replacement) {
-    selected->resize(num_samples);
-    // Sampling with replacement.
-    std::uniform_int_distribution<UnsignedExampleIdx> example_idx_distrib(
-        0, num_examples - 1);
-    for (UnsignedExampleIdx sample_idx = 0; sample_idx < num_samples;
-         sample_idx++) {
-      (*selected)[sample_idx] = example_idx_distrib(*random);
-    }
-    std::sort(selected->begin(), selected->end());
-  } else {
-    selected->clear();
-    selected->reserve(num_samples);
-    // Sampling without replacement.
-    std::uniform_real_distribution<float> dist_01;
-    for (UnsignedExampleIdx example_idx = 0; example_idx < num_examples;
-         example_idx++) {
-      // The probability of selection is p/n where p is the remaining number of
-      // items to sample, and n the remaining number of items to test.
-      const float proba_select =
-          static_cast<float>(num_samples - selected->size()) /
-          (num_examples - example_idx);
-      if (dist_01(*random) < proba_select) {
-        selected->push_back(example_idx);
-      }
-    }
-  }
-}
-
-absl::Status ExportOOBPredictions(
-    const model::proto::TrainingConfig& config,
-    const model::proto::TrainingConfigLinking& config_link,
-    const dataset::proto::DataSpecification& dataspec,
-    const std::vector<PredictionAccumulator>& oob_predictions,
-    absl::string_view typed_path) {
-  // Create the dataspec that describes the exported prediction dataset.
-  dataset::proto::DataSpecification pred_dataspec;
-
-  // Buffer example.
-  dataset::proto::Example example;
-
-  // Number of classification classes. Unused if the label is not categorical.
-  int num_label_classes = -1;
-
-  const auto& label_spec = dataspec.columns(config_link.label());
-  switch (config.task()) {
-    case model::proto::Task::CLASSIFICATION: {
-      num_label_classes = label_spec.categorical().number_of_unique_values();
-      for (int i = 1 /*skip the OOV*/; i < num_label_classes; i++) {
-        auto* col = pred_dataspec.add_columns();
-        col->set_name(dataset::CategoricalIdxToRepresentation(label_spec, i));
-        col->set_type(dataset::proto::ColumnType::NUMERICAL);
-        example.add_attributes()->set_numerical(0);
-      }
-    } break;
-
-    case model::proto::Task::REGRESSION: {
-      auto* col = pred_dataspec.add_columns();
-      col->set_name(label_spec.name());
-      col->set_type(dataset::proto::ColumnType::NUMERICAL);
-      example.add_attributes()->set_numerical(0);
-    } break;
-
-    case model::proto::Task::CATEGORICAL_UPLIFT: {
-      num_label_classes = label_spec.categorical().number_of_unique_values();
-      for (int i = 2 /*skip the OOV and treatment*/; i < num_label_classes;
-           i++) {
-        auto* col = pred_dataspec.add_columns();
-        col->set_name(dataset::CategoricalIdxToRepresentation(label_spec, i));
-        col->set_type(dataset::proto::ColumnType::NUMERICAL);
-        example.add_attributes()->set_numerical(0);
-      }
-    } break;
-
-    case model::proto::Task::NUMERICAL_UPLIFT: {
-      auto* col = pred_dataspec.add_columns();
-      col->set_name(label_spec.name());
-      col->set_type(dataset::proto::ColumnType::NUMERICAL);
-      example.add_attributes()->set_numerical(0);
-    } break;
-
-    default:
-      return absl::InvalidArgumentError(
-          "Exporting oob-predictions not supported for this task");
-  }
-
-  ASSIGN_OR_RETURN(auto writer,
-                   dataset::CreateExampleWriter(typed_path, pred_dataspec));
-
-  // Write the predictions one by one.
-  for (const auto& pred : oob_predictions) {
-    switch (config.task()) {
-      case model::proto::Task::CLASSIFICATION:
-        DCHECK_EQ(pred.classification.NumClasses(), num_label_classes);
-        for (int i = 1 /*skip the OOV*/; i < num_label_classes; i++) {
-          example.mutable_attributes(i - 1)->set_numerical(
-              pred.classification.NumObservations() > 0
-                  ? pred.classification.SafeProportionOrMinusInfinity(i)
-                  : 0);
+        if (training_stopped_early)
+        {
+          // Remove the non-trained trees.
+          auto &trees = *mdl->mutable_decision_trees();
+          trees.erase(
+              std::remove_if(
+                  trees.begin(), trees.end(),
+                  [](const std::unique_ptr<decision_tree::DecisionTree> &tree)
+                      -> bool
+                  { return !tree || tree->mutable_root() == nullptr; }),
+              trees.end());
         }
-        break;
 
-      case model::proto::Task::REGRESSION:
-        example.mutable_attributes(0)->set_numerical(pred.regression);
-        break;
+        {
+          // Note: At this point, there are not concurrent workers running.
+          utils::concurrency::MutexLock lock(&concurrent_fields.mutex);
 
-      case model::proto::Task::CATEGORICAL_UPLIFT:
-        DCHECK_EQ(pred.uplift.size(), num_label_classes - 2);
-        for (int i = 2; i < num_label_classes; i++) {
-          example.mutable_attributes(i - 2)->set_numerical(pred.uplift[i - 2]);
+          // Check for any pending failure during the training.
+          RETURN_IF_ERROR(concurrent_fields.status);
+
+          if (rf_config.total_max_num_nodes() > 0 &&
+              concurrent_fields.total_num_nodes_accounted >
+                  rf_config.total_max_num_nodes())
+          {
+            // Keep the first trees such that the maximum number of nodes constraint
+            // is satisfied.
+            auto &trees = *mdl->mutable_decision_trees();
+            int num_trees_to_keep = 0;
+            int64_t num_nodes = 0;
+            while (num_trees_to_keep < trees.size() &&
+                   num_nodes + concurrent_fields
+                                   .num_nodes_completed_trees[num_trees_to_keep] <
+                       rf_config.total_max_num_nodes())
+            {
+              num_nodes +=
+                  concurrent_fields.num_nodes_completed_trees[num_trees_to_keep];
+              num_trees_to_keep++;
+            }
+            if (num_trees_to_keep == 0)
+            {
+              return absl::InvalidArgumentError(absl::StrCat(
+                  "The first tree alone exceeds the \"total_max_num_nodes\" "
+                  "parameter with ",
+                  concurrent_fields.num_nodes_completed_trees[0], ">",
+                  rf_config.total_max_num_nodes(),
+                  " nodes. Relax \"total_max_num_nodes\" or limit the "
+                  "growth of the tree (e.g. maximum depth)"));
+            }
+            trees.erase(trees.begin() + num_trees_to_keep, trees.end());
+            LOG(INFO) << "Retaining the first " << num_trees_to_keep
+                      << " trees to satisfy the "
+                         "\"total_max_num_nodes\" constraint.";
+          }
         }
-        break;
 
-      case model::proto::Task::NUMERICAL_UPLIFT:
-        DCHECK_EQ(pred.uplift.size(), 1);
-        example.mutable_attributes(0)->set_numerical(pred.uplift[0]);
-        break;
+        if (compute_oob_performances &&
+            !mdl->mutable_out_of_bag_evaluations()->empty())
+        {
+          LOG(INFO)
+              << "Final OOB metrics: "
+              << internal::EvaluationSnippet(
+                     mdl->mutable_out_of_bag_evaluations()->back().evaluation());
+        }
 
-      default:
-        return absl::InvalidArgumentError("Unsupported task");
-    }
-    RETURN_IF_ERROR(writer->Write(example));
-  }
+        if (compute_oob_variable_importances)
+        {
+          RETURN_IF_ERROR(ComputeVariableImportancesFromAccumulatedPredictions(
+              oob_predictions, oob_predictions_per_input_features, train_dataset,
+              deployment().num_threads(), mdl.get()));
+        }
 
-  return absl::OkStatus();
-}
+        if (!rf_config.export_oob_prediction_path().empty())
+        {
+          RETURN_IF_ERROR(ExportOOBPredictions(
+              config_with_default, config_link, train_dataset.data_spec(),
+              oob_predictions, rf_config.export_oob_prediction_path()));
+        }
 
-absl::Status SetDefaultHyperParameters(
-    random_forest::proto::RandomForestTrainingConfig* rf_config) {
-  decision_tree::SetDefaultHyperParameters(rf_config->mutable_decision_tree());
+        // Cache the structural variable importance in the model data.
+        RETURN_IF_ERROR(mdl->PrecomputeVariableImportances(
+            mdl->AvailableStructuralVariableImportances()));
 
-  if (rf_config->decision_tree().internal().sorting_strategy() ==
-      decision_tree::proto::DecisionTreeTrainingConfig::Internal::AUTO) {
-    return absl::InvalidArgumentError("sorting_strategy not set");
-  }
+        decision_tree::SetLeafIndices(mdl->mutable_decision_trees());
 
-  return absl::OkStatus();
-}
+        if (vector_sequence_computer)
+        {
+          RETURN_IF_ERROR(vector_sequence_computer->Release());
+        }
+        return std::move(mdl);
+      }
 
-}  // namespace internal
+      namespace internal
+      {
 
-}  // namespace random_forest
-}  // namespace model
-}  // namespace yggdrasil_decision_forests
+        void InitializeOOBPredictionAccumulators(
+            const UnsignedExampleIdx num_predictions,
+            const model::proto::TrainingConfig &config,
+            const model::proto::TrainingConfigLinking &config_link,
+            const dataset::proto::DataSpecification &data_spec,
+            std::vector<PredictionAccumulator> *predictions)
+        {
+          predictions->resize(num_predictions);
+
+          switch (config.task())
+          {
+          case model::proto::Task::CLASSIFICATION:
+            for (auto &prediction : *predictions)
+            {
+              prediction.classification.SetNumClasses(
+                  config_link.num_label_classes());
+            }
+            break;
+
+          case model::proto::Task::CATEGORICAL_UPLIFT:
+            // Note: -2 because: The value 0 is reserved for the out-of-vocab item,
+            // and there is one less predictions than treatments.
+            for (auto &prediction : *predictions)
+            {
+              prediction.uplift.assign(
+                  data_spec.columns(config_link.uplift_treatment())
+                          .categorical()
+                          .number_of_unique_values() -
+                      2,
+                  0);
+            }
+            break;
+
+          default:
+            // Nothing to do.
+            break;
+          }
+        }
+
+        absl::Status UpdateOOBPredictionsWithNewTree(
+            const dataset::VerticalDataset &train_dataset,
+            const model::proto::TrainingConfig &config,
+            std::vector<UnsignedExampleIdx> sorted_non_oob_example_indices,
+            const bool winner_take_all_inference,
+            const decision_tree::DecisionTree &new_decision_tree,
+            const std::optional<int> shuffled_attribute_idx, utils::RandomEngine *rnd,
+            std::vector<PredictionAccumulator> *oob_predictions)
+        {
+          // "next_non_oob_example_idx" is the index in "sorted_non_oob_example_indices"
+          // of the example, with the smallest index which is greater or equal to the
+          // index of the example being iterator on in the following "for loop".
+          UnsignedExampleIdx next_non_oob_example_idx = 0;
+
+          std::uniform_int_distribution<UnsignedExampleIdx> row_distribution(
+              0, train_dataset.nrow() - 1);
+
+          for (UnsignedExampleIdx example_idx = 0; example_idx < train_dataset.nrow();
+               example_idx++)
+          {
+            // Skip the example_idx in "sorted_non_oob_example_indices".
+            while (next_non_oob_example_idx < sorted_non_oob_example_indices.size() &&
+                   sorted_non_oob_example_indices[next_non_oob_example_idx] <
+                       example_idx)
+            {
+              next_non_oob_example_idx++;
+            }
+            if (next_non_oob_example_idx < sorted_non_oob_example_indices.size() &&
+                sorted_non_oob_example_indices[next_non_oob_example_idx] ==
+                    example_idx)
+            {
+              continue;
+            }
+
+            // Apply the decision tree.
+            const decision_tree::proto::Node *leaf;
+            if (shuffled_attribute_idx.has_value())
+            {
+              const auto random_example_idx = row_distribution(*rnd);
+              leaf = &new_decision_tree.GetLeafWithSwappedAttribute(
+                  train_dataset, example_idx, shuffled_attribute_idx.value(),
+                  random_example_idx);
+            }
+            else
+            {
+              leaf = &new_decision_tree.GetLeaf(train_dataset, example_idx);
+            }
+
+            // Accumulate the decision prediction to the oob accumulator.
+            auto &accumulator = (*oob_predictions)[example_idx];
+            accumulator.num_trees++;
+            switch (config.task())
+            {
+            case model::proto::Task::CLASSIFICATION:
+              AddClassificationLeafToAccumulator(winner_take_all_inference, *leaf,
+                                                 &accumulator.classification);
+              break;
+            case model::proto::Task::REGRESSION:
+              AddRegressionLeafToAccumulator(*leaf, &accumulator.regression);
+              break;
+            case model::proto::Task::RANKING:
+              return absl::InvalidArgumentError("OOB not implemented for Uplift.");
+              break;
+            case model::proto::Task::CATEGORICAL_UPLIFT:
+              AddUpliftLeafToAccumulator(*leaf, &accumulator.uplift);
+              break;
+            default:
+              LOG(WARNING) << "Not implemented";
+            }
+          }
+          return absl::OkStatus();
+        }
+
+        absl::StatusOr<metric::proto::EvaluationResults> EvaluateOOBPredictions(
+            const dataset::VerticalDataset &train_dataset,
+            const model::proto::Task task, const int label_col_idx,
+            const int uplift_treatment_col_idx,
+            const std::optional<dataset::proto::LinkedWeightDefinition> &weight_links,
+            const std::vector<PredictionAccumulator> &oob_predictions,
+            const bool for_permutation_importance)
+        {
+          // Configure the evaluation options.
+          metric::proto::EvaluationOptions eval_options;
+          eval_options.set_task(task);
+          // Disable the computation of expensive metrics that are not needed for the
+          // monitoring of training.
+          eval_options.set_bootstrapping_samples(-1);
+          switch (task)
+          {
+          case model::proto::Task::CLASSIFICATION:
+            eval_options.mutable_classification()->set_roc_enable(
+                for_permutation_importance);
+            break;
+          case model::proto::Task::REGRESSION:
+            eval_options.mutable_regression()->set_enable_regression_plots(false);
+            break;
+          case model::proto::Task::CATEGORICAL_UPLIFT:
+          case model::proto::Task::NUMERICAL_UPLIFT:
+            break;
+          default:
+            LOG(WARNING) << "Not implemented";
+          }
+          if (weight_links.has_value())
+          {
+            // Note: The "weights" of "eval_options" won't be used, but "has_weights()"
+            // needs to be true.
+            eval_options.mutable_weights();
+          }
+
+          const auto &label_column_spec =
+              train_dataset.data_spec().columns(label_col_idx);
+          utils::RandomEngine rnd;
+          metric::proto::EvaluationResults evaluation;
+          RETURN_IF_ERROR(metric::InitializeEvaluation(eval_options, label_column_spec,
+                                                       &evaluation));
+          model::proto::Prediction prediction;
+
+          for (UnsignedExampleIdx example_idx = 0; example_idx < train_dataset.nrow();
+               example_idx++)
+          {
+            auto &prediction_accumulator = oob_predictions[example_idx];
+            if (prediction_accumulator.num_trees == 0)
+            {
+              // Not decision tree has been trained (yet) with this example in the oob
+              // set i.e. all the trees have been trained using this example for
+              // training.
+              continue;
+            }
+
+            switch (task)
+            {
+            case model::proto::Task::CLASSIFICATION:
+              FinalizeClassificationLeafToAccumulator(
+                  prediction_accumulator.classification, &prediction);
+              break;
+            case model::proto::Task::REGRESSION:
+              prediction.mutable_regression()->set_value(
+                  prediction_accumulator.regression /
+                  prediction_accumulator.num_trees);
+              break;
+            case model::proto::Task::CATEGORICAL_UPLIFT:
+              *prediction.mutable_uplift()->mutable_treatment_effect() = {
+                  prediction_accumulator.uplift.begin(),
+                  prediction_accumulator.uplift.end()};
+              break;
+            default:
+              LOG(WARNING) << "Not implemented";
+            }
+            RETURN_IF_ERROR(model::SetGroundTruth(
+                train_dataset, example_idx,
+                model::GroundTruthColumnIndices(label_col_idx, model::kNoRankingGroup,
+                                                uplift_treatment_col_idx),
+                eval_options.task(), &prediction));
+            if (weight_links.has_value())
+            {
+              ASSIGN_OR_RETURN(auto weight,
+                               dataset::GetWeightWithStatus(train_dataset, example_idx,
+                                                            weight_links.value()));
+              prediction.set_weight(weight);
+            }
+            RETURN_IF_ERROR(
+                metric::AddPrediction(eval_options, prediction, &rnd, &evaluation));
+          }
+          RETURN_IF_ERROR(
+              metric::FinalizeEvaluation(eval_options, label_column_spec, &evaluation));
+          if (!for_permutation_importance &&
+              evaluation.sampled_predictions_size() != 0)
+          {
+            LOG(WARNING) << "Internal error: Non empty oob evaluation";
+            evaluation.clear_sampled_predictions();
+          }
+          return evaluation;
+        }
+
+        absl::Status ComputeVariableImportancesFromAccumulatedPredictions(
+            const std::vector<internal::PredictionAccumulator> &oob_predictions,
+            const std::vector<std::vector<internal::PredictionAccumulator>> &
+                oob_predictions_per_input_features,
+            const dataset::VerticalDataset &dataset, const int num_threads,
+            RandomForestModel *model)
+        {
+          // Note: "for_permutation_importance=true" allows to compute AUC, PR-AUC and
+          // other expensive evaluation metrics.
+          ASSIGN_OR_RETURN(
+              const auto base_evaluation,
+              EvaluateOOBPredictions(dataset, model->task(), model->label_col_idx(),
+                                     model->uplift_treatment_col_idx(),
+                                     model->weights(), oob_predictions,
+                                     /*for_permutation_importance=*/true));
+
+          const auto permutation_evaluation = [&](const int feature_idx)
+              -> absl::StatusOr<std::optional<metric::proto::EvaluationResults>>
+          {
+            if (oob_predictions_per_input_features[feature_idx].empty())
+            {
+              return std::optional<metric::proto::EvaluationResults>{};
+            }
+            ASSIGN_OR_RETURN(auto eval,
+                             EvaluateOOBPredictions(
+                                 dataset, model->task(), model->label_col_idx(),
+                                 model->uplift_treatment_col_idx(), model->weights(),
+                                 oob_predictions_per_input_features[feature_idx],
+                                 /*for_permutation_importance=*/true));
+            return eval;
+          };
+
+          return utils::ComputePermutationFeatureImportance(
+              base_evaluation, permutation_evaluation, model,
+              model->mutable_precomputed_variable_importances(),
+              utils::ComputeFeatureImportanceOptions{/*num_threads =*/num_threads});
+        }
+
+        void InitializeModelWithTrainingConfig(
+            const model::proto::TrainingConfig &training_config,
+            const model::proto::TrainingConfigLinking &training_config_linking,
+            RandomForestModel *model)
+        {
+          InitializeModelWithAbstractTrainingConfig(training_config,
+                                                    training_config_linking, model);
+          const auto &rf_config =
+              training_config.GetExtension(random_forest::proto::random_forest_config);
+          model->set_winner_take_all_inference(rf_config.winner_take_all_inference());
+        }
+
+        void SampleTrainingExamples(const UnsignedExampleIdx num_examples,
+                                    const UnsignedExampleIdx num_samples,
+                                    const bool with_replacement,
+                                    utils::RandomEngine *random,
+                                    std::vector<UnsignedExampleIdx> *selected)
+        {
+          selected->resize(num_samples);
+
+          if (with_replacement)
+          {
+            selected->resize(num_samples);
+            // Sampling with replacement.
+            std::uniform_int_distribution<UnsignedExampleIdx> example_idx_distrib(
+                0, num_examples - 1);
+            for (UnsignedExampleIdx sample_idx = 0; sample_idx < num_samples;
+                 sample_idx++)
+            {
+              (*selected)[sample_idx] = example_idx_distrib(*random);
+            }
+            std::sort(selected->begin(), selected->end());
+          }
+          else
+          {
+            selected->clear();
+            selected->reserve(num_samples);
+            // Sampling without replacement.
+            std::uniform_real_distribution<float> dist_01;
+            for (UnsignedExampleIdx example_idx = 0; example_idx < num_examples;
+                 example_idx++)
+            {
+              // The probability of selection is p/n where p is the remaining number of
+              // items to sample, and n the remaining number of items to test.
+              const float proba_select =
+                  static_cast<float>(num_samples - selected->size()) /
+                  (num_examples - example_idx);
+              if (dist_01(*random) < proba_select)
+              {
+                selected->push_back(example_idx);
+              }
+            }
+          }
+        }
+
+        absl::Status ExportOOBPredictions(
+            const model::proto::TrainingConfig &config,
+            const model::proto::TrainingConfigLinking &config_link,
+            const dataset::proto::DataSpecification &dataspec,
+            const std::vector<PredictionAccumulator> &oob_predictions,
+            absl::string_view typed_path)
+        {
+          // Create the dataspec that describes the exported prediction dataset.
+          dataset::proto::DataSpecification pred_dataspec;
+
+          // Buffer example.
+          dataset::proto::Example example;
+
+          // Number of classification classes. Unused if the label is not categorical.
+          int num_label_classes = -1;
+
+          const auto &label_spec = dataspec.columns(config_link.label());
+          switch (config.task())
+          {
+          case model::proto::Task::CLASSIFICATION:
+          {
+            num_label_classes = label_spec.categorical().number_of_unique_values();
+            for (int i = 1 /*skip the OOV*/; i < num_label_classes; i++)
+            {
+              auto *col = pred_dataspec.add_columns();
+              col->set_name(dataset::CategoricalIdxToRepresentation(label_spec, i));
+              col->set_type(dataset::proto::ColumnType::NUMERICAL);
+              example.add_attributes()->set_numerical(0);
+            }
+          }
+          break;
+
+          case model::proto::Task::REGRESSION:
+          {
+            auto *col = pred_dataspec.add_columns();
+            col->set_name(label_spec.name());
+            col->set_type(dataset::proto::ColumnType::NUMERICAL);
+            example.add_attributes()->set_numerical(0);
+          }
+          break;
+
+          case model::proto::Task::CATEGORICAL_UPLIFT:
+          {
+            num_label_classes = label_spec.categorical().number_of_unique_values();
+            for (int i = 2 /*skip the OOV and treatment*/; i < num_label_classes;
+                 i++)
+            {
+              auto *col = pred_dataspec.add_columns();
+              col->set_name(dataset::CategoricalIdxToRepresentation(label_spec, i));
+              col->set_type(dataset::proto::ColumnType::NUMERICAL);
+              example.add_attributes()->set_numerical(0);
+            }
+          }
+          break;
+
+          case model::proto::Task::NUMERICAL_UPLIFT:
+          {
+            auto *col = pred_dataspec.add_columns();
+            col->set_name(label_spec.name());
+            col->set_type(dataset::proto::ColumnType::NUMERICAL);
+            example.add_attributes()->set_numerical(0);
+          }
+          break;
+
+          default:
+            return absl::InvalidArgumentError(
+                "Exporting oob-predictions not supported for this task");
+          }
+
+          ASSIGN_OR_RETURN(auto writer,
+                           dataset::CreateExampleWriter(typed_path, pred_dataspec));
+
+          // Write the predictions one by one.
+          for (const auto &pred : oob_predictions)
+          {
+            switch (config.task())
+            {
+            case model::proto::Task::CLASSIFICATION:
+              DCHECK_EQ(pred.classification.NumClasses(), num_label_classes);
+              for (int i = 1 /*skip the OOV*/; i < num_label_classes; i++)
+              {
+                example.mutable_attributes(i - 1)->set_numerical(
+                    pred.classification.NumObservations() > 0
+                        ? pred.classification.SafeProportionOrMinusInfinity(i)
+                        : 0);
+              }
+              break;
+
+            case model::proto::Task::REGRESSION:
+              example.mutable_attributes(0)->set_numerical(pred.regression);
+              break;
+
+            case model::proto::Task::CATEGORICAL_UPLIFT:
+              DCHECK_EQ(pred.uplift.size(), num_label_classes - 2);
+              for (int i = 2; i < num_label_classes; i++)
+              {
+                example.mutable_attributes(i - 2)->set_numerical(pred.uplift[i - 2]);
+              }
+              break;
+
+            case model::proto::Task::NUMERICAL_UPLIFT:
+              DCHECK_EQ(pred.uplift.size(), 1);
+              example.mutable_attributes(0)->set_numerical(pred.uplift[0]);
+              break;
+
+            default:
+              return absl::InvalidArgumentError("Unsupported task");
+            }
+            RETURN_IF_ERROR(writer->Write(example));
+          }
+
+          return absl::OkStatus();
+        }
+
+        absl::Status SetDefaultHyperParameters(
+            random_forest::proto::RandomForestTrainingConfig *rf_config)
+        {
+          decision_tree::SetDefaultHyperParameters(rf_config->mutable_decision_tree());
+
+          if (rf_config->decision_tree().internal().sorting_strategy() ==
+              decision_tree::proto::DecisionTreeTrainingConfig::Internal::AUTO)
+          {
+            return absl::InvalidArgumentError("sorting_strategy not set");
+          }
+
+          return absl::OkStatus();
+        }
+
+      } // namespace internal
+
+    } // namespace random_forest
+  } // namespace model
+} // namespace yggdrasil_decision_forests

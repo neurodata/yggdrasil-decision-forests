@@ -7,3 +7,5 @@ no_sync*
 .clwb/
 **/.idea
 **/.DS_Store
+**/tmp
+**/gmon.out
