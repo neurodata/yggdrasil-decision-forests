@@ -753,11 +753,14 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
           internal_config.vector_sequence_computer =
               vector_sequence_computer.get();
         }
+
+        // Ariel: Decision Tree Training starts here
         auto status_train = decision_tree::Train(
             train_dataset, selected_examples, config_with_default, config_link,
             rf_config.decision_tree(), deployment(), weights, &random,
             decision_tree.get(), internal_config);
 
+        // TODO Ariel Interesting Synchronization
         int current_num_trained_trees;
         {
           utils::concurrency::MutexLock lock(&concurrent_fields.mutex);
