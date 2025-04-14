@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- <!DOCTYPE IntelParallelAdvisorSummaryCollection SYSTEM  "IntelParallelAdvisorSummaryCollection.dtd"> -->
+
+<IntelParallelAdvisorSummary version="" 
+                             kind="DATAKIND_SURVEY_EX" >
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/dataset/csv_example_reader.cc"
+           line_no="185"
+           routine="yggdrasil_decision_forests::dataset::CsvDataSpecCreator::InferColumnsAndTypes"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="4.239984E+00"
+           trip_counts=""
+           func_instance="83"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/dataset/csv_example_reader.cc"
+           line_no="211"
+           routine="yggdrasil_decision_forests::dataset::CsvDataSpecCreator::InferColumnsAndTypes"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="4.209999E+00"
+           trip_counts=""
+           func_instance="113"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/dataset/csv_example_reader.cc"
+           line_no="270"
+           routine="yggdrasil_decision_forests::dataset::CsvDataSpecCreator::ComputeColumnStatistics"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="2.539998E+00"
+           trip_counts=""
+           func_instance="343"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/dataset/vertical_dataset_io.cc"
+           line_no="73"
+           routine="yggdrasil_decision_forests::dataset::(anonymous namespace)::LoadVerticalDatasetSingleThread"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="2.529998E+00"
+           trip_counts=""
+           func_instance="441"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/dataset/csv_example_reader.cc"
+           line_no="297"
+           routine="yggdrasil_decision_forests::dataset::CsvDataSpecCreator::ComputeColumnStatistics"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="2.479998E+00"
+           trip_counts=""
+           func_instance="355"
+           priority="0"/>
+</IntelParallelAdvisorSummary >

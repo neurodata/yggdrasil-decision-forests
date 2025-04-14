@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- <!DOCTYPE IntelParallelAdvisorSummaryCollection SYSTEM  "IntelParallelAdvisorSummaryCollection.dtd"> -->
+
+<IntelParallelAdvisorSummary version="" 
+                             kind="DATAKIND_SURVEY_EX" >
+  <hotspot filename="/proc/self/cwd/external/com_google_absl/absl/strings/internal/charconv_parse.cc"
+           line_no="266"
+           routine="ConsumeDigits&lt;10, long unsigned int&gt;"
+           is_vectorized="0"
+           self_time="1.900064E-01"
+           total_time="2.900072E-01"
+           trip_counts=""
+           func_instance="152"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/external/com_google_absl/absl/strings/ascii.cc"
+           line_no="191"
+           routine="absl::lts_20240722::ascii_internal::AsciiStrCaseFoldImpl&lt;(bool)0&gt;"
+           is_vectorized="0"
+           self_time="1.399977E-01"
+           total_time="2.199980E-01"
+           trip_counts=""
+           func_instance="215"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/utils/csv.cc"
+           line_no="90"
+           routine="yggdrasil_decision_forests::utils::csv::Reader::NextRow"
+           is_vectorized="0"
+           self_time="3.999964E-02"
+           total_time="3.999964E-02"
+           trip_counts=""
+           func_instance="226"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/dataset/csv_example_reader.cc"
+           line_no="111"
+           routine="yggdrasil_decision_forests::dataset::UpdateDataSpecWithCsvExample"
+           is_vectorized="0"
+           self_time="2.000103E-02"
+           total_time="5.500032E-01"
+           trip_counts=""
+           func_instance="356"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/utils/csv.cc"
+           line_no="211"
+           routine="yggdrasil_decision_forests::utils::csv::Reader::FinalizeRowCache"
+           is_vectorized="0"
+           self_time="1.999858E-02"
+           total_time="3.999781E-02"
+           trip_counts=""
+           func_instance="173"
+           priority="0"/>
+</IntelParallelAdvisorSummary >

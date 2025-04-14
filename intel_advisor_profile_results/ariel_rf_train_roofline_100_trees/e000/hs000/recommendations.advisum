@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- <!DOCTYPE IntelParallelAdvisorSummaryCollection SYSTEM  "IntelParallelAdvisorSummaryCollection.dtd"> -->
+
+<IntelParallelAdvisorSummary version="" 
+                             kind="DATAKIND_SURVEY_EX" >
+  <hotspot filename="/proc/self/cwd/./yggdrasil_decision_forests/learner/decision_tree/splitter_scanner.h"
+           line_no="1062"
+           routine="yggdrasil_decision_forests::model::decision_tree::ScanSplitsPresortedSparseDuplicateExampleTemplate&lt;yggdrasil_decision_forests::model::decision_tree::ExampleBucketSet&lt;yggdrasil_decision_forests::model::decision_tree::ExampleBucket&lt;yggdrasil_decision_forests::model::decision_tree::FeatureNumericalBucket, yggdrasil_decision_forests::model::decision_tree::LabelBinaryCategoricalOneValueBucket&lt;(bool)0&gt;&gt;&gt;, yggdrasil_decision_forests::model::decision_tree::LabelBinaryCategoricalScoreAccumulator, (bool)1&gt;"
+           is_vectorized="0"
+           self_time="1.400066E-01"
+           total_time="0.000000E+00"
+           trip_counts=""
+           func_instance="800"
+           priority="0">
+           <recommendation id="rec_libsvml_gcc_c" title="Use the Intel short vector math library for vector intrinsics" confidence="3" gain="-1"/>
+  </hotspot>
+  <hotspot filename="/proc/self/cwd/./yggdrasil_decision_forests/utils/distribution.h"
+           line_no="914"
+           routine="yggdrasil_decision_forests::utils::IntegerDistribution&lt;double&gt;::Entropy"
+           is_vectorized="0"
+           self_time="9.990555E-03"
+           total_time="0.000000E+00"
+           trip_counts=""
+           func_instance="861"
+           priority="0">
+           <recommendation id="rec_libsvml_gcc_c" title="Use the Intel short vector math library for vector intrinsics" confidence="3" gain="-1"/>
+  </hotspot>
+  <hotspot filename="/proc/self/cwd/./yggdrasil_decision_forests/learner/decision_tree/splitter_scanner.h"
+           line_no="1062"
+           routine="yggdrasil_decision_forests::model::decision_tree::ScanSplitsPresortedSparseDuplicateExampleTemplate&lt;yggdrasil_decision_forests::model::decision_tree::ExampleBucketSet&lt;yggdrasil_decision_forests::model::decision_tree::ExampleBucket&lt;yggdrasil_decision_forests::model::decision_tree::FeatureNumericalBucket, yggdrasil_decision_forests::model::decision_tree::LabelBinaryCategoricalOneValueBucket&lt;(bool)0&gt;&gt;&gt;, yggdrasil_decision_forests::model::decision_tree::LabelBinaryCategoricalScoreAccumulator, (bool)1&gt;"
+           is_vectorized="0"
+           self_time="1.400066E-01"
+           total_time="0.000000E+00"
+           trip_counts=""
+           func_instance="800"
+           priority="0">
+           <recommendation id="rec_libmvec_new_glibc_c" title="Use a Glibc library with vectorized SVML functions" confidence="1" gain="-1"/>
+  </hotspot>
+  <hotspot filename="/proc/self/cwd/./yggdrasil_decision_forests/learner/decision_tree/splitter_scanner.h"
+           line_no="1062"
+           routine="yggdrasil_decision_forests::model::decision_tree::ScanSplitsPresortedSparseDuplicateExampleTemplate&lt;yggdrasil_decision_forests::model::decision_tree::ExampleBucketSet&lt;yggdrasil_decision_forests::model::decision_tree::ExampleBucket&lt;yggdrasil_decision_forests::model::decision_tree::FeatureNumericalBucket, yggdrasil_decision_forests::model::decision_tree::LabelBinaryCategoricalOneValueBucket&lt;(bool)0&gt;&gt;&gt;, yggdrasil_decision_forests::model::decision_tree::LabelBinaryCategoricalScoreAccumulator, (bool)1&gt;"
+           is_vectorized="0"
+           self_time="1.400066E-01"
+           total_time="0.000000E+00"
+           trip_counts=""
+           func_instance="800"
+           priority="0">
+           <recommendation id="rec_type_conversions_smallest_c" title="Use the smallest data type" confidence="1" gain="-1"/>
+  </hotspot>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/model/decision_tree/decision_tree.cc"
+           line_no="2032"
+           routine="yggdrasil_decision_forests::model::decision_tree::StructureMeanMinDepth"
+           is_vectorized="0"
+           self_time="1.000227E-02"
+           total_time="0.000000E+00"
+           trip_counts=""
+           func_instance="611"
+           priority="0">
+           <recommendation id="rec_type_conversions_smallest_c" title="Use the smallest data type" confidence="1" gain="-1"/>
+  </hotspot>
+</IntelParallelAdvisorSummary >
