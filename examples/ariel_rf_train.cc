@@ -28,18 +28,16 @@ using namespace yggdrasil_decision_forests;
 absl::Status TrainRandomForest(const std::string& csv_path,
                                const std::string& label_column_name,
                                const std::string& output_model_dir) {
-  // 1) Create a data specification for the CSV dataset.
-  dataset::proto::DataSpecification data_spec;
-  {
+
+    // 1) **** Input & Parse CSV **** - Create a data specification for the CSV dataset.
+    dataset::proto::DataSpecification data_spec;
+    {
     std::cout << "Inferring DataSpec from CSV: " << csv_path << std::endl;
-    // "csv:" prefix means a CSV dataset recognized by YDF.
-    // CreateDataSpec(...) is now a void function (it no longer returns absl::Status).
     // Build a guide that explicitly sets the label column type to CATEGORICAL
     dataset::proto::DataSpecificationGuide guide;
     auto* col_guide = guide.add_column_guides();
     col_guide->set_column_name_pattern(label_column_name);
     col_guide->set_type(dataset::proto::ColumnType::CATEGORICAL);
-
     dataset::CreateDataSpec(
         "csv:" + csv_path,
         /*require_same_dataset_fields=*/false,
@@ -47,69 +45,73 @@ absl::Status TrainRandomForest(const std::string& csv_path,
         &data_spec);
     // (Optional) Print the resulting dataspec:
     std::cout << dataset::PrintHumanReadable(data_spec) << std::endl;
-  }
-
-  // 2) Configure a RandomForest learner.
-  // Ariel - TrainingConfig is defined in learner/abstract_learner.proto
-  model::proto::TrainingConfig train_config;
-  train_config.set_learner("RANDOM_FOREST");
-  train_config.set_task(model::proto::Task::CLASSIFICATION);
-  train_config.set_label(label_column_name);
-
-  // If you need single-threaded training, do so in the `DeploymentConfig`.
-  model::proto::DeploymentConfig deployment_config;
-  deployment_config.set_num_threads(1);
-
-  // Example of random forest hyperparameters:
-  auto& rf_config = *train_config.MutableExtension(
-      model::random_forest::proto::random_forest_config);
-  rf_config.set_num_trees(1000);
-  rf_config.mutable_decision_tree()->set_max_depth(-1);  // -1 => unlimited
-  rf_config.set_bootstrap_training_dataset(true);
-  rf_config.set_bootstrap_size_ratio(1.0);
-  // Enable oblique splits:
-  auto oblique_config = rf_config.mutable_decision_tree()->sparse_oblique_split();
-
-  // 3) Create the learner.
-  std::unique_ptr<model::AbstractLearner> learner;
-  {
-    absl::Status get_learner_status =
-        model::GetLearner(train_config, &learner);
-    if (!get_learner_status.ok()) {
-      return absl::InternalError("Could not create RandomForest learner: " +
-                                 std::string(get_learner_status.message()));
     }
+
+    // 2) **** Configure a RandomForest learner object. No training yet ****
+    // Ariel - TrainingConfig is defined in learner/abstract_learner.proto
+    model::proto::TrainingConfig train_config;
+    train_config.set_learner("RANDOM_FOREST");
+    train_config.set_task(model::proto::Task::CLASSIFICATION);
+    train_config.set_label(label_column_name);
+
+    // 2a) RF Hyperparameters
+
+    // Create the learner.
+    std::unique_ptr<model::AbstractLearner> learner;
+    {
+      auto& rf_config = *train_config.MutableExtension(
+          model::random_forest::proto::random_forest_config);
+      rf_config.set_num_trees(1000);
+      rf_config.mutable_decision_tree()->set_max_depth(-1);  // -1 => unlimited
+      rf_config.set_bootstrap_training_dataset(true);
+      rf_config.set_bootstrap_size_ratio(1.0);
+      // Enable oblique splits:
+      auto oblique_config = rf_config.mutable_decision_tree()->sparse_oblique_split();
+
+
+      {
+        absl::Status get_learner_status =
+            model::GetLearner(train_config, &learner);
+        if (!get_learner_status.ok()) {
+          return absl::InternalError("Could not create RandomForest learner: " +
+                                    std::string(get_learner_status.message()));
+        }
+      }
+
+      // 2b) Training parameters - num threads : `DeploymentConfig`.
+      model::proto::DeploymentConfig deployment_config;
+      deployment_config.set_num_threads(1);
   }
 
-  // 4) Train the model from disk-based dataset.
-  //    "TrainWithStatus(path, dataspec[, optional_valid])"
-  absl::StatusOr<std::unique_ptr<model::AbstractModel>> model_or =
-      learner->TrainWithStatus("csv:" + csv_path, data_spec);
-  if (!model_or.ok()) {
-    return absl::InternalError("Training failed: " +
-                               std::string(model_or.status().message()));
-  }
-  std::unique_ptr<model::AbstractModel> model = std::move(model_or.value());
+    // 3) ******************** Initiate Training ********************
 
-  // 5) Print a short textual description of the trained model
-  {
-    std::string description;
-    model->AppendDescriptionAndStatistics(/*full_definition=*/false,
-                                          &description);
-    std::cout << "Model trained. Summary:\n" << description << std::endl;
-  }
+            // Can't use "model" as a object name - it's a class name
+    absl::StatusOr<std::unique_ptr<model::AbstractModel>> model_or = learner->TrainWithStatus("csv:" + csv_path, data_spec);
 
-  // 6) Save the model to disk
-  {
-    absl::Status save_status = model::SaveModel(output_model_dir, *model);
-    if (!save_status.ok()) {
-      return absl::InternalError("Could not save model: " +
-                                 std::string(save_status.message()));
+    // 4) - Post-training cleanup
+    if (!model_or.ok()) {    return absl::InternalError("Training failed: " + std::string(model_or.status().message()));  }
+
+    // Ariel: What does this do?
+    std::unique_ptr<model::AbstractModel> model = std::move(model_or.value());
+
+    // 5) Print a short description of the trained model
+    {
+        std::string description;
+        model->AppendDescriptionAndStatistics(/*full_definition=*/false, &description);
+        std::cout << "Model trained. Summary:\n" << description << std::endl;
     }
-    std::cout << "Model saved to: " << output_model_dir << std::endl;
-  }
 
-  return absl::OkStatus();
+    // 6) Save the model to disk
+    {
+        absl::Status save_status = model::SaveModel(output_model_dir, *model);
+        if (!save_status.ok()) {
+            return absl::InternalError("Could not save model: " +
+                                        std::string(save_status.message()));
+        }
+        std::cout << "Model saved to: " << output_model_dir << std::endl;
+    }
+
+    return absl::OkStatus();
 }
 
 int main(int argc, char** argv) {
