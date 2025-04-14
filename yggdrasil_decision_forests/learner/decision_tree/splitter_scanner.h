@@ -654,6 +654,10 @@ void FillExampleBucketSet(
   }
 }
 
+/*
+  If not Weighted: Return preponderance of Binary labels
+  Else, scale by Weight
+*/
 template <typename LabelScoreAccumulator, typename Initializer>
 ABSL_ATTRIBUTE_ALWAYS_INLINE double Score(const Initializer& initializer,
                                           const double weighted_num_examples,
@@ -984,9 +988,8 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
     const typename ExampleBucketSet::LabelBucketType::Initializer& initializer,
     const int min_num_obs, const int attribute_idx,
     proto::NodeCondition* condition, PerThreadCacheV2* cache) {
-  if (selected_examples.size() <= 1) {
-    return SplitSearchResult::kInvalidAttribute;
-  }
+
+      if (selected_examples.size() <= 1) { return SplitSearchResult::kInvalidAttribute; }
 
   // Compute a mask (duplicate_examples=false) or count
   // (duplicate_examples=true) of the selected examples.
@@ -1012,22 +1015,21 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
       return selected_examples_mask;
     }
   };
+
+  // TODO Ariel how does this mask look like?
   const auto& selected_examples_mask = get_mask();
 
   // Initialize the accumulators. Initially, all the buckets are in the positive
   // accumulators.
-  LabelScoreAccumulator& neg =
-      *GetCachedLabelScoreAccumulator<LabelScoreAccumulator>(false, cache);
-  LabelScoreAccumulator& pos =
-      *GetCachedLabelScoreAccumulator<LabelScoreAccumulator>(true, cache);
+  LabelScoreAccumulator& neg = *GetCachedLabelScoreAccumulator<LabelScoreAccumulator>(false, cache);
+  LabelScoreAccumulator& pos = *GetCachedLabelScoreAccumulator<LabelScoreAccumulator>(true, cache);
 
   initializer.InitEmpty(&neg);
   initializer.InitFull(&pos);
 
   // Running statistics.
   SignedExampleIdx num_pos_examples = selected_examples.size();
-  SignedExampleIdx max_num_pos_examples =
-      selected_examples.size() - min_num_obs;
+  SignedExampleIdx max_num_pos_examples = selected_examples.size() - min_num_obs;
 
   // At least one split was tested.
   bool tried_one_split = false;
@@ -1044,8 +1046,7 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
   SignedExampleIdx best_sorted_example_idx = -1;
   SignedExampleIdx best_previous_sorted_example_idx = -1;
 
-  // A new (i.e. different) attribute value was observed in the scan since the
-  // last score test.
+  // A new (i.e. different) attribute value was observed in the scan since the last score test.
   bool new_attribute_value = false;
 
   // Index of the nearest previous example with a  value different from the
@@ -1053,11 +1054,12 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
   SparseItemMeta::ExampleIdx previous_sorted_example_idx = 0;
 
   // Iterate over the attribute values in increasing order.
+
+  // TODO Ariel - Randal would find this interesting
   // Note: For some reasons, the iterator for-loop is faster than the
   // for(auto:sorted_attributes) for loop (test on 10 different compiled
   // binaries).
-  for (SparseItemMeta::ExampleIdx sorted_example_idx = 0;
-       sorted_example_idx < sorted_attributes.size(); sorted_example_idx++) {
+  for (SparseItemMeta::ExampleIdx sorted_example_idx = 0; sorted_example_idx < sorted_attributes.size(); sorted_example_idx++) {
     const auto& sorted_attribute = sorted_attributes[sorted_example_idx];
 
     auto example_idx = sorted_attribute & SparseItemMeta::kMaskExampleIdx;
@@ -1082,20 +1084,21 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
     if (new_attribute_value) {
       if (num_pos_examples >= min_num_obs &&
           num_pos_examples <= max_num_pos_examples &&
-          initializer.IsValidSplit(neg, pos)) {
+          initializer.IsValidSplit(neg, pos)
+        ) {
         // Compute the split's score.
-        const auto score =
-            Score<>(initializer, weighted_num_examples, pos, neg);
+
+        // ***** TODO Ariel - Scoring function *****
+        const auto score = Score<>(initializer, weighted_num_examples, pos, neg);
         tried_one_split = true;
 
+        // A better split was found. Memorize the split.
         if (score > best_score) {
-          // A better split was found. Memorize the split.
           best_sorted_example_idx = sorted_example_idx;
           best_previous_sorted_example_idx = previous_sorted_example_idx;
           best_score = score;
           best_num_pos_training_examples_without_weight = num_pos_examples;
-          best_num_pos_training_examples_with_weight =
-              pos.WeightedNumExamples();
+          best_num_pos_training_examples_with_weight = pos.WeightedNumExamples();
           found_split = true;
         }
       }
@@ -1106,7 +1109,7 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
     // Update positive and negative accumulators.
     // Remove the bucket from the positive accumulator and add it to the
     // negative accumulator.
-    if constexpr (duplicate_examples) {
+    if constexpr (duplicate_examples) { // Ariel: evaluated at compile time
       const int count = selected_examples_mask[example_idx];
       label_filler.AddDirectToScoreAccWithDuplicates(example_idx, count, &neg);
       label_filler.SubDirectToScoreAccWithDuplicates(example_idx, count, &pos);
@@ -1118,6 +1121,7 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
     }
   }
 
+  // If a better split than existing was found - update existing temps
   if (found_split) {
     // Finalize the best found split.
     const auto best_previous_feature_value = feature_filler.GetValue(
@@ -1126,14 +1130,12 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
     const auto best_feature_value =
         feature_filler.GetValue(sorted_attributes[best_sorted_example_idx] &
                                 SparseItemMeta::kMaskExampleIdx);
-    // TODO: Experiment with random splits in ]best_previous_feature_value,
-    // best_feature_value[.
 
-    feature_filler.SetConditionFinalFromThresholds(
-        best_previous_feature_value, best_feature_value, condition);
+    // TODO Ariel: Experiment with random splits in ]best_previous_feature_value, best_feature_value[.
+
+    feature_filler.SetConditionFinalFromThresholds(best_previous_feature_value, best_feature_value, condition);
     condition->set_attribute(attribute_idx);
-    condition->set_num_training_examples_without_weight(
-        selected_examples.size());
+    condition->set_num_training_examples_without_weight(selected_examples.size());
     condition->set_num_training_examples_with_weight(weighted_num_examples);
     condition->set_split_score(best_score);
 

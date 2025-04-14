@@ -394,8 +394,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
       RandomForestLearner::TrainWithStatusImpl(
           // Ariel: What's VerticalDataset?
           const dataset::VerticalDataset &train_dataset,
-          std::optional<std::reference_wrapper<const dataset::VerticalDataset>>
-              valid_dataset) const
+          std::optional<std::reference_wrapper<const dataset::VerticalDataset>> valid_dataset) const
       {
         const auto begin_training = absl::Now(); // Start time
 
@@ -494,7 +493,8 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         ASSIGN_OR_RETURN(const auto preprocessing,
                          decision_tree::PreprocessTrainingDataset(
                              train_dataset, config_with_default, config_link,
-                             rf_config.decision_tree(), deployment_.num_threads()));
+                             rf_config.decision_tree(), deployment_.num_threads()
+                            ));
 
         std::vector<const dataset::VerticalDataset::NumericalVectorSequenceColumn *>
             vector_sequence_columns(train_dataset.ncol(), nullptr);

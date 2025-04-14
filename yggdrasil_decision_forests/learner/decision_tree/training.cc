@@ -2309,8 +2309,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
                        : SplitSearchResult::kNoBetterSplitFound;
   }
 
-  absl::StatusOr<SplitSearchResult>
-  FindSplitLabelClassificationFeatureNumericalCart(
+  absl::StatusOr<SplitSearchResult> FindSplitLabelClassificationFeatureNumericalCart(
       const absl::Span<const UnsignedExampleIdx> selected_examples,
       const std::vector<float> &weights, const absl::Span<const float> attributes,
       const std::vector<int32_t> &labels, const int32_t num_label_classes,
@@ -2320,31 +2319,26 @@ namespace yggdrasil_decision_forests::model::decision_tree
       const int32_t attribute_idx, const InternalTrainConfig &internal_config,
       proto::NodeCondition *condition, SplitterPerThreadCache *cache)
   {
-    if (!weights.empty())
-    {
-      DCHECK_EQ(weights.size(), labels.size());
-    }
-    if (dt_config.missing_value_policy() ==
-        proto::DecisionTreeTrainingConfig::LOCAL_IMPUTATION)
-    {
-      LocalImputationForNumericalAttribute(selected_examples, weights, attributes,
-                                           &na_replacement);
-    }
+    // If Weights empty
+    if (!weights.empty()) { DCHECK_EQ(weights.size(), labels.size()); }
+    // Deal w/ missing values
+    if (dt_config.missing_value_policy() == proto::DecisionTreeTrainingConfig::LOCAL_IMPUTATION)
+    { LocalImputationForNumericalAttribute(selected_examples, weights, attributes,
+                                           &na_replacement); }
 
-    FeatureNumericalBucket::Filler feature_filler(selected_examples.size(),
-                                                  na_replacement, attributes);
+    FeatureNumericalBucket::Filler feature_filler(selected_examples.size(), na_replacement, attributes);
 
-    const auto sorting_strategy =
-        EffectiveStrategy(dt_config, selected_examples.size(), internal_config);
+    const auto sorting_strategy = EffectiveStrategy(dt_config, selected_examples.size(), internal_config);
 
     // "Why ==3" ?
     // Categorical attributes always have one class reserved for
     // "out-of-vocabulary" items. The "num_label_classes" takes into account this
     // class. In case of binary classification, "num_label_classes" is 3 (OOB,
     // False, True).
+
+    // Binary classification.
     if (num_label_classes == 3)
     {
-      // Binary classification.
       if (weights.empty())
       {
         LabelBinaryCategoricalOneValueBucket</*weighted=*/false>::Filler
@@ -2352,12 +2346,11 @@ namespace yggdrasil_decision_forests::model::decision_tree
         LabelBinaryCategoricalOneValueBucket</*weighted=*/false>::Initializer
             initializer(label_distribution);
 
-        if (sorting_strategy ==
-            proto::DecisionTreeTrainingConfig::Internal::FORCE_PRESORTED)
+        // Ariel: depending on sorting strategy, choose find split
+        if (sorting_strategy == proto::DecisionTreeTrainingConfig::Internal::FORCE_PRESORTED)
         {
-          const auto &sorted_attributes =
-              internal_config.preprocessing
-                  ->presorted_numerical_features()[attribute_idx];
+          const auto &sorted_attributes = internal_config.preprocessing->presorted_numerical_features()[attribute_idx];
+
           return ScanSplitsPresortedSparse<
               FeatureNumericalLabelUnweightedBinaryCategoricalOneValue,
               LabelBinaryCategoricalScoreAccumulator>(
@@ -2367,8 +2360,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
               internal_config.duplicated_selected_examples, condition,
               &cache->cache_v2);
         }
-        else if (sorting_strategy ==
-                 proto::DecisionTreeTrainingConfig::Internal::IN_NODE)
+        else if (sorting_strategy == proto::DecisionTreeTrainingConfig::Internal::IN_NODE)
         {
           return FindBestSplit_LabelUnweightedBinaryClassificationFeatureNumerical(
               selected_examples, feature_filler, label_filler, initializer,
@@ -2413,9 +2405,9 @@ namespace yggdrasil_decision_forests::model::decision_tree
         }
       }
     }
-    else
+    else // Multi-class classification.
     {
-      // Multi-class classification.
+
       if (weights.empty())
       {
         LabelCategoricalOneValueBucket</*weighted=*/false>::Filler label_filler(
