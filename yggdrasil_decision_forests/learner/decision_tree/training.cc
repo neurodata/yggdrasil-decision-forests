@@ -1453,6 +1453,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     return response;
   }
 
+  // TODO Ariel - this is where the split is found
   absl::StatusOr<bool> FindBestConditionOblique(
       const dataset::VerticalDataset &train_dataset,
       const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -1472,6 +1473,9 @@ namespace yggdrasil_decision_forests::model::decision_tree
     {
       const auto &class_label_stats =
           utils::down_cast<const ClassificationLabelStats &>(label_stats);
+
+      // TODO Ariel so this is calling itself? what does it return?
+      // Ariel: I think it's defined in oblique.cc
       return FindBestConditionOblique(
           train_dataset, selected_examples, weights, config, config_link,
           dt_config, parent, internal_config, class_label_stats,
@@ -2002,6 +2006,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
         cache);
   }
 
+  // TODO Ariel read this code
   absl::StatusOr<bool> FindBestCondition(
       const dataset::VerticalDataset &train_dataset,
       const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -4722,9 +4727,10 @@ namespace yggdrasil_decision_forests::model::decision_tree
       const std::vector<float> &weights, utils::RandomEngine *random,
       DecisionTree *dt, const InternalTrainConfig &internal_config)
   {
-    // Note: This function is the entry point of all decision tree learning.
+    // TODO Ariel - see below comment!!!
+    // ************* Note: This function is the entry point of all decision tree learning. *************
 
-    // Check the sorting strategy.
+    // Ensure efficient sorting strategy.
     if (dt_config.internal().has_ensure_effective_sorting_strategy() &&
         (dt_config.internal().ensure_effective_sorting_strategy() !=
          dt_config.internal().sorting_strategy()))
@@ -4745,6 +4751,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     std::vector<UnsignedExampleIdx> working_selected_examples;
 
     // Fail if the data spec has invalid columns.
+    // Ariel: Data spec is the specifier for data types of features
     for (const auto feature_idx : config_link.features())
     {
       const auto &data_spec_columns = train_dataset.data_spec().columns();
@@ -4776,6 +4783,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     }
 
     // Check if oblique splits are correctly specified
+    // ************* TODO Ariel oblique splits here *************
     if (dt_config.has_sparse_oblique_split())
     {
       if (dt_config.sparse_oblique_split().has_binary_weight() &&
@@ -4873,6 +4881,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     if (internal_config.num_threads <= 1)
     {
       splitter_concurrency_setup.concurrent_execution = false;
+      // TODO Ariel - figure out DecisionTreeCoreTrain()
       return DecisionTreeCoreTrain(
           train_dataset, config, config_link, dt_config, deployment,
           splitter_concurrency_setup, weights, random, internal_config, dt,
@@ -4922,6 +4931,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     return absl::OkStatus();
   }
 
+  // Ariel: This function is basic - skip down to NodeTrain()
   absl::Status DecisionTreeCoreTrain(
       const dataset::VerticalDataset &train_dataset,
       const model::proto::TrainingConfig &config,
@@ -4937,6 +4947,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     dt->CreateRoot();
     PerThreadCache cache;
 
+    // Ariel: Why do we need a buffer?
     auto selected_examples_rb = SelectedExamplesRollingBuffer::Create(
         selected_examples, &cache.selected_example_buffer);
     std::optional<SelectedExamplesRollingBuffer> leaf_examples_rb;
@@ -4982,6 +4993,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
       SelectedExamplesRollingBuffer selected_examples,
       std::optional<SelectedExamplesRollingBuffer> leaf_examples)
   {
+    // Ariel - dumb checks
     if (selected_examples.empty())
     {
       return absl::InternalError("No examples fed to the node trainer");
@@ -4989,6 +5001,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     node->mutable_node()->set_num_pos_training_examples_without_weight(
         selected_examples.size());
 
+    // Ariel: I think this applies "majority"/voting label to leaf
     if (!set_leaf_already_set)
     {
       // Set the node value (i.e. the label distribution).
@@ -5027,6 +5040,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     bool splitter_dataset_is_compact;
 
     // Extract the random local imputation.
+    // Ariel - what is this? important?
     dataset::VerticalDataset random_local_imputation_train_dataset;
     std::vector<UnsignedExampleIdx> random_local_imputation_selected_examples;
     if (dt_config.missing_value_policy() ==
@@ -5063,11 +5077,13 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
     ASSIGN_OR_RETURN(
         const auto has_better_condition,
+        // TODO Ariel - analyze FindBestCondition()
         FindBestCondition(
             *train_dataset_for_splitter, selected_examples_for_splitter, weights,
             config, config_link, dt_config, splitter_concurrency_setup,
             node->node(), internal_config, constraints,
-            node->mutable_node()->mutable_condition(), random, cache));
+            node->mutable_node()->mutable_condition(), random, cache)
+        );
     if (!has_better_condition)
     {
       // No good condition found. Close the branch.

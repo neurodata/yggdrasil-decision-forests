@@ -392,11 +392,10 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
       // Ariel - RF training begins here
       absl::StatusOr<std::unique_ptr<AbstractModel>>
       RandomForestLearner::TrainWithStatusImpl(
-          const dataset::VerticalDataset &train_dataset,
+          const dataset::VerticalDataset &train_dataset, // What's VerticalDataset?
           std::optional<std::reference_wrapper<const dataset::VerticalDataset>>
               valid_dataset) const
       {
-        // TODO: Divide function into smaller blocks.
         const auto begin_training = absl::Now();
 
         // Timeout in the tree training.
@@ -410,6 +409,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
         RETURN_IF_ERROR(dataset::CheckNumExamples(train_dataset.nrow()));
 
+        // Ranking Task should throw error
         if (training_config().task() != model::proto::Task::CLASSIFICATION &&
             training_config().task() != model::proto::Task::REGRESSION &&
             training_config().task() != model::proto::Task::CATEGORICAL_UPLIFT &&
@@ -441,6 +441,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
               false);
         }
 
+        // Uplift OOB not supported
         if (training_config().task() == model::proto::Task::NUMERICAL_UPLIFT &&
             rf_config.compute_oob_performances())
         {
@@ -454,8 +455,10 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
             config_with_default, train_dataset.data_spec(), &config_link));
         decision_tree::SetInternalDefaultHyperParameters(
             config_with_default, config_link, train_dataset.data_spec(),
-            rf_config.mutable_decision_tree());
+            rf_config.mutable_decision_tree()
+          );
 
+        // Ariel: what's make_unique()?
         auto mdl = std::make_unique<RandomForestModel>();
         mdl->set_data_spec(train_dataset.data_spec());
         internal::InitializeModelWithTrainingConfig(config_with_default, config_link,
@@ -469,6 +472,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
         std::vector<float> weights;
 
+        // Ariel: I think this is what Jovo was referring to - bagging is done as weights
         // Determines if the training code supports `weights` to be empty if
         // all the examples have the same weight. This triggers special handling for
         // improved performance.
@@ -491,6 +495,8 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
         std::vector<const dataset::VerticalDataset::NumericalVectorSequenceColumn *>
             vector_sequence_columns(train_dataset.ncol(), nullptr);
+
+        // TODO Ariel - ??
         for (int col_idx = 0; col_idx < train_dataset.ncol(); col_idx++)
         {
           vector_sequence_columns[col_idx] = train_dataset.ColumnWithCastOrNull<
@@ -511,6 +517,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         std::vector<int64_t> tree_seeds;
         tree_seeds.reserve(rf_config.num_trees());
 
+        // Ariel: User-specified seeds per-tree
         if (!rf_config.internal().individual_tree_seeds().empty())
         {
           if (rf_config.internal().individual_tree_seeds().size() !=
@@ -533,7 +540,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
           mdl->AddTree(std::make_unique<decision_tree::DecisionTree>());
         }
 
-        // OOB (out-of-bag) predictions.
+        // ******** OOB (out-of-bag) predictions. ********
         utils::concurrency::Mutex
             oob_metrics_mutex; // Protects all the "oob_*" fields.
 
@@ -591,9 +598,13 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
           }
         }
 
+        // ******** End OOB calculation
+
         // If true, only a subset of trees will have been trained.
         std::atomic<bool> training_stopped_early = false;
 
+
+        // TODO Ariel - adaptive amount of compute is decided here - might mess up profiling
         std::unique_ptr<utils::AdaptativeWork> adaptative_work;
         if (rf_config.adapt_bootstrap_size_ratio_for_maximum_training_duration())
         {
@@ -640,7 +651,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         }
 
         // Note: "num_trained_trees" is defined outside of the following brackets so
-        // to make use it is not released before "pool".
+        // as to make sure it is not released before "pool".
         std::atomic<int> num_trained_trees{0};
         const absl::Time begin_tree_grow = absl::Now();
         {
@@ -667,7 +678,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
               adaptative_work->OptimalApproximationFactor();
         }
 
-        // Maximum training time.
+        // Maximum training time reached - stop.
         if (training_config().has_maximum_training_duration_seconds()) {
           // Stop the training if it lasted too long.
           if ((absl::Now() - begin_training) >
@@ -682,7 +693,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
           }
         }
 
-        // Check if the training should be stopped.
+        // Check if the training should be stopped: memory size, num nodes, any thread fail
         {
           utils::concurrency::MutexLock lock(&concurrent_fields.mutex);
           if (!concurrent_fields.status.ok()) {
@@ -713,9 +724,10 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         // Examples selected for the training.
         // Note: This in the inverse of the Out-of-bag (OOB) set.
 
-        // TODO: Cache.
+        // TODO: Cache. - TODO Ariel this may be good for performance optimization
         std::vector<UnsignedExampleIdx> selected_examples;
 
+        // ******** Ariel - bootstrap sampling decided here ********
         auto& decision_tree = (*mdl->mutable_decision_trees())[tree_idx];
         if (rf_config.bootstrap_training_dataset()) {
           if (!rf_config.sampling_with_replacement() &&
@@ -758,9 +770,10 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         auto status_train = decision_tree::Train(
             train_dataset, selected_examples, config_with_default, config_link,
             rf_config.decision_tree(), deployment(), weights, &random,
-            decision_tree.get(), internal_config);
+            decision_tree.get(), internal_config
+          );
 
-        // TODO Ariel Interesting Synchronization
+        // TODO Ariel Interesting: Synchronization
         int current_num_trained_trees;
         {
           utils::concurrency::MutexLock lock(&concurrent_fields.mutex);
