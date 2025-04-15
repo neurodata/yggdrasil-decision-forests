@@ -67,8 +67,9 @@ absl::Status TrainRandomForest(const std::string& csv_path,
   rf_config.mutable_decision_tree()->set_max_depth(-1);  // -1 => unlimited
   rf_config.set_bootstrap_training_dataset(true);
   rf_config.set_bootstrap_size_ratio(1.0);
+
   // Enable oblique splits:
-  auto oblique_config = rf_config.mutable_decision_tree()->sparse_oblique_split();
+  rf_config.mutable_decision_tree()->mutable_sparse_oblique_split();
 
   // 3) Create the learner.
   std::unique_ptr<model::AbstractLearner> learner;
