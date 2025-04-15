@@ -25,7 +25,7 @@
       <workload>
        <targetName type="string">release</targetName>
        <launch_app.app_to_launch type="string">/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train</launch_app.app_to_launch>
-       <launch_app.app_parameters type="string">/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv Cancer Status tmp/ariel_dt_model</launch_app.app_parameters>
+       <launch_app.app_parameters type="string">/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv Cancer Status tmp/ariel_rf_1_tree_oblique</launch_app.app_parameters>
        <context>
         <contextValue>
          <id type="string">auto_finalize</id>

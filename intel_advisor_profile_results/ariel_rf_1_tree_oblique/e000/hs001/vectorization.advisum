@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- <!DOCTYPE IntelParallelAdvisorSummaryCollection SYSTEM  "IntelParallelAdvisorSummaryCollection.dtd"> -->
+
+<IntelParallelAdvisorSummary version="" 
+                             kind="DATAKIND_SURVEY_EX" >
+  <hotspot filename="/usr/include/c++/13/bits/random.tcc"
+           line_no="412"
+           routine="std::mersenne_twister_engine&lt;unsigned long, (unsigned long)32, (unsigned long)624, (unsigned long)397, (unsigned long)31, (unsigned long)2567483615, (unsigned long)11, (unsigned long)4294967295, (unsigned long)7, (unsigned long)2636928640, (unsigned long)15, (unsigned long)4022730752, (unsigned long)18, (unsigned long)1812433253&gt;::_M_gen_rand"
+           is_vectorized="0"
+           self_time="1.289959E+00"
+           total_time="1.289959E+00"
+           trip_counts=""
+           func_instance="586"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/learner/decision_tree/oblique.cc"
+           line_no="792"
+           routine="yggdrasil_decision_forests::model::decision_tree::internal::SampleProjection"
+           is_vectorized="0"
+           self_time="1.090031E+00"
+           total_time="3.994999E+01"
+           trip_counts=""
+           func_instance="540"
+           priority="0"/>
+  <hotspot filename="/usr/include/c++/13/bits/random.tcc"
+           line_no="404"
+           routine="std::mersenne_twister_engine&lt;unsigned long, (unsigned long)32, (unsigned long)624, (unsigned long)397, (unsigned long)31, (unsigned long)2567483615, (unsigned long)11, (unsigned long)4294967295, (unsigned long)7, (unsigned long)2636928640, (unsigned long)15, (unsigned long)4022730752, (unsigned long)18, (unsigned long)1812433253&gt;::_M_gen_rand"
+           is_vectorized="0"
+           self_time="7.700030E-01"
+           total_time="7.700030E-01"
+           trip_counts=""
+           func_instance="580"
+           priority="0"/>
+  <hotspot filename="/usr/include/c++/13/bits/random.tcc"
+           line_no="3365"
+           routine="std::generate_canonical&lt;float, (unsigned long)24, std::mersenne_twister_engine&lt;unsigned long, (unsigned long)32, (unsigned long)624, (unsigned long)397, (unsigned long)31, (unsigned long)2567483615, (unsigned long)11, (unsigned long)4294967295, (unsigned long)7, (unsigned long)2636928640, (unsigned long)15, (unsigned long)4022730752, (unsigned long)18, (unsigned long)1812433253&gt;&gt;"
+           is_vectorized="0"
+           self_time="4.100239E-01"
+           total_time="3.169963E+00"
+           trip_counts=""
+           func_instance="578"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/learner/decision_tree/oblique.cc"
+           line_no="1045"
+           routine="yggdrasil_decision_forests::model::decision_tree::internal::ProjectionEvaluator::Evaluate"
+           is_vectorized="0"
+           self_time="3.099959E-01"
+           total_time="7.799894E-01"
+           trip_counts=""
+           func_instance="582"
+           priority="0"/>
+</IntelParallelAdvisorSummary >
