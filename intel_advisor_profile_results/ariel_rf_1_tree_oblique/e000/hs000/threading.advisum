@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- <!DOCTYPE IntelParallelAdvisorSummaryCollection SYSTEM  "IntelParallelAdvisorSummaryCollection.dtd"> -->
+
+<IntelParallelAdvisorSummary version="" 
+                             kind="DATAKIND_SURVEY_EX" >
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/utils/concurrency_default.cc"
+           line_no="61"
+           routine="yggdrasil_decision_forests::utils::concurrency::ThreadPool::ThreadLoop"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="4.335999E+01"
+           trip_counts=""
+           func_instance="608"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/learner/decision_tree/oblique.cc"
+           line_no="179"
+           routine="yggdrasil_decision_forests::model::decision_tree::FindBestConditionSparseObliqueTemplate&lt;yggdrasil_decision_forests::model::decision_tree::ClassificationLabelStats&gt;"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="4.334999E+01"
+           trip_counts=""
+           func_instance="623"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/learner/decision_tree/oblique.cc"
+           line_no="791"
+           routine="yggdrasil_decision_forests::model::decision_tree::internal::SampleProjection"
+           is_vectorized="0"
+           self_time="1.129945E+00"
+           total_time="4.012003E+01"
+           trip_counts=""
+           func_instance="625"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/dataset/csv_example_reader.cc"
+           line_no="185"
+           routine="yggdrasil_decision_forests::dataset::CsvDataSpecCreator::InferColumnsAndTypes"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="4.159985E+00"
+           trip_counts=""
+           func_instance="98"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/dataset/csv_example_reader.cc"
+           line_no="211"
+           routine="yggdrasil_decision_forests::dataset::CsvDataSpecCreator::InferColumnsAndTypes"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="4.130000E+00"
+           trip_counts=""
+           func_instance="140"
+           priority="0"/>
+</IntelParallelAdvisorSummary >
