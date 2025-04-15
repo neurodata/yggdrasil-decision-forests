@@ -9,3 +9,4 @@ no_sync*
 **/.DS_Store
 **/tmp
 **/gmon.out
+*.cfg

@@ -19,12 +19,6 @@
 #include "yggdrasil_decision_forests/learner/decision_tree/decision_tree.pb.h"
 // #include "yggdrasil_decision_forests/learner/decision_tree/decision_tree.h"
 
-// Ariel - Profiling
-// #include <gperftools/profiler.h>
-
-
-// Ariel 1. Are Honest Forests available in YDF? Yes. See Honest=True param
-
 
 using namespace yggdrasil_decision_forests;
 
@@ -53,8 +47,10 @@ absl::Status TrainRandomForest(const std::string& csv_path,
     // 2) **** Configure a RandomForest learner object. No training yet ****
     // Ariel - TrainingConfig is defined in learner/abstract_learner.proto
     model::proto::TrainingConfig train_config;
-    train_config.set_learner("RANDOM_FOREST");
-    // train_config.set_learner("DECISION_TREE"); // TODO Debug Decision Tree
+    // train_config.set_learner("RANDOM_FOREST");
+
+    // Decision Tree
+    train_config.set_learner("CART"); // TODO Debug Decision Tree
     train_config.set_task(model::proto::Task::CLASSIFICATION);
     train_config.set_label(label_column_name);
 
@@ -63,8 +59,10 @@ absl::Status TrainRandomForest(const std::string& csv_path,
     // Create the learner.
     std::unique_ptr<model::AbstractLearner> learner;
     {
-      auto& rf_config = *train_config.MutableExtension(
-          model::random_forest::proto::random_forest_config);
+      // auto& rf_config = *train_config.MutableExtension(
+      //     model::random_forest::proto::random_forest_config);
+        auto& rf_config = *train_config.MutableExtension(
+          model::decision_tree::proto::decision_tree_config);
       rf_config.set_num_trees(1);
       rf_config.mutable_decision_tree()->set_max_depth(-1);  // -1 => unlimited
       rf_config.set_bootstrap_training_dataset(true);

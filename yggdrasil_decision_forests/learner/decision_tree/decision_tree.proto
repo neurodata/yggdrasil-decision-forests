@@ -17,6 +17,7 @@ syntax = "proto2";
 
 package yggdrasil_decision_forests.model.decision_tree.proto;
 
+import "yggdrasil_decision_forests/learner/abstract_learner.proto";
 import "yggdrasil_decision_forests/utils/distribution.proto";
 
 option java_outer_classname = "DecisionTreeLearner";
@@ -626,4 +627,8 @@ message LabelStatistics {
         labels = 1;
     optional double sum_hessian = 2;
   }
+}
+
+extend yggdrasil_decision_forests.model.proto.TrainingConfig {
+  optional DecisionTreeTrainingConfig decision_tree_config = 9347;
 }
