@@ -1,0 +1,60 @@
+1 [129825954871232] INFO perfrun.launcher <> - Launcher main begin
+1 [129825954871232] INFO perfrun.launcher <> - MessageCatalogInit finished
+1 [129825954871232] INFO perfrun.launcher <> - Launcher instance created
+1 [129825954871232] INFO perfrun.launcher <> - argc = 6; cmdline = /opt/intel/oneapi/advisor/2025.1/bin64/advixe-runss --ui-output-format xml --ui-output-fd 197 --context-value-list 
+28 [129825954871232] INFO perfrun.launcher <> - create msngr2::ICliToolContext
+29 [129825954871232] INFO perfrun.launcher <> - create file finder object
+29 [129825725482688] WARN perfrun.sdk <> - SEP tool is not available, at file: vcs/perfrun1/plugins/pluginsdk/src/device_mapper.cpp:915
+29 [129825725482688] WARN perfrun.sdk <> - SEP driver is not available, at file: vcs/perfrun1/plugins/pluginsdk/src/device_mapper.cpp:1083
+29 [129825725482688] WARN perfrun.sdk <> - amplxe-perf tool is not available, at file: vcs/perfrun1/plugins/pluginsdk/src/device_mapper.cpp:932
+29 [129825725482688] WARN perfrun.sdk <> - Device mapping through perf is not available on current kernel, at file: vcs/perfrun1/plugins/pluginsdk/src/device_mapper.cpp:1314
+29 [129825725482688] WARN perfrun.sdk <> - SEP tool is not available, at file: vcs/perfrun1/plugins/pluginsdk/src/device_mapper.cpp:915
+29 [129825725482688] WARN perfrun.sdk <> - SEP driver is not available, at file: vcs/perfrun1/plugins/pluginsdk/src/device_mapper.cpp:1083
+29 [129825725482688] WARN perfrun.sdk <> - SEP tool is not available, at file: vcs/perfrun1/plugins/pluginsdk/src/device_mapper.cpp:915
+29 [129825725482688] WARN perfrun.sdk <> - SEP driver is not available, at file: vcs/perfrun1/plugins/pluginsdk/src/device_mapper.cpp:1083
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = targetOS; value = Linux
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = OS; value = Linux
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = OSBuildNumber; value = 0
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = OSBitness; value = 64
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = RootPrivileges; value = false
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = isPtraceScopeLimited; value = true
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = isCATSupportedByCPU; value = false
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = isL3MonitoringSupportedByCPU; value = false
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = isTSXAvailable; value = false
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = isPTAvailable; value = false
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = isHTEnabled; value = true
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = fpgaOnBoard; value = None
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = omniPathOnBoard; value = None
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = genArchOnBoard; value = 0
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = pciClassParts; value = 
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = tidValuesForIO; value = 
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = populatedIoParts; value = 
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = populatedIoUnits; value = 
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = populatedTidValuesForIO; value = 
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = memoryType; value = Unknown
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = isSGXAvailable; value = false
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = LinuxRelease; value = 6.8.0-1026-aws
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = is3DXPPresent; value = false
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = is3DXP2LMMode; value = false
+30 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = is3DXPAppDirectMode; value = false
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = IsNUMANodeWithoutCPUsPresent; value = false
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = Hypervisor; value = KVMKVMKVM
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = PerfmonVersion; value = 5
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = isMaxDRAMBandwidthMeasurementSupported; value = false
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = preferedGpuAdapter; value = none
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = isEHFIAvailable; value = false
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = i915Status; value = MissingDriver
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = GPUUserGroups; value = 
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = isSEPDriverAvailable; value = false
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = isSEPMICDriverAvailable; value = false
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = isNMIWatchDogTimerRunning; value = false
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = CPU_NAME; value = Unknown
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = CPU; value = Unknown
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = PMU; value = Unknown
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = platformType; value = 0
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = referenceFrequency; value = 3141808000
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = isTPSSAvailable; value = true
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = isPytraceAvailable; value = true
+31 [129825954871232] INFO perfrun.launcher <> - Put into the variant bag the context value: name = forceShowInlines; value = false
+31 [129825954871232] INFO perfrun.launcher <> - Application exit code: 0
+31 [129825954871232] INFO perfrun.launcher <> - Exit code: 0

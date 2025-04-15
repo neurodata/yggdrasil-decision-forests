@@ -1,0 +1,20 @@
+-r
+/home/ubuntu/intel_advisor_projects/ariel_dt_oblique/e000/hs000
+-quiet
+--mrte-mode=auto
+--follow-child
+--strategy=ld-linux.so.2:notrace:notrace,ld-linux-x86-64.so.2:notrace:notrace
+--interval=10
+--itt-config=frame,task,event,counter,model
+--type=cpu:stack
+--stack-stitching
+--stackwalk=offline
+--stack-unwind-limit=8388608
+--data-limit-mb=500
+--mrte-type=java,python
+--opencl-trace-mode=default
+--
+/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train
+/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv
+Cancer Status
+tmp/ariel_dt_model_oblique

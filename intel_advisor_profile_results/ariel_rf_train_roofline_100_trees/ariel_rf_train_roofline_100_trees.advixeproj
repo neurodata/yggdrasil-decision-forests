@@ -19,17 +19,437 @@
   <isa type="string">avx512</isa>
  </rdmgr>
  <All_Configurations-All_Platforms>
+  <per_group_workloads>
+   <release type="string">release</release>
+  </per_group_workloads>
+  <searchDirs>
+   <searchCategory>
+    <category type="u8_t">1</category>
+    <searchDirectory>
+     <name type="string">/home/ubuntu/yggdrasil-decision-forests</name>
+     <recursive type="bool">false</recursive>
+     <priority type="bool">true</priority>
+    </searchDirectory>
+    <searchDirectory>
+     <name type="string">/home/ubuntu/yggdrasil-decision-forests/yggdrasil_decision_forests/learner/decision_tree</name>
+     <recursive type="bool">false</recursive>
+     <priority type="bool">true</priority>
+    </searchDirectory>
+   </searchCategory>
+   <searchCategory>
+    <category type="u8_t">2</category>
+    <searchDirectory>
+     <name type="string">/home/ubuntu/yggdrasil-decision-forests</name>
+     <recursive type="bool">false</recursive>
+     <priority type="bool">true</priority>
+    </searchDirectory>
+    <searchDirectory>
+     <name type="string">/home/ubuntu/yggdrasil-decision-forests/yggdrasil_decision_forests/learner/decision_tree</name>
+     <recursive type="bool">false</recursive>
+     <priority type="bool">true</priority>
+    </searchDirectory>
+   </searchCategory>
+   <searchCategory>
+    <category type="u8_t">3</category>
+    <searchDirectory>
+     <name type="string">/home/ubuntu/yggdrasil-decision-forests</name>
+     <recursive type="bool">false</recursive>
+     <priority type="bool">true</priority>
+    </searchDirectory>
+   </searchCategory>
+   <searchCategory>
+    <category type="u8_t">4</category>
+   </searchCategory>
+  </searchDirs>
+  <excludeFiles type="bag"/>
   <target_settings>
    <workloads>
     <localhost>
+     <attach-survey type="pointer" type_id="dasID_cctrl2::AttachWorkload" ptr_type="dasID_cctrl2::IWorkload">
+      <workload>
+       <targetName type="string">attach-survey</targetName>
+       <use_app_dir_as_work_dir type="bool">false</use_app_dir_as_work_dir>
+       <attach.pid type="null"></attach.pid>
+       <result_directory.path type="string">/home/ubuntu/intel_advisor_projects/ariel_rf_train_roofline_100_trees/r@@@{at}</result_directory.path>
+       <search_directories>
+        <item>
+         <value type="string">sym:p=/home/ubuntu/yggdrasil-decision-forests</value>
+        </item>
+        <item>
+         <value type="string">bin:p=/home/ubuntu/yggdrasil-decision-forests</value>
+        </item>
+       </search_directories>
+       <context>
+        <contextValue>
+         <id type="string">auto_finalize</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">cpu_profiling</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">dataLimit</id>
+         <value type="s32_t">500</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">gpuSamplingInterval</id>
+         <value type="double">1</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">gpu_conditional_metrics</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">gpu_profiling</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">interval</id>
+         <value type="s32_t">10</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">keepCaches</id>
+         <value type="string">clear</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">kernel_matching_mode</id>
+         <value type="string">strict</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">mklUserMode</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">modules_switch</id>
+         <value type="string">knob.modules_switch.exclude</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">mrte_mode</id>
+         <value type="string">auto</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">openclSourceAsm</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">process_for_analysis</id>
+         <value type="string"></value>
+        </contextValue>
+        <contextValue>
+         <id type="string">profile_intel_perf_libs</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">profile_python</id>
+         <value type="string">off</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">show_report</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">spillAnalysis</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">stackStitching</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">stackUnwindLimit</id>
+         <value type="s32_t">8388608</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">stackwalk</id>
+         <value type="string">offline</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">static_instruction_mix</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">support_multi_isa_binaries</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">targetGPU</id>
+         <value type="string">none</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">targetType</id>
+         <value type="string">attach-survey</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">type_opt</id>
+         <value type="string">cpu:stack</value>
+        </contextValue>
+       </context>
+      </workload>
+     </attach-survey>
+     <projection type="pointer" type_id="dasID_cctrl2::CompileWorkload" ptr_type="dasID_cctrl2::IWorkload">
+      <workload>
+       <targetName type="string">projection</targetName>
+       <use_app_dir_as_work_dir type="bool">true</use_app_dir_as_work_dir>
+       <result_directory.path type="string">/home/ubuntu/intel_advisor_projects/ariel_rf_train_roofline_100_trees/r@@@{at}</result_directory.path>
+       <search_directories>
+        <item>
+         <value type="string">sym:p=/home/ubuntu/yggdrasil-decision-forests</value>
+        </item>
+        <item>
+         <value type="string">bin:p=/home/ubuntu/yggdrasil-decision-forests</value>
+        </item>
+       </search_directories>
+       <context>
+        <contextValue>
+         <id type="string">assume_dependencies</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">assume_hide_taxes</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">assume_ndim_dependency</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">assume_single_data_transfer</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">baselineDevice</id>
+         <value type="string">bdCPU</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">batching</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">cachesim</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">check_profitability</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">config</id>
+         <value type="string">pvc_xt_448xve</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">count_logical_instructions</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">count_memory_instructions</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">count_mov_instructions</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">count_send_latency</id>
+         <value type="string">all</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">cpu_scale_factor</id>
+         <value type="double">1</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">custom_config</id>
+         <value type="string"></value>
+        </contextValue>
+        <contextValue>
+         <id type="string">data_reuse_analysis</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">data_transfer_histogram</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">disable_fp64_math_optimization</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">enforce_baseline_decomposition</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">enforce_fallback</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">enforce_offloads</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">estimate_max_speedup</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">evaluate_min_speedup</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">force_32bit_arithmetics</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">force_64bit_arithmetics</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">general_input</id>
+         <value type="string"></value>
+        </contextValue>
+        <contextValue>
+         <id type="string">gpu_profiling</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">hide_data_transfer_tax</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">jit</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">loop_filter_threshold</id>
+         <value type="s32_t">20</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">model_baseline_gpu</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">model_children</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">model_extended_math</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">model_system_calls</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">ndim_depth_limit</id>
+         <value type="s32_t">0</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">overlap_taxes</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">save_all_estimations</id>
+         <value type="bool">false</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">search_n_dim</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">show_report</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">small_node_filter</id>
+         <value type="s32_t">0</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">targetType</id>
+         <value type="string">projection</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">threads</id>
+         <value type="s32_t">0</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">track_memory_objects</id>
+         <value type="bool">true</value>
+        </contextValue>
+       </context>
+      </workload>
+     </projection>
+     <suitability type="pointer" type_id="dasID_cctrl2::ApplicationWorkload" ptr_type="dasID_cctrl2::IWorkload">
+      <workload>
+       <targetName type="string">suitability</targetName>
+       <use_app_dir_as_work_dir type="bool">true</use_app_dir_as_work_dir>
+       <launch.userapppath type="string">/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train</launch.userapppath>
+       <launch.userappworkdir type="string"></launch.userappworkdir>
+       <launch_app.app_to_launch type="string">/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train</launch_app.app_to_launch>
+       <launch_app.app_parameters type="string">/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv Cancer Status tmp/ariel_rf_model</launch_app.app_parameters>
+       <launch_app.working_folder type="string"></launch_app.working_folder>
+       <result_directory.path type="string">/home/ubuntu/intel_advisor_projects/ariel_rf_train_roofline_100_trees/r@@@{at}</result_directory.path>
+       <search_directories>
+        <item>
+         <value type="string">sym:p=/home/ubuntu/yggdrasil-decision-forests</value>
+        </item>
+        <item>
+         <value type="string">bin:p=/home/ubuntu/yggdrasil-decision-forests</value>
+        </item>
+       </search_directories>
+       <context>
+        <contextValue>
+         <id type="string">cpu_profiling</id>
+         <value type="bool">true</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">dataLimit</id>
+         <value type="s32_t">500</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">interval</id>
+         <value type="s32_t">10</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">mrte_mode</id>
+         <value type="string">auto</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">process_for_analysis</id>
+         <value type="string"></value>
+        </contextValue>
+        <contextValue>
+         <id type="string">targetType</id>
+         <value type="string">suitability</value>
+        </contextValue>
+        <contextValue>
+         <id type="string">type_opt</id>
+         <value type="string">projection:stack</value>
+        </contextValue>
+       </context>
+      </workload>
+     </suitability>
      <debug type="pointer" type_id="dasID_cctrl2::ApplicationWorkload" ptr_type="dasID_cctrl2::IWorkload">
       <workload>
        <targetName type="string">debug</targetName>
-       <result_directory.path type="string">/home/ubuntu/intel_advisor_projects/ariel_rf_train_roofline_100_trees/r@@@{at}</result_directory.path>
        <use_app_dir_as_work_dir type="bool">true</use_app_dir_as_work_dir>
+       <result_directory.path type="string">/home/ubuntu/intel_advisor_projects/ariel_rf_train_roofline_100_trees/r@@@{at}</result_directory.path>
+       <launch.userapppath type="string">/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train</launch.userapppath>
+       <launch.userappworkdir type="string"></launch.userappworkdir>
        <launch_app.app_to_launch type="string">/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train</launch_app.app_to_launch>
        <launch_app.app_parameters type="string">/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv Cancer Status tmp/ariel_rf_model</launch_app.app_parameters>
-       <search_directories type="bag"/>
+       <launch_app.working_folder type="string"></launch_app.working_folder>
+       <search_directories>
+        <item>
+         <value type="string">sym:p=/home/ubuntu/yggdrasil-decision-forests</value>
+        </item>
+        <item>
+         <value type="string">sym:p=/home/ubuntu/yggdrasil-decision-forests/yggdrasil_decision_forests/learner/decision_tree</value>
+        </item>
+        <item>
+         <value type="string">bin:p=/home/ubuntu/yggdrasil-decision-forests</value>
+        </item>
+        <item>
+         <value type="string">bin:p=/home/ubuntu/yggdrasil-decision-forests/yggdrasil_decision_forests/learner/decision_tree</value>
+        </item>
+       </search_directories>
        <context>
         <contextValue>
          <id type="string">analysis_mode</id>
@@ -97,11 +517,27 @@
      <map type="pointer" type_id="dasID_cctrl2::ApplicationWorkload" ptr_type="dasID_cctrl2::IWorkload">
       <workload>
        <targetName type="string">map</targetName>
-       <result_directory.path type="string">/home/ubuntu/intel_advisor_projects/ariel_rf_train_roofline_100_trees/r@@@{at}</result_directory.path>
        <use_app_dir_as_work_dir type="bool">true</use_app_dir_as_work_dir>
+       <result_directory.path type="string">/home/ubuntu/intel_advisor_projects/ariel_rf_train_roofline_100_trees/r@@@{at}</result_directory.path>
+       <launch.userapppath type="string">/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train</launch.userapppath>
+       <launch.userappworkdir type="string"></launch.userappworkdir>
        <launch_app.app_to_launch type="string">/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train</launch_app.app_to_launch>
        <launch_app.app_parameters type="string">/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv Cancer Status tmp/ariel_rf_model</launch_app.app_parameters>
-       <search_directories type="bag"/>
+       <launch_app.working_folder type="string"></launch_app.working_folder>
+       <search_directories>
+        <item>
+         <value type="string">sym:p=/home/ubuntu/yggdrasil-decision-forests</value>
+        </item>
+        <item>
+         <value type="string">sym:p=/home/ubuntu/yggdrasil-decision-forests/yggdrasil_decision_forests/learner/decision_tree</value>
+        </item>
+        <item>
+         <value type="string">bin:p=/home/ubuntu/yggdrasil-decision-forests</value>
+        </item>
+        <item>
+         <value type="string">bin:p=/home/ubuntu/yggdrasil-decision-forests/yggdrasil_decision_forests/learner/decision_tree</value>
+        </item>
+       </search_directories>
        <context>
         <contextValue>
          <id type="string">cachesimAssociativity</id>
@@ -173,9 +609,29 @@
      <release type="pointer" type_id="dasID_cctrl2::ApplicationWorkload" ptr_type="dasID_cctrl2::IWorkload">
       <workload>
        <targetName type="string">release</targetName>
+       <launch_app.inherit_sys_environment type="bool">true</launch_app.inherit_sys_environment>
+       <launch_app.mpi_run type="bool">false</launch_app.mpi_run>
+       <result_directory.path type="string">/home/ubuntu/intel_advisor_projects/ariel_rf_train_roofline_100_trees/r@@@{at}</result_directory.path>
+       <launch.userapppath type="string">/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train</launch.userapppath>
        <launch_app.app_to_launch type="string">/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train</launch_app.app_to_launch>
        <launch_app.app_parameters type="string">/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv Cancer Status tmp/ariel_rf_model</launch_app.app_parameters>
-       <search_directories type="bag"/>
+       <launch_app.working_folder type="string"></launch_app.working_folder>
+       <launch.userappworkdir type="string"></launch.userappworkdir>
+       <launch_app.mpi_max_rank type="null"></launch_app.mpi_max_rank>
+       <search_directories>
+        <item>
+         <value type="string">sym:p=/home/ubuntu/yggdrasil-decision-forests</value>
+        </item>
+        <item>
+         <value type="string">sym:p=/home/ubuntu/yggdrasil-decision-forests/yggdrasil_decision_forests/learner/decision_tree</value>
+        </item>
+        <item>
+         <value type="string">bin:p=/home/ubuntu/yggdrasil-decision-forests</value>
+        </item>
+        <item>
+         <value type="string">bin:p=/home/ubuntu/yggdrasil-decision-forests/yggdrasil_decision_forests/learner/decision_tree</value>
+        </item>
+       </search_directories>
        <context>
         <contextValue>
          <id type="string">auto_finalize</id>
@@ -289,9 +745,25 @@
        <targetName type="string">tripcounts</targetName>
        <result_directory.path type="string">/home/ubuntu/intel_advisor_projects/ariel_rf_train_roofline_100_trees/r@@@{at}</result_directory.path>
        <use_app_dir_as_work_dir type="bool">true</use_app_dir_as_work_dir>
+       <launch.userapppath type="string">/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train</launch.userapppath>
+       <launch.userappworkdir type="string"></launch.userappworkdir>
        <launch_app.app_to_launch type="string">/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train</launch_app.app_to_launch>
        <launch_app.app_parameters type="string">/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv Cancer Status tmp/ariel_rf_model</launch_app.app_parameters>
-       <search_directories type="bag"/>
+       <launch_app.working_folder type="string"></launch_app.working_folder>
+       <search_directories>
+        <item>
+         <value type="string">sym:p=/home/ubuntu/yggdrasil-decision-forests</value>
+        </item>
+        <item>
+         <value type="string">sym:p=/home/ubuntu/yggdrasil-decision-forests/yggdrasil_decision_forests/learner/decision_tree</value>
+        </item>
+        <item>
+         <value type="string">bin:p=/home/ubuntu/yggdrasil-decision-forests</value>
+        </item>
+        <item>
+         <value type="string">bin:p=/home/ubuntu/yggdrasil-decision-forests/yggdrasil_decision_forests/learner/decision_tree</value>
+        </item>
+       </search_directories>
        <context>
         <contextValue>
          <id type="string">auto_finalize</id>
@@ -347,7 +819,7 @@
         </contextValue>
         <contextValue>
          <id type="string">flops_and_masks</id>
-         <value type="bool">true</value>
+         <value type="bool">false</value>
         </contextValue>
         <contextValue>
          <id type="string">gpu_conditional_metrics</id>
@@ -411,7 +883,7 @@
         </contextValue>
         <contextValue>
          <id type="string">stacks</id>
-         <value type="bool">true</value>
+         <value type="bool">false</value>
         </contextValue>
         <contextValue>
          <id type="string">stl_profiling</id>
@@ -449,6 +921,12 @@
    <selected_workload>
     <localhost type="string">release</localhost>
    </selected_workload>
+   <result_dir>
+    <localhost type="string">/home/ubuntu/intel_advisor_projects/ariel_rf_train_roofline_100_trees</localhost>
+   </result_dir>
+   <result_pattern>
+    <localhost type="string">r@@@{at}</localhost>
+   </result_pattern>
   </target_settings>
  </All_Configurations-All_Platforms>
  <contextValues type="bag"/>

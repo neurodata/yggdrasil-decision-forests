@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- <!DOCTYPE IntelParallelAdvisorSummaryCollection SYSTEM  "IntelParallelAdvisorSummaryCollection.dtd"> -->
+
+<IntelParallelAdvisorSummary version="" 
+                             kind="DATAKIND_SURVEY_EX" >
+  <hotspot filename=""
+           line_no="4294967295"
+           routine="yggdrasil_decision_forests::dataset::CsvDataSpecCreator::InferColumnsAndTypes"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="4.180000E+00"
+           trip_counts=""
+           func_instance="80"
+           priority="0"/>
+  <hotspot filename=""
+           line_no="4294967295"
+           routine="yggdrasil_decision_forests::dataset::CsvDataSpecCreator::InferColumnsAndTypes"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="4.149999E+00"
+           trip_counts=""
+           func_instance="118"
+           priority="0"/>
+  <hotspot filename=""
+           line_no="4294967295"
+           routine="yggdrasil_decision_forests::dataset::CsvDataSpecCreator::ComputeColumnStatistics"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="2.540000E+00"
+           trip_counts=""
+           func_instance="341"
+           priority="0"/>
+  <hotspot filename=""
+           line_no="4294967295"
+           routine="yggdrasil_decision_forests::dataset::CsvDataSpecCreator::ComputeColumnStatistics"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="2.489999E+00"
+           trip_counts=""
+           func_instance="352"
+           priority="0"/>
+  <hotspot filename=""
+           line_no="4294967295"
+           routine="yggdrasil_decision_forests::dataset::CsvDataSpecCreator::InferColumnsAndTypes"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="2.299997E+00"
+           trip_counts=""
+           func_instance="121"
+           priority="0"/>
+</IntelParallelAdvisorSummary >

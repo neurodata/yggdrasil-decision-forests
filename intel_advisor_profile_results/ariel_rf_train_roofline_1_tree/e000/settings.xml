@@ -12,10 +12,10 @@
  <workflow int:selected="0" boolean:accuracyEnable="true">
   <pmVectorization>
    <commonKnobs>
-    <accuracy id="accuracy" boolean:visibility="true" value="high"/>
+    <accuracy id="accuracy" boolean:visibility="true" value="medium"/>
     <overheadIndicator id="overheadIndicator" boolean:visibility="true"/>
    </commonKnobs>
-   <checked boolean:a1="true" boolean:a3="true" boolean:a6="true" boolean:a7="false"/>
+   <checked boolean:a1="true" boolean:a3="true" boolean:a6="false" boolean:a7="false"/>
   </pmVectorization>
  </workflow>
  <FilterView boolean:VectorizedButtonChecked="true" boolean:NotVectorizedButtonChecked="true" boolean:FakeLoopButtonChecked="false" boolean:LibrariesButtonChecked="false" ModuleFilterValue="All Modules" SourceFilterValue="All Sources" LoopModeFilterValue="Loops And Functions" ThreadFilterValue="All Threads"/>

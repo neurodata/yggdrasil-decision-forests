@@ -1,0 +1,13 @@
+-r
+/home/ubuntu/intel_advisor_projects/ariel_rf_train_roofline_100_trees/e000/mp000
+--tool=map
+--record-stack-frame
+--sample-size=300000
+--record-mem-allocations
+--app-working-dir=/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples
+--
+/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train
+/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv
+Cancer
+Status
+tmp/ariel_rf_model

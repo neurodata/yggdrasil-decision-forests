@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='UTF-8'?>
+
+<bag xmlns:boolean="http://www.w3.org/2001/XMLSchema#boolean" xmlns:int="http://www.w3.org/2001/XMLSchema#int" int:version="1">
+ <SurveyView int:survey_view_int_operations_mode="0">
+  <BottomUpGrid>
+   <ColumnStructure DefaultColumnLayout="Default"/>
+   <ColumnWidth int:fdFunctionName="225" int:fdLoopAnnotation="42" int:fdRecommendationPresence="80" int:fdTotalTime="75" int:fdSelfTime="70" int:fdCompilerOptInfoVectLoopTypeSplitting="80" int:fdCompilerOptInfoVectMsg="110" int:fdVectInfoInstSets="35" int:fdVectorGain="35" int:fdVectorLength="35" int:fdVectInfoInstClasses="53" int:fdVectInfoVectDataTypes="30" int:fdCompilerOptDetails="80" int:fdLocation="143"/>
+  </BottomUpGrid>
+  <TopDownGrid>
+   <ColumnStructure DefaultColumnLayout="Top Down"/>
+  </TopDownGrid>
+ </SurveyView>
+ <workflow int:selected="0" boolean:accuracyEnable="true">
+  <pmVectorization>
+   <commonKnobs>
+    <accuracy id="accuracy" boolean:visibility="true" value="medium"/>
+    <overheadIndicator id="overheadIndicator" boolean:visibility="true"/>
+   </commonKnobs>
+   <checked boolean:a1="true" boolean:a3="true" boolean:a6="false" boolean:a7="false"/>
+  </pmVectorization>
+ </workflow>
+ <FilterView boolean:VectorizedButtonChecked="true" boolean:NotVectorizedButtonChecked="true" boolean:FakeLoopButtonChecked="false" boolean:LibrariesButtonChecked="false" ModuleFilterValue="All Modules" SourceFilterValue="All Sources" LoopModeFilterValue="Loops And Functions" ThreadFilterValue="All Threads"/>
+</bag>
