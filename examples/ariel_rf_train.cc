@@ -41,7 +41,7 @@ absl::Status TrainRandomForest(const std::string& csv_path,
         guide,
         &data_spec);
     // (Optional) Print the resulting dataspec:
-    std::cout << dataset::PrintHumanReadable(data_spec) << std::endl;
+    // std::cout << dataset::PrintHumanReadable(data_spec) << std::endl;
     }
 
     // 2) **** Configure a RandomForest learner object. No training yet ****
@@ -72,7 +72,8 @@ absl::Status TrainRandomForest(const std::string& csv_path,
       // rf_config.set_bootstrap_size_ratio(1.0);
 
       // Enable oblique splits:
-      dt_config.mutable_sparse_oblique_split()->set_max_num_projections(5000);
+        // Set num projections
+      dt_config.mutable_sparse_oblique_split();//->set_max_num_projections(5000);
 
 
       {
