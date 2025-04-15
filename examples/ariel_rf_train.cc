@@ -63,7 +63,7 @@ absl::Status TrainRandomForest(const std::string& csv_path,
   // Example of random forest hyperparameters:
   auto& rf_config = *train_config.MutableExtension(
       model::random_forest::proto::random_forest_config);
-  rf_config.set_num_trees(1);
+  rf_config.set_num_trees(10);
   rf_config.mutable_decision_tree()->set_max_depth(-1);  // -1 => unlimited
   rf_config.set_bootstrap_training_dataset(true);
   rf_config.set_bootstrap_size_ratio(1.0);

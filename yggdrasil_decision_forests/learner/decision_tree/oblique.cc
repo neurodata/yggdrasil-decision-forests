@@ -144,6 +144,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     return false;
   }
 
+  // Ariel: number of projections returned here
   // Effective number of projections to test.
   int num_projections;
   if (override_num_projections.has_value()) {
