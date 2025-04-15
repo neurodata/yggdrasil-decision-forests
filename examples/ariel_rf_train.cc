@@ -61,14 +61,18 @@ absl::Status TrainRandomForest(const std::string& csv_path,
     {
       // auto& rf_config = *train_config.MutableExtension(
       //     model::random_forest::proto::random_forest_config);
-        auto& rf_config = *train_config.MutableExtension(
+        auto& dt_config = *train_config.MutableExtension(
           model::decision_tree::proto::decision_tree_config);
-      rf_config.set_num_trees(1);
-      rf_config.mutable_decision_tree()->set_max_depth(-1);  // -1 => unlimited
-      rf_config.set_bootstrap_training_dataset(true);
-      rf_config.set_bootstrap_size_ratio(1.0);
+
+          dt_config.set_max_depth(-1);  // -1 => unlimited
+
+      // Not relevant for Decision Tree
+      // rf_config.set_num_trees(1);
+      // rf_config.set_bootstrap_training_dataset(true);
+      // rf_config.set_bootstrap_size_ratio(1.0);
+
       // Enable oblique splits:
-      auto oblique_config = rf_config.mutable_decision_tree()->sparse_oblique_split();
+      dt_config.mutable_sparse_oblique_split()->set_max_num_projections(5000);
 
 
       {
