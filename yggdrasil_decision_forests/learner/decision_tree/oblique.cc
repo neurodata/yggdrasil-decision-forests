@@ -46,7 +46,7 @@
 #include "yggdrasil_decision_forests/model/decision_tree/decision_tree.pb.h"
 #include "yggdrasil_decision_forests/utils/logging.h"
 #include "yggdrasil_decision_forests/utils/random.h"
-// #include <fstream>
+#include <fstream>
 
 namespace yggdrasil_decision_forests {
 namespace model {
@@ -201,10 +201,11 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     //             << ", weight = " << item.weight << "\n";
     // }
 
-    std::ofstream out("all_projection_matrices.csv");
-    out << "matrix_idx,projection_idx,attribute_idx,weight\n";
+    std::ofstream out("ariel_results/projection_matrix.csv", std::ios::app);  // 🔁 append mode
 
-    for (int matrix_idx = 0; matrix_idx < num_matrices; matrix_idx++) {
+    if (!out) {
+      std::cerr << "Failed to open file for writing\n";
+    } else {
       for (int projection_idx = 0; projection_idx < num_projections; projection_idx++) {
         int8_t monotonic_direction;
 
@@ -213,12 +214,12 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
                          &current_projection, &monotonic_direction, random);
 
         for (const auto& item : current_projection) {
-          out << matrix_idx << "," << projection_idx << ","
-              << item.attribute_idx << "," << item.weight << "\n";
+          out << projection_idx << "," << item.attribute_idx << "," << item.weight << "\n";
         }
       }
+
+      out.close();
     }
-    out.close();
 
     // Pre-compute the result of the current_projection.
     RETURN_IF_ERROR(
