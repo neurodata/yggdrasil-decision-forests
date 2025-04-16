@@ -5,9 +5,16 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train",
-      "args": [ // MIGHT data
-        "/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv",
-        "Cancer Status",
+      // "args": [ // MIGHT data
+      //   "/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv",
+      //   "Cancer Status",
+      //   "tmp/ariel_rf_model"
+      // ],
+
+      // Haberman Basic dataset
+      "args": [
+        "/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/haberman.csv",
+        "survival_status",
         "tmp/ariel_rf_model"
       ],
       "stopAtEntry": false,

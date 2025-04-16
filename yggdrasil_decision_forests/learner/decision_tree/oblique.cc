@@ -46,6 +46,7 @@
 #include "yggdrasil_decision_forests/model/decision_tree/decision_tree.pb.h"
 #include "yggdrasil_decision_forests/utils/logging.h"
 #include "yggdrasil_decision_forests/utils/random.h"
+// #include <fstream>
 
 namespace yggdrasil_decision_forests {
 namespace model {
@@ -154,9 +155,13 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
         GetNumProjections(dt_config, config_link.numerical_features_size());
   }
 
+  std::cout << "\nAriel:Num projections: " << num_projections << std::endl;
+
   const float projection_density =
       dt_config.sparse_oblique_split().projection_density_factor() /
       config_link.numerical_features_size();
+
+  std::cout << "\nAriel:projection_density: " << projection_density << std::endl;
 
   // Best and current projections.
   Projection best_projection;
@@ -167,7 +172,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   ProjectionEvaluator projection_evaluator(train_dataset,
                                            config_link.numerical_features());
 
-  // TODO: Cache.
+  // TODO: Cache. Ariel - ??
   const auto selected_labels = ExtractLabels(label_stats, selected_examples);
   std::vector<float> selected_weights;
   if (!weights.empty()) {
@@ -177,19 +182,51 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   std::vector<UnsignedExampleIdx> dense_example_idxs(selected_examples.size());
   std::iota(dense_example_idxs.begin(), dense_example_idxs.end(), 0);
 
-  for (int projection_idx = 0; projection_idx < num_projections;
-       projection_idx++) {
+  std::cout << "Projection matrix:\n\n";
+
+  // Ariel - try projections
+  for (int projection_idx = 0; projection_idx < num_projections; projection_idx++) {
     // Generate a current_projection.
     int8_t monotonic_direction;
+
+    // ****** Ariel: each projection gets assigned a value here - &current_projection *****
     SampleProjection(config_link.numerical_features(), dt_config,
                      train_dataset.data_spec(), config_link, projection_density,
                      &current_projection, &monotonic_direction, random);
 
+
+    // // std::cout << "Projection vector:\n";
+    // for (const auto& item : current_projection) {
+    //   std::cout << "  attribute_idx = " << item.attribute_idx
+    //             << ", weight = " << item.weight << "\n";
+    // }
+
+    std::ofstream out("all_projection_matrices.csv");
+    out << "matrix_idx,projection_idx,attribute_idx,weight\n";
+
+    for (int matrix_idx = 0; matrix_idx < num_matrices; matrix_idx++) {
+      for (int projection_idx = 0; projection_idx < num_projections; projection_idx++) {
+        int8_t monotonic_direction;
+
+        SampleProjection(config_link.numerical_features(), dt_config,
+                         train_dataset.data_spec(), config_link, projection_density,
+                         &current_projection, &monotonic_direction, random);
+
+        for (const auto& item : current_projection) {
+          out << matrix_idx << "," << projection_idx << ","
+              << item.attribute_idx << "," << item.weight << "\n";
+        }
+      }
+    }
+    out.close();
+
     // Pre-compute the result of the current_projection.
-    RETURN_IF_ERROR(projection_evaluator.Evaluate(
-        current_projection, selected_examples, &projection_values));
+    RETURN_IF_ERROR(
+      projection_evaluator.Evaluate(current_projection, selected_examples, &projection_values)
+    );
 
     ASSIGN_OR_RETURN(
+        // Either BetterSplitFound or Not
         const auto result,
         EvaluateProjection(
             dt_config, label_stats, dense_example_idxs, selected_weights,
@@ -197,6 +234,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
             current_projection.front().attribute_idx, constraints,
             monotonic_direction, best_condition, cache));
 
+    // This is simply an enum class - BetterSplitFound := 0
     if (result == SplitSearchResult::kBetterSplitFound) {
       best_projection = current_projection;
       best_threshold =
@@ -1038,16 +1076,24 @@ absl::Status ProjectionEvaluator::Evaluate(
     std::vector<float>* values) const {
   RETURN_IF_ERROR(constructor_status_);
   values->resize(selected_examples.size());
-  for (size_t selected_idx = 0; selected_idx < selected_examples.size();
-       selected_idx++) {
+
+  // std::cout << "Projection vector: " << projection;
+
+  for (size_t selected_idx = 0; selected_idx < selected_examples.size(); selected_idx++) {
     float value = 0;
     const auto example_idx = selected_examples[selected_idx];
+
+    // Ariel Why are there many items in projection?
     for (const auto& item : projection) {
+      // Sanity checks
       DCHECK_LT(item.attribute_idx, numerical_attributes_.size());
       DCHECK_GE(item.attribute_idx, 0);
-      // TODO: Move the indirection outside of the loop.
+
+      // TODO Ariel: Move the indirection outside of the loop.
       const auto* attribute_values = numerical_attributes_[item.attribute_idx];
+
       DCHECK(attribute_values != nullptr);
+
       float attribute_value = (*attribute_values)[example_idx];
       if (std::isnan(attribute_value)) {
         attribute_value = na_replacement_value_[item.attribute_idx];
