@@ -1,5 +1,6 @@
 {
   "configurations": [
+
     {
       "name": "(gdb) Launch ariel-rf-train",
       "type": "cppdbg",

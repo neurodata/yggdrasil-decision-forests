@@ -155,6 +155,8 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
         GetNumProjections(dt_config, config_link.numerical_features_size());
   }
 
+  std::cout << "Ariel: Number of projections: " << num_projections << std::endl;
+
   const float projection_density =
       dt_config.sparse_oblique_split().projection_density_factor() /
       config_link.numerical_features_size();
@@ -177,7 +179,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   std::vector<UnsignedExampleIdx> dense_example_idxs(selected_examples.size());
   std::iota(dense_example_idxs.begin(), dense_example_idxs.end(), 0);
 
-  // 📁 Logging: open log file once on first call
+  // Logging: open log file once on first call
   static bool first_projection_log = true;
   std::ofstream out;
   if (first_projection_log) {
@@ -185,7 +187,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     out << "projection_idx,attribute_idx,weight\n";
     first_projection_log = false;
   } else {
-    out.open("projection_matrix.csv", std::ios::app);  // append
+    out.open("ariel_results/projection_matrix.csv", std::ios::app);  // append
   }
 
   for (int projection_idx = 0; projection_idx < num_projections; ++projection_idx) {
