@@ -47,6 +47,7 @@
 #include "yggdrasil_decision_forests/utils/logging.h"
 #include "yggdrasil_decision_forests/utils/random.h"
 #include <fstream>
+#include <iomanip>
 
 namespace yggdrasil_decision_forests {
 namespace model {
@@ -124,109 +125,144 @@ int GetNumProjections(const proto::DecisionTreeTrainingConfig& dt_config,
                   min_num_projections);
 }
 
+
 template <typename LabelStats>
 absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
-    const dataset::VerticalDataset& train_dataset,
+    const dataset::VerticalDataset&       train_dataset,
     const absl::Span<const UnsignedExampleIdx> selected_examples,
-    const std::vector<float>& weights,
-    const model::proto::TrainingConfig& config,
+    const std::vector<float>&             weights,
+    const model::proto::TrainingConfig&   config,
     const model::proto::TrainingConfigLinking& config_link,
-    const proto::DecisionTreeTrainingConfig& dt_config,
-    const proto::Node& parent, const InternalTrainConfig& internal_config,
-    const LabelStats& label_stats,
-    const std::optional<int>& override_num_projections,
-    const NodeConstraints& constraints, proto::NodeCondition* best_condition,
-    utils::RandomEngine* random, SplitterPerThreadCache* cache) {
+    const proto::DecisionTreeTrainingConfig&   dt_config,
+    const proto::Node&                    parent,
+    const InternalTrainConfig&            internal_config,
+    const LabelStats&                     label_stats,
+    const std::optional<int>&             override_num_projections,
+    const NodeConstraints&                constraints,
+    proto::NodeCondition*                 best_condition,
+    utils::RandomEngine*                  random,
+    SplitterPerThreadCache*               cache) {
 
+  // ---------- original sanity‑checks --------------------
   if (!weights.empty()) {
     DCHECK_EQ(weights.size(), train_dataset.nrow());
   }
-
   if (config_link.numerical_features().empty()) {
     return false;
   }
 
-  // Effective number of projections to test.
-  int num_projections;
-  if (override_num_projections.has_value()) {
-    num_projections = override_num_projections.value();
-  } else {
-    num_projections =
-        GetNumProjections(dt_config, config_link.numerical_features_size());
-  }
-
-  std::cout << "Ariel: Number of projections: " << num_projections << std::endl;
+  // ---------- how many projections this node will test --
+  int num_projections = override_num_projections.has_value()
+        ? override_num_projections.value()
+        : GetNumProjections(dt_config, config_link.numerical_features_size());
 
   const float projection_density =
       dt_config.sparse_oblique_split().projection_density_factor() /
       config_link.numerical_features_size();
 
-  // Best and current projections.
-  Projection best_projection;
-  float best_threshold;
-  Projection current_projection;
-  auto& projection_values = cache->projection_values;
-
+  // ---------- helpers & caches --------------------------
   ProjectionEvaluator projection_evaluator(train_dataset,
                                            config_link.numerical_features());
 
-  const auto selected_labels = ExtractLabels(label_stats, selected_examples);
+  const auto   selected_labels  = ExtractLabels(label_stats, selected_examples);
   std::vector<float> selected_weights;
-  if (!weights.empty()) {
-    selected_weights = Extract(weights, selected_examples);
-  }
+  if (!weights.empty()) { selected_weights = Extract(weights, selected_examples); }
 
-  std::vector<UnsignedExampleIdx> dense_example_idxs(selected_examples.size());
-  std::iota(dense_example_idxs.begin(), dense_example_idxs.end(), 0);
+  std::vector<UnsignedExampleIdx> dense_idxs(selected_examples.size());
+  std::iota(dense_idxs.begin(), dense_idxs.end(), 0);
 
-  // Logging: open log file once on first call
-  static bool first_projection_log = true;
-  std::ofstream out;
-  if (first_projection_log) {
-    out.open("ariel_results/projection_matrix.csv", std::ios::trunc);  // overwrite
-    out << "projection_idx,attribute_idx,weight\n";
-    first_projection_log = false;
+  auto&       projection_values = cache->projection_values;
+  Projection  best_projection, current_projection;
+  float       best_threshold    = 0.f;
+
+  // ----------  LOGGING SET‑UP ---------------------------
+  // open once (truncate the file the very first time we enter here)
+  static bool first_call   = true;
+  static int  node_counter = 0;
+  std::ofstream log;
+  if (first_call) {
+    log.open("ariel_results/projection_matrices.txt", std::ios::trunc);
+    first_call = false;
   } else {
-    out.open("ariel_results/projection_matrix.csv", std::ios::app);  // append
+    log.open("ariel_results/projection_matrices.txt", std::ios::app);
   }
 
-  for (int projection_idx = 0; projection_idx < num_projections; ++projection_idx) {
-    int8_t monotonic_direction;
+  const int num_features = config_link.numerical_features_size();
+  // matrix[proj_idx][feat_idx]  initialised to 0
+  std::vector<std::vector<float>> matrix(
+        num_projections, std::vector<float>(num_features, 0.f));
+
+  // ----------  MAIN 9‑PROJECTION LOOP  ------------------
+  for (int proj_idx = 0; proj_idx < num_projections; ++proj_idx) {
+    int8_t monotonic = 0;
+
     SampleProjection(config_link.numerical_features(), dt_config,
                      train_dataset.data_spec(), config_link, projection_density,
-                     &current_projection, &monotonic_direction, random);
+                     &current_projection, &monotonic, random);
 
-    // 📥 Log this projection
+    // ---- populate the matrix for logging ---------------
     for (const auto& item : current_projection) {
-      out << projection_idx << "," << item.attribute_idx << "," << item.weight << "\n";
+      // locate the feature's column index inside numerical_features()
+      const auto begin = config_link.numerical_features().begin();
+      const int   col   = std::distance(
+            begin, std::find(begin,
+                             config_link.numerical_features().end(),
+                             item.attribute_idx));
+      matrix[proj_idx][col] = item.weight;
     }
 
+    // ---- normal YDF split evaluation -------------------
     RETURN_IF_ERROR(projection_evaluator.Evaluate(
-        current_projection, selected_examples, &projection_values));
+                        current_projection, selected_examples, &projection_values));
 
     ASSIGN_OR_RETURN(
         const auto result,
-        EvaluateProjection(
-            dt_config, label_stats, dense_example_idxs, selected_weights,
-            selected_labels, projection_values, internal_config,
-            current_projection.front().attribute_idx, constraints,
-            monotonic_direction, best_condition, cache));
+        EvaluateProjection(dt_config, label_stats, dense_idxs, selected_weights,
+                           selected_labels, projection_values, internal_config,
+                           current_projection.front().attribute_idx,
+                           constraints,  monotonic,
+                           best_condition, cache));
 
     if (result == SplitSearchResult::kBetterSplitFound) {
       best_projection = current_projection;
-      best_threshold =
+      best_threshold  =
           best_condition->condition().higher_condition().threshold();
     }
-  }
+  } // ---------- end projection loop ---------------------
 
+  // ----------  DUMP THE 9×d MATRIX ----------------------
+  log << "Node " << node_counter++ << " | "
+      << num_projections << " projections × "
+      << num_features     << " features\n";
+
+  // header row: feature indices
+  log << "      ";
+  for (const int feat_idx : config_link.numerical_features()) {
+    log << std::setw(6) << feat_idx;
+  }
+  log << '\n';
+
+  // rows 0‑8
+  for (int r = 0; r < num_projections; ++r) {
+    log << "proj " << r << ' ';
+    for (int c = 0; c < num_features; ++c) {
+      log << std::setw(6) << matrix[r][c];
+    }
+    log << '\n';
+  }
+  log << '\n';                   // blank line between nodes
+  log.close();
+  // ----------  END LOGGING  -----------------------------
+
+  // ----------  normal return path -----------------------
   if (!best_projection.empty()) {
     RETURN_IF_ERROR(SetCondition(best_projection, best_threshold,
                                  train_dataset.data_spec(), best_condition));
     return true;
   }
-
   return false;
 }
+
 
 absl::Status SolveLDA(const proto::DecisionTreeTrainingConfig& dt_config,
                       const ProjectionEvaluator& projection_evaluator,

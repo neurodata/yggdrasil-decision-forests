@@ -1,0 +1,852 @@
+Node 0 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     0     1
+proj 1      1     1    -1
+proj 2      1     1    -1
+proj 3     -1     1    -1
+proj 4     -1     0     1
+proj 5     -1    -1     0
+proj 6      1    -1    -1
+proj 7      1    -1     0
+proj 8     -1    -1     1
+
+Node 1 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     1     1
+proj 1     -1    -1    -1
+proj 2      1    -1    -1
+proj 3      1     0    -1
+proj 4     -1     0     1
+proj 5      1     1     1
+proj 6     -1     1     0
+proj 7      0    -1    -1
+proj 8     -1     0    -1
+
+Node 2 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     1     0
+proj 1      1     0    -1
+proj 2     -1     1     1
+proj 3      1     1     1
+proj 4      1    -1    -1
+proj 5     -1    -1     0
+proj 6      0    -1    -1
+proj 7     -1     1     0
+proj 8      0     1    -1
+
+Node 3 | 9 projections × 3 features
+           0     1     2
+proj 0      0     0     1
+proj 1     -1     1     1
+proj 2      0     0     1
+proj 3     -1    -1    -1
+proj 4     -1     0    -1
+proj 5      0     0     1
+proj 6      0     1     0
+proj 7      0    -1     1
+proj 8      1     1     0
+
+Node 4 | 9 projections × 3 features
+           0     1     2
+proj 0      0    -1     1
+proj 1      0     1    -1
+proj 2      1     0     0
+proj 3      1    -1    -1
+proj 4      1     1    -1
+proj 5     -1     1     1
+proj 6      1    -1     0
+proj 7      1    -1    -1
+proj 8      0     1     0
+
+Node 5 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     0     1
+proj 1      0     1     0
+proj 2      1    -1    -1
+proj 3      1     0     0
+proj 4     -1     1    -1
+proj 5      1     1     1
+proj 6      1    -1     1
+proj 7      0     1     0
+proj 8      1     1     1
+
+Node 6 | 9 projections × 3 features
+           0     1     2
+proj 0      0     1     0
+proj 1      1    -1     1
+proj 2      0     1     1
+proj 3     -1    -1    -1
+proj 4      0     1    -1
+proj 5     -1     0    -1
+proj 6      0    -1     1
+proj 7     -1    -1     1
+proj 8      1     1     1
+
+Node 7 | 9 projections × 3 features
+           0     1     2
+proj 0      1     0     0
+proj 1      1     0    -1
+proj 2     -1     1     1
+proj 3      1     1     1
+proj 4      1     1    -1
+proj 5      0    -1    -1
+proj 6     -1     1    -1
+proj 7      1     1    -1
+proj 8      1    -1     1
+
+Node 8 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     0    -1
+proj 1      0     0     1
+proj 2     -1    -1     0
+proj 3      0     1     0
+proj 4      1     0     0
+proj 5     -1     0    -1
+proj 6     -1    -1     1
+proj 7     -1     0     1
+proj 8      0    -1    -1
+
+Node 9 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     1    -1
+proj 1     -1     0     1
+proj 2      1     0     0
+proj 3      1     0     0
+proj 4      1    -1     1
+proj 5      1     1    -1
+proj 6      1    -1     0
+proj 7      1     1     0
+proj 8      0     0     1
+
+Node 10 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     0    -1
+proj 1     -1    -1     1
+proj 2     -1     1     1
+proj 3     -1    -1    -1
+proj 4      1    -1     0
+proj 5      0     0     1
+proj 6      0    -1     1
+proj 7     -1     1     1
+proj 8      1     1    -1
+
+Node 11 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     1    -1
+proj 1      1     1     0
+proj 2      0     1     0
+proj 3      0    -1     1
+proj 4      1     0     0
+proj 5      0    -1     1
+proj 6     -1    -1    -1
+proj 7      0     0     1
+proj 8      1     0    -1
+
+Node 12 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     1     1
+proj 1      0     0     1
+proj 2     -1     1    -1
+proj 3     -1    -1     0
+proj 4      0    -1     1
+proj 5      0    -1    -1
+proj 6      0     0     1
+proj 7      0     0     1
+proj 8      1     0     1
+
+Node 13 | 9 projections × 3 features
+           0     1     2
+proj 0      0     1     0
+proj 1      0     1     1
+proj 2      1     0     1
+proj 3     -1    -1    -1
+proj 4      0     1     0
+proj 5     -1     1     0
+proj 6      0     1     0
+proj 7      1     0     0
+proj 8     -1     0    -1
+
+Node 14 | 9 projections × 3 features
+           0     1     2
+proj 0      1     0     0
+proj 1      0     0     1
+proj 2     -1    -1     1
+proj 3      1     0     0
+proj 4      0     1     0
+proj 5      1     0     0
+proj 6      0    -1    -1
+proj 7      0     0     1
+proj 8      1    -1     0
+
+Node 15 | 9 projections × 3 features
+           0     1     2
+proj 0      0    -1     1
+proj 1     -1    -1     1
+proj 2      0     1    -1
+proj 3      0     1    -1
+proj 4     -1     1     1
+proj 5      0    -1    -1
+proj 6     -1     0     1
+proj 7      0     1    -1
+proj 8      1     0    -1
+
+Node 16 | 9 projections × 3 features
+           0     1     2
+proj 0      1    -1    -1
+proj 1     -1    -1     0
+proj 2      1     1     0
+proj 3     -1    -1     1
+proj 4      0     1     0
+proj 5      1     0     1
+proj 6      1     1     1
+proj 7      1     1     0
+proj 8      0    -1    -1
+
+Node 17 | 9 projections × 3 features
+           0     1     2
+proj 0     -1    -1     0
+proj 1      1     1     1
+proj 2      1    -1    -1
+proj 3      1     0     0
+proj 4      1     1    -1
+proj 5      1     1    -1
+proj 6      0     0     1
+proj 7     -1    -1    -1
+proj 8     -1     1     0
+
+Node 18 | 9 projections × 3 features
+           0     1     2
+proj 0      1     0     1
+proj 1      0    -1    -1
+proj 2     -1     0    -1
+proj 3     -1    -1     1
+proj 4      1     0     1
+proj 5      0     1     0
+proj 6     -1     0     1
+proj 7     -1     0    -1
+proj 8      0    -1    -1
+
+Node 19 | 9 projections × 3 features
+           0     1     2
+proj 0     -1    -1     0
+proj 1     -1     1     0
+proj 2      0     0     1
+proj 3      0    -1     1
+proj 4      0     1     0
+proj 5      0    -1    -1
+proj 6      1    -1    -1
+proj 7      1     1     0
+proj 8      1    -1     1
+
+Node 20 | 9 projections × 3 features
+           0     1     2
+proj 0      0     0     1
+proj 1      1    -1     0
+proj 2      0     0     1
+proj 3      1     1     1
+proj 4      0    -1    -1
+proj 5      0    -1     1
+proj 6      1    -1    -1
+proj 7      0    -1     1
+proj 8      1     0     0
+
+Node 21 | 9 projections × 3 features
+           0     1     2
+proj 0      1    -1    -1
+proj 1      1     0     1
+proj 2     -1     1     0
+proj 3     -1    -1     0
+proj 4      0     0     1
+proj 5      0    -1     1
+proj 6      0     1     0
+proj 7      0     0     1
+proj 8      1    -1     0
+
+Node 22 | 9 projections × 3 features
+           0     1     2
+proj 0      1     0    -1
+proj 1     -1    -1    -1
+proj 2      0    -1     1
+proj 3     -1     1    -1
+proj 4      1     1     0
+proj 5      0     1     1
+proj 6      1     1     0
+proj 7      0     0     1
+proj 8      1     0     0
+
+Node 23 | 9 projections × 3 features
+           0     1     2
+proj 0      1     0     0
+proj 1     -1    -1     1
+proj 2      0     1     0
+proj 3      1     1     0
+proj 4      0    -1     1
+proj 5      1     1     1
+proj 6      1     1     1
+proj 7      0     0     1
+proj 8      1     1    -1
+
+Node 24 | 9 projections × 3 features
+           0     1     2
+proj 0      1     1    -1
+proj 1     -1    -1     1
+proj 2      1    -1     1
+proj 3      0     0     1
+proj 4     -1    -1     1
+proj 5      1     0     1
+proj 6      1     0     1
+proj 7     -1     1    -1
+proj 8      1     1     0
+
+Node 25 | 9 projections × 3 features
+           0     1     2
+proj 0      1    -1     1
+proj 1      0     1     0
+proj 2     -1    -1     1
+proj 3      1     0    -1
+proj 4      1    -1     0
+proj 5      1    -1     0
+proj 6     -1     0    -1
+proj 7      1    -1     1
+proj 8      1     0     1
+
+Node 26 | 9 projections × 3 features
+           0     1     2
+proj 0      0     1     0
+proj 1      0     1     0
+proj 2      0     1     0
+proj 3     -1     1     1
+proj 4      1     0     0
+proj 5      1    -1     1
+proj 6      0     0     1
+proj 7      1     1    -1
+proj 8      1     0     1
+
+Node 27 | 9 projections × 3 features
+           0     1     2
+proj 0      0     1    -1
+proj 1     -1    -1     1
+proj 2     -1    -1     0
+proj 3      1    -1    -1
+proj 4      0     1     0
+proj 5      1     1    -1
+proj 6      1    -1     1
+proj 7      0     1     0
+proj 8      0    -1     1
+
+Node 28 | 9 projections × 3 features
+           0     1     2
+proj 0      0     1     0
+proj 1     -1     1     0
+proj 2      0     1     0
+proj 3      1     1    -1
+proj 4      1     1     1
+proj 5      1    -1     0
+proj 6     -1     0    -1
+proj 7     -1     0     1
+proj 8      0     1     0
+
+Node 29 | 9 projections × 3 features
+           0     1     2
+proj 0      1    -1     0
+proj 1     -1     1     1
+proj 2      1     0     0
+proj 3      1     1     0
+proj 4      0     1     0
+proj 5      1    -1     0
+proj 6     -1     0    -1
+proj 7      1    -1     0
+proj 8      1     1     1
+
+Node 30 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     1     1
+proj 1      1     1     1
+proj 2      0     1     0
+proj 3      1    -1     1
+proj 4      1     0     1
+proj 5     -1     0    -1
+proj 6      1    -1    -1
+proj 7      1    -1     0
+proj 8     -1     1     1
+
+Node 31 | 9 projections × 3 features
+           0     1     2
+proj 0      0     0     1
+proj 1      1     1    -1
+proj 2     -1    -1     0
+proj 3      1     0     1
+proj 4      1     0    -1
+proj 5      0     0     1
+proj 6     -1     0     1
+proj 7      1     0    -1
+proj 8     -1     1    -1
+
+Node 32 | 9 projections × 3 features
+           0     1     2
+proj 0      0     1     0
+proj 1      0     1     0
+proj 2      1     1    -1
+proj 3      0     0     1
+proj 4      0     1     0
+proj 5      0    -1     1
+proj 6      0    -1    -1
+proj 7     -1    -1     0
+proj 8     -1    -1    -1
+
+Node 33 | 9 projections × 3 features
+           0     1     2
+proj 0      1     0     1
+proj 1      0    -1     1
+proj 2      1     1    -1
+proj 3      1    -1    -1
+proj 4      1     0     1
+proj 5     -1    -1     1
+proj 6      0     0     1
+proj 7      1     1     1
+proj 8      0     1     0
+
+Node 34 | 9 projections × 3 features
+           0     1     2
+proj 0      0    -1    -1
+proj 1      0     1     1
+proj 2      0     1     0
+proj 3      1     1    -1
+proj 4      0     1     1
+proj 5      1    -1     0
+proj 6      0     1     1
+proj 7     -1     1     1
+proj 8      1     1     0
+
+Node 35 | 9 projections × 3 features
+           0     1     2
+proj 0      1     1    -1
+proj 1     -1     1     1
+proj 2     -1    -1    -1
+proj 3      1     0     0
+proj 4      0    -1     1
+proj 5      1    -1     1
+proj 6      0    -1     1
+proj 7     -1    -1     0
+proj 8      0    -1     1
+
+Node 36 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     0     1
+proj 1      0     1     1
+proj 2      1    -1     1
+proj 3      1     1    -1
+proj 4      0     0     1
+proj 5     -1     1     0
+proj 6      1     0     0
+proj 7      1    -1    -1
+proj 8      1     1    -1
+
+Node 37 | 9 projections × 3 features
+           0     1     2
+proj 0      1    -1     0
+proj 1      0     0     1
+proj 2     -1     1     0
+proj 3      0     0     1
+proj 4      0     1     0
+proj 5      1    -1     0
+proj 6      1     1     1
+proj 7      0     1     1
+proj 8      1     1    -1
+
+Node 38 | 9 projections × 3 features
+           0     1     2
+proj 0      1     0     1
+proj 1      1    -1     0
+proj 2     -1     1    -1
+proj 3     -1     1    -1
+proj 4      1     1     1
+proj 5     -1    -1    -1
+proj 6      0    -1    -1
+proj 7      1     1    -1
+proj 8      1     0     0
+
+Node 39 | 9 projections × 3 features
+           0     1     2
+proj 0      1    -1    -1
+proj 1      0     0     1
+proj 2     -1     1    -1
+proj 3      1    -1     0
+proj 4     -1     0     1
+proj 5      0     0     1
+proj 6     -1     1    -1
+proj 7      0     0     1
+proj 8     -1     1     1
+
+Node 40 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     1    -1
+proj 1      0     0     1
+proj 2      0     0     1
+proj 3      0     0     1
+proj 4      1     1    -1
+proj 5      0     1     1
+proj 6      0     1     0
+proj 7      0     1    -1
+proj 8      0     1     0
+
+Node 41 | 9 projections × 3 features
+           0     1     2
+proj 0      0     1    -1
+proj 1      0     0     1
+proj 2      1     0     0
+proj 3      0     0     1
+proj 4      1    -1     0
+proj 5      0     0     1
+proj 6      0     1     0
+proj 7      1     0     0
+proj 8      1     1     0
+
+Node 42 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     1     1
+proj 1      1    -1     1
+proj 2      0    -1    -1
+proj 3     -1     1     1
+proj 4      1     0     0
+proj 5      1    -1     1
+proj 6      0     0     1
+proj 7      1    -1     1
+proj 8     -1     1     1
+
+Node 43 | 9 projections × 3 features
+           0     1     2
+proj 0      0     1     1
+proj 1      1     0     0
+proj 2     -1    -1     1
+proj 3      0     0     1
+proj 4      1     1    -1
+proj 5      1     0     1
+proj 6     -1     1     0
+proj 7      1     0     0
+proj 8      1     0     1
+
+Node 44 | 9 projections × 3 features
+           0     1     2
+proj 0      1     0     0
+proj 1      0     0     1
+proj 2     -1     1     0
+proj 3      1    -1     1
+proj 4      0     1     0
+proj 5      0     0     1
+proj 6      1     0     0
+proj 7     -1     0     1
+proj 8     -1    -1     1
+
+Node 45 | 9 projections × 3 features
+           0     1     2
+proj 0     -1    -1    -1
+proj 1      1    -1     1
+proj 2     -1    -1    -1
+proj 3     -1     0    -1
+proj 4      1     1     1
+proj 5      1    -1     1
+proj 6      0     0     1
+proj 7      1    -1    -1
+proj 8     -1     0    -1
+
+Node 46 | 9 projections × 3 features
+           0     1     2
+proj 0      0    -1     1
+proj 1      1     0    -1
+proj 2      1     0     0
+proj 3     -1    -1     1
+proj 4      1    -1    -1
+proj 5      1     0     0
+proj 6     -1     1    -1
+proj 7      0     1     0
+proj 8     -1     1     1
+
+Node 47 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     0    -1
+proj 1      1     1     1
+proj 2      1    -1     0
+proj 3      0     1     1
+proj 4      1     0     1
+proj 5      0     1     0
+proj 6      1    -1     1
+proj 7      1     0     0
+proj 8     -1     1    -1
+
+Node 48 | 9 projections × 3 features
+           0     1     2
+proj 0      0     1     1
+proj 1      1     0     0
+proj 2      1    -1    -1
+proj 3      1    -1    -1
+proj 4      0     1     1
+proj 5     -1     1     1
+proj 6     -1     1     0
+proj 7      0     1     1
+proj 8      0     1     0
+
+Node 49 | 9 projections × 3 features
+           0     1     2
+proj 0      0     0     1
+proj 1      1     1     1
+proj 2      0     0     1
+proj 3      1     1     1
+proj 4     -1     1    -1
+proj 5      0     1     0
+proj 6      1     0     0
+proj 7      1     0     1
+proj 8      1     1     1
+
+Node 50 | 9 projections × 3 features
+           0     1     2
+proj 0      0    -1     1
+proj 1      1     0    -1
+proj 2     -1     0     1
+proj 3     -1     0     1
+proj 4     -1    -1    -1
+proj 5     -1    -1     0
+proj 6      0     0     1
+proj 7      1    -1     0
+proj 8      0     1     1
+
+Node 51 | 9 projections × 3 features
+           0     1     2
+proj 0      1     1     1
+proj 1     -1     1    -1
+proj 2      1     0     1
+proj 3      0     0     1
+proj 4     -1    -1    -1
+proj 5     -1     1     0
+proj 6     -1     1     1
+proj 7      0    -1     1
+proj 8     -1     1     0
+
+Node 52 | 9 projections × 3 features
+           0     1     2
+proj 0     -1    -1     0
+proj 1     -1     1     0
+proj 2     -1    -1    -1
+proj 3     -1     1     1
+proj 4      1     0     1
+proj 5     -1    -1     1
+proj 6     -1    -1    -1
+proj 7     -1     1     0
+proj 8      1     1     0
+
+Node 53 | 9 projections × 3 features
+           0     1     2
+proj 0      1     0     0
+proj 1      1     1    -1
+proj 2     -1     0     1
+proj 3     -1    -1     0
+proj 4      1     0     0
+proj 5      0     0     1
+proj 6      0     0     1
+proj 7      0     1     1
+proj 8      1    -1     0
+
+Node 54 | 9 projections × 3 features
+           0     1     2
+proj 0      1    -1    -1
+proj 1      1     0     0
+proj 2     -1    -1     1
+proj 3      1    -1    -1
+proj 4      1     0     0
+proj 5     -1    -1    -1
+proj 6     -1     0    -1
+proj 7      0    -1    -1
+proj 8      1     0     1
+
+Node 55 | 9 projections × 3 features
+           0     1     2
+proj 0      1     1    -1
+proj 1      0     0     1
+proj 2     -1     1    -1
+proj 3      1    -1     0
+proj 4      0     0     1
+proj 5      1    -1    -1
+proj 6      1    -1    -1
+proj 7     -1     0    -1
+proj 8      0    -1     1
+
+Node 56 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     1     0
+proj 1     -1     0     1
+proj 2     -1     0    -1
+proj 3     -1     1    -1
+proj 4      1     0     0
+proj 5      1    -1     1
+proj 6      1     1     0
+proj 7      1     1     0
+proj 8     -1    -1     1
+
+Node 57 | 9 projections × 3 features
+           0     1     2
+proj 0      0     0     1
+proj 1      1     0     0
+proj 2     -1     0     1
+proj 3     -1     1    -1
+proj 4      1     1     0
+proj 5     -1     1     1
+proj 6      1     0     0
+proj 7     -1     1    -1
+proj 8      1     0     0
+
+Node 58 | 9 projections × 3 features
+           0     1     2
+proj 0      1    -1     0
+proj 1      0    -1     1
+proj 2      1    -1    -1
+proj 3      0     0     1
+proj 4      0     0     1
+proj 5      1    -1     0
+proj 6     -1     1     0
+proj 7     -1     1    -1
+proj 8      1    -1    -1
+
+Node 59 | 9 projections × 3 features
+           0     1     2
+proj 0     -1    -1     0
+proj 1      0     1     0
+proj 2     -1    -1     1
+proj 3      1    -1     1
+proj 4      0     0     1
+proj 5      0     0     1
+proj 6     -1     1    -1
+proj 7      1     0     0
+proj 8     -1    -1     1
+
+Node 60 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     1    -1
+proj 1      0     0     1
+proj 2      0     0     1
+proj 3      1    -1     0
+proj 4     -1     1    -1
+proj 5     -1     0    -1
+proj 6      1     0     0
+proj 7      1     0    -1
+proj 8      1     0    -1
+
+Node 61 | 9 projections × 3 features
+           0     1     2
+proj 0      1     0     0
+proj 1      0     1     1
+proj 2      1     1    -1
+proj 3     -1    -1     1
+proj 4      1     0     1
+proj 5     -1     0     1
+proj 6      1    -1     0
+proj 7      1     0     0
+proj 8      0     1    -1
+
+Node 62 | 9 projections × 3 features
+           0     1     2
+proj 0     -1     0     1
+proj 1      0     0     1
+proj 2     -1    -1     0
+proj 3     -1     1     0
+proj 4      0     1    -1
+proj 5      1     1     1
+proj 6      0     1     0
+proj 7     -1     1    -1
+proj 8      1     0     0
+
+Node 63 | 9 projections × 3 features
+           0     1     2
+proj 0      0    -1    -1
+proj 1     -1     0    -1
+proj 2     -1     0    -1
+proj 3     -1     1    -1
+proj 4      1     0    -1
+proj 5      0     0     1
+proj 6      1     0    -1
+proj 7     -1    -1     0
+proj 8      0    -1    -1
+
+Node 64 | 9 projections × 3 features
+           0     1     2
+proj 0      0    -1     1
+proj 1      0     0     1
+proj 2      1    -1     1
+proj 3      1    -1    -1
+proj 4      0     1     0
+proj 5      0     0     1
+proj 6      0     0     1
+proj 7      1     1     1
+proj 8     -1     1     1
+
+Node 65 | 9 projections × 3 features
+           0     1     2
+proj 0      1     0     0
+proj 1      1     1    -1
+proj 2      1     0     1
+proj 3     -1    -1     0
+proj 4      1    -1     1
+proj 5      1     0     0
+proj 6      1    -1    -1
+proj 7      0     1     0
+proj 8      1     0    -1
+
+Node 66 | 9 projections × 3 features
+           0     1     2
+proj 0      1    -1     1
+proj 1     -1     1     1
+proj 2     -1    -1    -1
+proj 3      0     1    -1
+proj 4     -1     1    -1
+proj 5      0    -1     1
+proj 6      1     0     0
+proj 7     -1     1    -1
+proj 8      1    -1    -1
+
+Node 67 | 9 projections × 3 features
+           0     1     2
+proj 0      1    -1     0
+proj 1     -1     0    -1
+proj 2      0    -1    -1
+proj 3     -1    -1    -1
+proj 4      1     1    -1
+proj 5      0     0     1
+proj 6      0     1     1
+proj 7     -1    -1    -1
+proj 8     -1     1    -1
+
+Node 68 | 9 projections × 3 features
+           0     1     2
+proj 0      1     1     0
+proj 1      1     1     0
+proj 2      1    -1    -1
+proj 3      1     1    -1
+proj 4      0     0     1
+proj 5     -1     1     1
+proj 6      1     0    -1
+proj 7      1     0    -1
+proj 8      1    -1    -1
+
+Node 69 | 9 projections × 3 features
+           0     1     2
+proj 0     -1    -1     0
+proj 1      0     0     1
+proj 2      1     1    -1
+proj 3      0    -1     1
+proj 4     -1    -1    -1
+proj 5      1     0     1
+proj 6      0     1     1
+proj 7      1     0    -1
+proj 8     -1     0     1
+
+Node 70 | 9 projections × 3 features
+           0     1     2
+proj 0      1    -1     0
+proj 1     -1     1     0
+proj 2      1     0    -1
+proj 3     -1     0     1
+proj 4     -1     0     1
+proj 5      1     0     0
+proj 6     -1    -1     1
+proj 7      0     1     1
+proj 8     -1     1    -1
+

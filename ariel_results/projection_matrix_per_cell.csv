@@ -1,4 +1,5 @@
 projection_idx,attribute_idx,weight
+Entering 9-projection loop
 0,0,-1
 0,2,1
 1,0,1
@@ -22,6 +23,8 @@ projection_idx,attribute_idx,weight
 8,0,-1
 8,1,-1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,1,1
 0,2,1
@@ -44,6 +47,8 @@ projection_idx,attribute_idx,weight
 7,2,-1
 8,0,-1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,1,1
 1,0,1
@@ -65,6 +70,8 @@ projection_idx,attribute_idx,weight
 7,1,1
 8,1,1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,2,1
 1,0,-1
 1,1,1
@@ -81,6 +88,8 @@ projection_idx,attribute_idx,weight
 7,2,1
 8,0,1
 8,1,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,1,-1
 0,2,1
 1,1,1
@@ -101,6 +110,8 @@ projection_idx,attribute_idx,weight
 7,1,-1
 7,2,-1
 8,1,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,2,1
 1,1,1
@@ -121,6 +132,8 @@ projection_idx,attribute_idx,weight
 8,0,1
 8,1,1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,1,1
 1,0,1
 1,1,-1
@@ -142,6 +155,8 @@ projection_idx,attribute_idx,weight
 8,0,1
 8,1,1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 1,0,1
 1,2,-1
@@ -165,6 +180,8 @@ projection_idx,attribute_idx,weight
 8,0,1
 8,1,-1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,2,-1
 1,2,1
@@ -181,6 +198,8 @@ projection_idx,attribute_idx,weight
 7,2,1
 8,1,-1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,1,1
 0,2,-1
@@ -199,6 +218,8 @@ projection_idx,attribute_idx,weight
 7,0,1
 7,1,1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,2,-1
 1,0,-1
@@ -221,6 +242,8 @@ projection_idx,attribute_idx,weight
 8,0,1
 8,1,1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,1,1
 0,2,-1
@@ -238,6 +261,8 @@ projection_idx,attribute_idx,weight
 7,2,1
 8,0,1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,1,1
 0,2,1
@@ -255,6 +280,8 @@ projection_idx,attribute_idx,weight
 7,2,1
 8,0,1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,1,1
 1,1,1
 1,2,1
@@ -270,6 +297,8 @@ projection_idx,attribute_idx,weight
 7,0,1
 8,0,-1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 1,2,1
 2,0,-1
@@ -283,6 +312,8 @@ projection_idx,attribute_idx,weight
 7,2,1
 8,0,1
 8,1,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,1,-1
 0,2,1
 1,0,-1
@@ -303,6 +334,8 @@ projection_idx,attribute_idx,weight
 7,2,-1
 8,0,1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,1,-1
 0,2,-1
@@ -323,6 +356,8 @@ projection_idx,attribute_idx,weight
 7,1,1
 8,1,-1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,1,-1
 1,0,1
@@ -344,6 +379,8 @@ projection_idx,attribute_idx,weight
 7,2,-1
 8,0,-1
 8,1,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,2,1
 1,1,-1
@@ -362,6 +399,8 @@ projection_idx,attribute_idx,weight
 7,2,-1
 8,1,-1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,1,-1
 1,0,-1
@@ -380,6 +419,8 @@ projection_idx,attribute_idx,weight
 8,0,1
 8,1,-1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,2,1
 1,0,1
 1,1,-1
@@ -397,6 +438,8 @@ projection_idx,attribute_idx,weight
 7,1,-1
 7,2,1
 8,0,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,1,-1
 0,2,-1
@@ -413,6 +456,8 @@ projection_idx,attribute_idx,weight
 7,2,1
 8,0,1
 8,1,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,2,-1
 1,0,-1
@@ -431,6 +476,8 @@ projection_idx,attribute_idx,weight
 6,1,1
 7,2,1
 8,0,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 1,0,-1
 1,1,-1
@@ -450,6 +497,8 @@ projection_idx,attribute_idx,weight
 8,0,1
 8,1,1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,1,1
 0,2,-1
@@ -472,6 +521,8 @@ projection_idx,attribute_idx,weight
 7,2,-1
 8,0,1
 8,1,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,1,-1
 0,2,1
@@ -492,6 +543,8 @@ projection_idx,attribute_idx,weight
 7,2,1
 8,0,1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,1,1
 1,1,1
 2,1,1
@@ -508,6 +561,8 @@ projection_idx,attribute_idx,weight
 7,2,-1
 8,0,1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,1,1
 0,2,-1
 1,0,-1
@@ -528,6 +583,8 @@ projection_idx,attribute_idx,weight
 7,1,1
 8,1,-1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,1,1
 1,0,-1
 1,1,1
@@ -545,6 +602,8 @@ projection_idx,attribute_idx,weight
 7,0,-1
 7,2,1
 8,1,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,1,-1
 1,0,-1
@@ -563,6 +622,8 @@ projection_idx,attribute_idx,weight
 8,0,1
 8,1,1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,1,1
 0,2,1
@@ -585,6 +646,8 @@ projection_idx,attribute_idx,weight
 8,0,-1
 8,1,1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,2,1
 1,0,1
 1,1,1
@@ -603,6 +666,8 @@ projection_idx,attribute_idx,weight
 8,0,-1
 8,1,1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,1,1
 1,1,1
 2,0,1
@@ -619,6 +684,8 @@ projection_idx,attribute_idx,weight
 8,0,-1
 8,1,-1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,2,1
 1,1,-1
@@ -639,6 +706,8 @@ projection_idx,attribute_idx,weight
 7,1,1
 7,2,1
 8,1,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,1,-1
 0,2,-1
 1,1,1
@@ -658,6 +727,8 @@ projection_idx,attribute_idx,weight
 7,2,1
 8,0,1
 8,1,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,1,1
 0,2,-1
@@ -679,6 +750,8 @@ projection_idx,attribute_idx,weight
 7,1,-1
 8,1,-1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,2,1
 1,1,1
@@ -699,6 +772,8 @@ projection_idx,attribute_idx,weight
 8,0,1
 8,1,1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,1,-1
 1,2,1
@@ -716,6 +791,8 @@ projection_idx,attribute_idx,weight
 8,0,1
 8,1,1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,2,1
 1,0,1
@@ -738,6 +815,8 @@ projection_idx,attribute_idx,weight
 7,1,1
 7,2,-1
 8,0,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,1,-1
 0,2,-1
@@ -757,6 +836,8 @@ projection_idx,attribute_idx,weight
 8,0,-1
 8,1,1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,1,1
 0,2,-1
@@ -772,6 +853,8 @@ projection_idx,attribute_idx,weight
 7,1,1
 7,2,-1
 8,1,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,1,1
 0,2,-1
 1,2,1
@@ -784,6 +867,8 @@ projection_idx,attribute_idx,weight
 7,0,1
 8,0,1
 8,1,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,1,1
 0,2,1
@@ -806,6 +891,8 @@ projection_idx,attribute_idx,weight
 8,0,-1
 8,1,1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,1,1
 0,2,1
 1,0,1
@@ -823,6 +910,8 @@ projection_idx,attribute_idx,weight
 7,0,1
 8,0,1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 1,2,1
 2,0,-1
@@ -838,6 +927,8 @@ projection_idx,attribute_idx,weight
 8,0,-1
 8,1,-1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,1,-1
 0,2,-1
@@ -861,6 +952,8 @@ projection_idx,attribute_idx,weight
 7,2,-1
 8,0,-1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,1,-1
 0,2,1
 1,0,1
@@ -880,6 +973,8 @@ projection_idx,attribute_idx,weight
 8,0,-1
 8,1,1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,2,-1
 1,0,1
@@ -899,6 +994,8 @@ projection_idx,attribute_idx,weight
 8,0,-1
 8,1,1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,1,1
 0,2,1
 1,0,1
@@ -918,6 +1015,8 @@ projection_idx,attribute_idx,weight
 7,1,1
 7,2,1
 8,1,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,2,1
 1,0,1
 1,1,1
@@ -936,6 +1035,8 @@ projection_idx,attribute_idx,weight
 8,0,1
 8,1,1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,1,-1
 0,2,1
 1,0,1
@@ -954,6 +1055,8 @@ projection_idx,attribute_idx,weight
 7,1,-1
 8,1,1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,1,1
 0,2,1
@@ -975,6 +1078,8 @@ projection_idx,attribute_idx,weight
 7,2,1
 8,0,-1
 8,1,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,1,-1
 1,0,-1
@@ -997,6 +1102,8 @@ projection_idx,attribute_idx,weight
 7,1,1
 8,0,1
 8,1,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 1,0,1
 1,1,1
@@ -1012,6 +1119,8 @@ projection_idx,attribute_idx,weight
 7,2,1
 8,0,1
 8,1,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,1,-1
 0,2,-1
@@ -1032,6 +1141,8 @@ projection_idx,attribute_idx,weight
 7,2,-1
 8,0,1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,1,1
 0,2,-1
@@ -1052,6 +1163,8 @@ projection_idx,attribute_idx,weight
 7,2,-1
 8,1,-1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,1,1
 1,0,-1
@@ -1072,6 +1185,8 @@ projection_idx,attribute_idx,weight
 8,0,-1
 8,1,-1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,2,1
 1,0,1
 2,0,-1
@@ -1089,6 +1204,8 @@ projection_idx,attribute_idx,weight
 7,1,1
 7,2,-1
 8,0,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,1,-1
 1,1,-1
@@ -1108,6 +1225,8 @@ projection_idx,attribute_idx,weight
 8,0,1
 8,1,-1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,1,-1
 1,1,1
@@ -1126,6 +1245,8 @@ projection_idx,attribute_idx,weight
 8,0,-1
 8,1,-1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,1,1
 0,2,-1
@@ -1143,6 +1264,8 @@ projection_idx,attribute_idx,weight
 7,2,-1
 8,0,1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 1,1,1
 1,2,1
@@ -1161,6 +1284,8 @@ projection_idx,attribute_idx,weight
 7,0,1
 8,1,1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,2,1
 1,2,1
@@ -1178,6 +1303,8 @@ projection_idx,attribute_idx,weight
 7,1,1
 7,2,-1
 8,0,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,1,-1
 0,2,-1
 1,0,-1
@@ -1196,6 +1323,8 @@ projection_idx,attribute_idx,weight
 7,1,-1
 8,1,-1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,1,-1
 0,2,1
 1,2,1
@@ -1214,6 +1343,8 @@ projection_idx,attribute_idx,weight
 8,0,-1
 8,1,1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 1,0,1
 1,1,1
@@ -1232,6 +1363,8 @@ projection_idx,attribute_idx,weight
 7,1,1
 8,0,1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,1,-1
 0,2,1
@@ -1255,6 +1388,8 @@ projection_idx,attribute_idx,weight
 8,0,1
 8,1,-1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,1,-1
 1,0,-1
@@ -1276,6 +1411,8 @@ projection_idx,attribute_idx,weight
 8,0,-1
 8,1,1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,1,1
 1,0,1
@@ -1297,6 +1434,8 @@ projection_idx,attribute_idx,weight
 8,0,1
 8,1,-1
 8,2,-1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,-1
 0,1,-1
 1,2,1
@@ -1316,6 +1455,8 @@ projection_idx,attribute_idx,weight
 7,2,-1
 8,0,-1
 8,2,1
+Exiting 9-projection loop
+Entering 9-projection loop
 0,0,1
 0,1,-1
 1,0,-1
@@ -1335,3 +1476,4 @@ projection_idx,attribute_idx,weight
 8,0,-1
 8,1,1
 8,2,-1
+Exiting 9-projection loop
