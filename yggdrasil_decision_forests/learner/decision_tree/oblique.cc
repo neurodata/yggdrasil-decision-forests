@@ -137,6 +137,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     const std::optional<int>& override_num_projections,
     const NodeConstraints& constraints, proto::NodeCondition* best_condition,
     utils::RandomEngine* random, SplitterPerThreadCache* cache) {
+
   if (!weights.empty()) {
     DCHECK_EQ(weights.size(), train_dataset.nrow());
   }
@@ -145,7 +146,6 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     return false;
   }
 
-  // Ariel: number of projections returned here
   // Effective number of projections to test.
   int num_projections;
   if (override_num_projections.has_value()) {
@@ -155,13 +155,9 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
         GetNumProjections(dt_config, config_link.numerical_features_size());
   }
 
-  std::cout << "\nAriel:Num projections: " << num_projections << std::endl;
-
   const float projection_density =
       dt_config.sparse_oblique_split().projection_density_factor() /
       config_link.numerical_features_size();
-
-  std::cout << "\nAriel:projection_density: " << projection_density << std::endl;
 
   // Best and current projections.
   Projection best_projection;
@@ -172,7 +168,6 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   ProjectionEvaluator projection_evaluator(train_dataset,
                                            config_link.numerical_features());
 
-  // TODO: Cache. Ariel - ??
   const auto selected_labels = ExtractLabels(label_stats, selected_examples);
   std::vector<float> selected_weights;
   if (!weights.empty()) {
@@ -182,52 +177,32 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   std::vector<UnsignedExampleIdx> dense_example_idxs(selected_examples.size());
   std::iota(dense_example_idxs.begin(), dense_example_idxs.end(), 0);
 
-  std::cout << "Projection matrix:\n\n";
+  // 📁 Logging: open log file once on first call
+  static bool first_projection_log = true;
+  std::ofstream out;
+  if (first_projection_log) {
+    out.open("ariel_results/projection_matrix.csv", std::ios::trunc);  // overwrite
+    out << "projection_idx,attribute_idx,weight\n";
+    first_projection_log = false;
+  } else {
+    out.open("projection_matrix.csv", std::ios::app);  // append
+  }
 
-  // Ariel - try projections
-  for (int projection_idx = 0; projection_idx < num_projections; projection_idx++) {
-    // Generate a current_projection.
+  for (int projection_idx = 0; projection_idx < num_projections; ++projection_idx) {
     int8_t monotonic_direction;
-
-    // ****** Ariel: each projection gets assigned a value here - &current_projection *****
     SampleProjection(config_link.numerical_features(), dt_config,
                      train_dataset.data_spec(), config_link, projection_density,
                      &current_projection, &monotonic_direction, random);
 
-
-    // // std::cout << "Projection vector:\n";
-    // for (const auto& item : current_projection) {
-    //   std::cout << "  attribute_idx = " << item.attribute_idx
-    //             << ", weight = " << item.weight << "\n";
-    // }
-
-    std::ofstream out("ariel_results/projection_matrix.csv", std::ios::app);  // 🔁 append mode
-
-    if (!out) {
-      std::cerr << "Failed to open file for writing\n";
-    } else {
-      for (int projection_idx = 0; projection_idx < num_projections; projection_idx++) {
-        int8_t monotonic_direction;
-
-        SampleProjection(config_link.numerical_features(), dt_config,
-                         train_dataset.data_spec(), config_link, projection_density,
-                         &current_projection, &monotonic_direction, random);
-
-        for (const auto& item : current_projection) {
-          out << projection_idx << "," << item.attribute_idx << "," << item.weight << "\n";
-        }
-      }
-
-      out.close();
+    // 📥 Log this projection
+    for (const auto& item : current_projection) {
+      out << projection_idx << "," << item.attribute_idx << "," << item.weight << "\n";
     }
 
-    // Pre-compute the result of the current_projection.
-    RETURN_IF_ERROR(
-      projection_evaluator.Evaluate(current_projection, selected_examples, &projection_values)
-    );
+    RETURN_IF_ERROR(projection_evaluator.Evaluate(
+        current_projection, selected_examples, &projection_values));
 
     ASSIGN_OR_RETURN(
-        // Either BetterSplitFound or Not
         const auto result,
         EvaluateProjection(
             dt_config, label_stats, dense_example_idxs, selected_weights,
@@ -235,7 +210,6 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
             current_projection.front().attribute_idx, constraints,
             monotonic_direction, best_condition, cache));
 
-    // This is simply an enum class - BetterSplitFound := 0
     if (result == SplitSearchResult::kBetterSplitFound) {
       best_projection = current_projection;
       best_threshold =
@@ -243,7 +217,6 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     }
   }
 
-  // Update with the actual current_projection definition.
   if (!best_projection.empty()) {
     RETURN_IF_ERROR(SetCondition(best_projection, best_threshold,
                                  train_dataset.data_spec(), best_condition));
