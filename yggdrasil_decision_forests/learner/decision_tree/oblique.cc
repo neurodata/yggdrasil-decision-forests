@@ -783,6 +783,9 @@ void SampleProjection(const absl::Span<const int>& features,
   *monotonic_direction = 0;
   projection->clear();
   projection->reserve(projection_density * features.size());
+
+  // std::cout << "\nfeatures.size() " << features.size();
+
   std::uniform_real_distribution<float> unif01;
   std::uniform_real_distribution<float> unif1m1(-1.f, 1.f);
   const auto& oblique_config = dt_config.sparse_oblique_split();
@@ -843,20 +846,27 @@ void SampleProjection(const absl::Span<const int>& features,
     }
   };
 
+  int total_nonzero_weights = 0;
+
   for (const auto feature : features) {
     DCHECK_EQ(data_spec.columns(feature).type(), dataset::proto::NUMERICAL);
     if (unif01(*random) < projection_density) {
       projection->push_back({feature, gen_weight(feature)});
+      total_nonzero_weights++;  // Increment for each accepted feature
     }
   }
+
   if (projection->empty()) {
     std::uniform_int_distribution<int> unif_feature_idx(0, features.size() - 1);
     projection->push_back(
         {/*.attribute_idx =*/features[unif_feature_idx(*random)],
-         /*.weight =*/1.f});
+        /*.weight =*/1.f});
   } else if (projection->size() == 1) {
     projection->front().weight = 1.f;
   }
+
+  // (Optional) Print the running total — can remove later
+  std::cout << "Total nonzeros in projection matrix: " << total_nonzero_weights << std::endl;
 
   int max_num_features = dt_config.sparse_oblique_split().max_num_features();
   int cur_num_projections = projection->size();
