@@ -72,8 +72,12 @@ absl::Status TrainRandomForest(const std::string& csv_path,
   rf_config.mutable_decision_tree()->mutable_sparse_oblique_split();
   rf_config.mutable_decision_tree()
          ->mutable_sparse_oblique_split()
-         ->set_max_num_projections(128); // Ariel - fixed max projections. it's max(n_features, max_num_projections), so this should stay 128
+        //  ->set_projection_density_factor(1);
+         ->set_max_num_projections(128); // Ariel - fixed max projections fixes size of proj matrix to max_n_p x n_features. it's max(n_features, max_num_projections), so this should stay 128
 
+  rf_config.mutable_decision_tree()
+         ->mutable_sparse_oblique_split()
+         ->set_projection_density_factor(1); // 128x p matrix should be fully dense
 
   // 3) Create the learner.
   std::unique_ptr<model::AbstractLearner> learner;
@@ -97,12 +101,12 @@ absl::Status TrainRandomForest(const std::string& csv_path,
   std::unique_ptr<model::AbstractModel> model = std::move(model_or.value());
 
   // 5) Print a short textual description of the trained model
-  {
-    std::string description;
-    model->AppendDescriptionAndStatistics(/*full_definition=*/false,
-                                          &description);
-    std::cout << "Model trained. Summary:\n" << description << std::endl;
-  }
+  // {
+  //   std::string description;
+  //   model->AppendDescriptionAndStatistics(/*full_definition=*/false,
+  //                                         &description);
+  //   std::cout << "Model trained. Summary:\n" << description << std::endl;
+  // }
 
   // 6) Save the model to disk
   {

@@ -192,7 +192,11 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   std::vector<std::vector<float>> matrix(
         num_projections, std::vector<float>(num_features, 0.f));
 
-  // ----------  MAIN 9‑PROJECTION LOOP  ------------------
+  std::cout << "num_features: " << num_features << std::endl;
+  std::cout << "num_projections: " << num_projections << std::endl;
+  std::cout << "projection_density: " << projection_density << std::endl;
+
+  // ----------  MAIN k‑PROJECTION LOOP  ------------------
   for (int proj_idx = 0; proj_idx < num_projections; ++proj_idx) {
     int8_t monotonic = 0;
 
@@ -230,7 +234,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     }
   } // ---------- end projection loop ---------------------
 
-  // ----------  DUMP THE 9×d MATRIX ----------------------
+  // ----------  DUMP THE k×d MATRIX ----------------------
   log << "Node " << node_counter++ << " | "
       << num_projections << " projections × "
       << num_features     << " features\n";
