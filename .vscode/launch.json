@@ -2,7 +2,7 @@
   "configurations": [
 
     {
-      "name": "(gdb) Launch ariel-rf-train",
+      "name": "ariel-rf-train Haberman",
       "type": "cppdbg",
       "request": "launch",
       "program": "/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train",
@@ -18,6 +18,38 @@
         "survival_status",
         "tmp/ariel_rf_model"
       ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      // "sourceFileMap": {
+      //   "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
+      // },
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
+      "name": "ariel-rf-train MIGHT",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train",
+      "args": [ // MIGHT data
+        "/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv",
+        "Cancer Status",
+        "tmp/ariel_rf_model"
+      ],
+
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
