@@ -54,7 +54,7 @@ absl::Status TrainRandomForest(const std::string& csv_path,
     train_config.set_task(model::proto::Task::CLASSIFICATION);
     train_config.set_label(label_column_name);
 
-    // 2a) RF Hyperparameters
+    // 2a) DT Hyperparameters
 
     // Create the learner.
     std::unique_ptr<model::AbstractLearner> learner;
@@ -66,28 +66,36 @@ absl::Status TrainRandomForest(const std::string& csv_path,
 
           dt_config.set_max_depth(-1);  // -1 => unlimited
 
-      // Not relevant for Decision Tree
-      // rf_config.set_num_trees(1);
-      // rf_config.set_bootstrap_training_dataset(true);
-      // rf_config.set_bootstrap_size_ratio(1.0);
 
-      // Enable oblique splits:
-        // Set num projections
-      dt_config.mutable_sparse_oblique_split();//->set_max_num_projections(5000);
+      // Set number of Projections and Nonzeros
+        // Enable oblique splits:
+        dt_config.mutable_sparse_oblique_split();//->set_max_num_projections(5000);
 
+        // Fix num projections
+        dt_config.mutable_sparse_oblique_split()
+            ->set_max_num_projections(1000);
 
-      {
-        absl::Status get_learner_status =
-            model::GetLearner(train_config, &learner);
-        if (!get_learner_status.ok()) {
-          return absl::InternalError("Could not create RandomForest learner: " +
-                                    std::string(get_learner_status.message()));
+        // Projection Density Factor
+        dt_config.mutable_sparse_oblique_split()
+            ->set_projection_density_factor(128.0f);
+
+        // Should be n_features=2523^1 (MIGHT) > 1000=max_n_projections => n_projections should be = 1000
+        dt_config.mutable_sparse_oblique_split()
+          ->set_num_projections_exponent(1);
+
+      // 2c - Create Learner
+        {
+          absl::Status get_learner_status =
+              model::GetLearner(train_config, &learner);
+          if (!get_learner_status.ok()) {
+            return absl::InternalError("Could not create RandomForest learner: " +
+                                      std::string(get_learner_status.message()));
+          }
         }
-      }
 
-      // 2b) Training parameters - num threads : `DeploymentConfig`.
-      model::proto::DeploymentConfig deployment_config;
-      deployment_config.set_num_threads(1);
+      // 2d) Deployment Config - num. threads
+        model::proto::DeploymentConfig deployment_config;
+        deployment_config.set_num_threads(1);
   }
 
     // 3) ******************** Initiate Training ********************

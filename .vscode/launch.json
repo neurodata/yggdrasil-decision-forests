@@ -2,7 +2,7 @@
   "configurations": [
 
     {
-      "name": "ariel-rf-train Haberman",
+      "name": "Random Forest Haberman",
       "type": "cppdbg",
       "request": "launch",
       "program": "/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train",
@@ -40,10 +40,43 @@
       ]
     },
     {
-      "name": "ariel-rf-train MIGHT",
+      "name": "Random Forest MIGHT",
       "type": "cppdbg",
       "request": "launch",
       "program": "/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train",
+      "args": [ // MIGHT data
+        "/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv",
+        "Cancer Status",
+        "tmp/ariel_rf_model"
+      ],
+
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      // "sourceFileMap": {
+      //   "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
+      // },
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
+
+    {
+      "name": "Decision Tree MIGHT",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_dt_train",
       "args": [ // MIGHT data
         "/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv",
         "Cancer Status",

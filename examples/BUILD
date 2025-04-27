@@ -86,3 +86,24 @@ cc_binary(
         "@com_google_absl//absl/strings",
     ],
 )
+
+
+cc_binary(
+    name = "ariel_dt_train",
+    srcs = ["ariel_dt_train.cc"],
+    copts = ["-pg"], # Ariel - for profiling
+    linkopts = ["-pg"],
+    features = ["c++17"],
+    deps = [
+        "//yggdrasil_decision_forests/learner:all_learners",
+        "//yggdrasil_decision_forests/model:all_models",
+        "//yggdrasil_decision_forests/dataset:data_spec",
+"//yggdrasil_decision_forests/dataset:csv_example_reader",
+    "//yggdrasil_decision_forests/utils:logging",
+    "//yggdrasil_decision_forests/utils:distribution",
+    "@com_google_absl//absl/log",
+
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+    ],
+)
