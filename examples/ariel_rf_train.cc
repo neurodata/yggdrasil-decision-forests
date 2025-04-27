@@ -70,14 +70,20 @@ absl::Status TrainRandomForest(const std::string& csv_path,
 
   // Enable oblique splits:
   rf_config.mutable_decision_tree()->mutable_sparse_oblique_split();
-  // rf_config.mutable_decision_tree()
-  //        ->mutable_sparse_oblique_split()
-  //       //  ->set_projection_density_factor(1);
-  //        ->set_max_num_projections(128); // Ariel - fixed max projections fixes size of proj matrix to max_n_p x n_features. it's max(n_features, max_num_projections), so this should stay 128
+
+
+  rf_config.mutable_decision_tree()
+         ->mutable_sparse_oblique_split()
+         ->set_max_num_projections(1000); // Ariel - fixed max projections fixes size of proj matrix to max_n_p x n_features. it's max(n_features, max_num_projections), so this should stay 128
 
   rf_config.mutable_decision_tree()
          ->mutable_sparse_oblique_split()
          ->set_projection_density_factor(128.0f); // 128x p matrix should be fully dense
+
+  rf_config.mutable_decision_tree()
+    ->mutable_sparse_oblique_split()
+    ->set_num_projections_exponent(1); // Should be n_features=2523^1 > 1000=max_n_projections => n_projections should be = 1000
+
 
   // 3) Create the learner.
   std::unique_ptr<model::AbstractLearner> learner;
