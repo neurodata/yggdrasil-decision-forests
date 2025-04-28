@@ -29,48 +29,45 @@ absl::Status TrainRandomForest(const std::string& csv_path,
                                const std::string& label_column_name,
                                const std::string& output_model_dir) {
   // 1) Create a data specification for the CSV dataset.
-  dataset::proto::DataSpecification data_spec;
-  {
-    std::cout << "Inferring DataSpec from CSV: " << csv_path << std::endl;
-    // "csv:" prefix means a CSV dataset recognized by YDF.
-    // CreateDataSpec(...) is now a void function (it no longer returns absl::Status).
-    // Build a guide that explicitly sets the label column type to CATEGORICAL
-    dataset::proto::DataSpecificationGuide guide;
-    auto* col_guide = guide.add_column_guides();
-    col_guide->set_column_name_pattern(label_column_name);
-    col_guide->set_type(dataset::proto::ColumnType::CATEGORICAL);
+    dataset::proto::DataSpecification data_spec;
+    {
+      std::cout << "Inferring DataSpec from CSV: " << csv_path << std::endl;
+      // "csv:" prefix means a CSV dataset recognized by YDF.
+      // CreateDataSpec(...) is now a void function (it no longer returns absl::Status).
+      // Build a guide that explicitly sets the label column type to CATEGORICAL
+      dataset::proto::DataSpecificationGuide guide;
+      auto* col_guide = guide.add_column_guides();
+      col_guide->set_column_name_pattern(label_column_name);
+      col_guide->set_type(dataset::proto::ColumnType::CATEGORICAL);
 
-    dataset::CreateDataSpec(
-        "csv:" + csv_path,
-        /*require_same_dataset_fields=*/false,
-        guide,
-        &data_spec);
-    // (Optional) Print the resulting dataspec:
-    // std::cout << dataset::PrintHumanReadable(data_spec) << std::endl;
-  }
+      dataset::CreateDataSpec(
+          "csv:" + csv_path,
+          /*require_same_dataset_fields=*/false,
+          guide,
+          &data_spec);
+    }
 
   // 2) Configure a RandomForest learner.
-  // Ariel - TrainingConfig is defined in learner/abstract_learner.proto
+
+  // NOTE Ariel: TrainingConfig is defined in learner/abstract_learner.proto
   model::proto::TrainingConfig train_config;
   train_config.set_learner("RANDOM_FOREST");
   train_config.set_task(model::proto::Task::CLASSIFICATION);
   train_config.set_label(label_column_name);
 
-  // If you need single-threaded training, do so in the `DeploymentConfig`.
   model::proto::DeploymentConfig deployment_config;
   deployment_config.set_num_threads(1);
 
-  // Example of random forest hyperparameters:
   auto& rf_config = *train_config.MutableExtension(
       model::random_forest::proto::random_forest_config);
-  rf_config.set_num_trees(1);
+
+  rf_config.set_num_trees(10);
   rf_config.mutable_decision_tree()->set_max_depth(-1);  // -1 => unlimited
   rf_config.set_bootstrap_training_dataset(true);
   rf_config.set_bootstrap_size_ratio(1.0);
 
-  // Enable oblique splits:
+  // Enable Oblique splits:
   rf_config.mutable_decision_tree()->mutable_sparse_oblique_split();
-
 
   rf_config.mutable_decision_tree()
          ->mutable_sparse_oblique_split()
