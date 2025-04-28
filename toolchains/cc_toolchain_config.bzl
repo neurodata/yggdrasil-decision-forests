@@ -39,6 +39,8 @@ def _impl(ctx):
         ctx = ctx,
         features = features,
         cxx_builtin_include_directories = [
+            "/opt/intel/oneapi/compiler/2025.1/lib/clang/20/include",
+            "/opt/intel/oneapi/compiler/2025.1/opt/compiler/include",
             "/opt/intel/oneapi/compiler/2025.1/linux/include",
             "/opt/intel/oneapi/compiler/2025.1/linux/include/sycl",
             "/usr/include",
