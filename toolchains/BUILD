@@ -18,9 +18,23 @@ cc_toolchain(
     toolchain_config = ":intel_toolchain_config",
 )
 
-cc_toolchain_suite(
-    name = "intel_cc_toolchain_suite",
-toolchains = {
-    "local|local": ":intel_cc_toolchain",
-}
+toolchain(
+    name = "intel_toolchain",
+    toolchain = ":intel_cc_toolchain",
+    toolchain_type = "@bazel_tools//tools/cpp:toolchain_type",
+    exec_compatible_with = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
+    ],
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
+    ],
 )
+
+# cc_toolchain_suite(
+#     name = "intel_cc_toolchain_suite",
+#     toolchains = {
+#         "x86_64": ":intel_cc_toolchain",
+#     },
+# )

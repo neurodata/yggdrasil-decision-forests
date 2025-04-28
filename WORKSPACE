@@ -39,4 +39,4 @@ load("@emsdk//:emscripten_deps.bzl", emsdk_emscripten_deps = "emscripten_deps")
 emsdk_emscripten_deps()
 
 
-register_toolchains("//toolchains:intel_cc_toolchain_suite")
+register_toolchains("//toolchains:intel_toolchain")

@@ -51,23 +51,16 @@ common --experimental_repo_remote_exec
 # Intel Compiler (ICX) Configuration
 # -----------------------------------------------------------------------------
 
-build:intel --crosstool_top=//toolchains:intel_cc_toolchain_suite
-build:intel --cpu=local
-
-# Compiler flags
+# build:intel --cpu=x86_64
 build:intel --cxxopt=-std=c++17
 build:intel --cxxopt=-g
 build:intel --cxxopt=-O2
 build:intel --cxxopt=-qopt-report=5
 build:intel --cxxopt=-xHost
-
-# Linker flags
 build:intel --linkopt=-g
 build:intel --linkopt=-O2
 
-
-build:intel --cpu=local
-build:intel --compiler=local
+build --incompatible_enable_cc_toolchain_resolution
 
 # Avoid long path issues on Windows
 # startup --output_user_root=C:/tmpbld
@@ -146,9 +139,9 @@ build:windows --copt=/GL
 build:windows --host_copt=/GL
 
 # Wasm
-build:wasm --crosstool_top=@emsdk//emscripten_toolchain:everything
+# build:wasm --crosstool_top=@emsdk//emscripten_toolchain:everything
 build:wasm --cpu=wasm
-build:wasm --host_crosstool_top=@bazel_tools//tools/cpp:toolchain
+# build:wasm --host_crosstool_top=@bazel_tools//tools/cpp:toolchain
 build:wasm --copt="-Wno-deprecated-non-prototype"
 build:wasm --copt="-Wno-unused-value"
 build:wasm --copt="-Wno-unused-function"

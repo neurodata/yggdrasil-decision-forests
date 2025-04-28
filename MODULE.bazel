@@ -1,0 +1,2 @@
+bazel_dep(name = "platforms", version = "0.0.10")  # needed once
+register_toolchains("//toolchains:intel_toolchain")
