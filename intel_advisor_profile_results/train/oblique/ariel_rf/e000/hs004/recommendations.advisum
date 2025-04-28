@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- <!DOCTYPE IntelParallelAdvisorSummaryCollection SYSTEM  "IntelParallelAdvisorSummaryCollection.dtd"> -->
+
+<IntelParallelAdvisorSummary version="" 
+                             kind="DATAKIND_SURVEY_EX" >
+  <hotspot filename="/usr/lib/gcc/x86_64-linux-gnu/13/../../../../include/c++/13/bits/stl_uninitialized.h"
+           line_no="119"
+           routine="std::__do_uninit_copy&lt;__gnu_cxx::__normal_iterator&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt;&gt;*, std::vector&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt;&gt;, std::allocator&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt;&gt;&gt;&gt;&gt;, std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt;&gt;*&gt;"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="0.000000E+00"
+           trip_counts=""
+           func_instance="37"
+           priority="0">
+           <recommendation id="rec_system_functions_move_c" title="Remove system function call(s) inside loop" confidence="1" gain="-1"/>
+  </hotspot>
+  <hotspot filename="/usr/lib/gcc/x86_64-linux-gnu/13/../../../../include/c++/13/bits/basic_string.h"
+           line_no="427"
+           routine="yggdrasil_decision_forests::dataset::Tokenize"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="0.000000E+00"
+           trip_counts=""
+           func_instance="46"
+           priority="0">
+           <recommendation id="rec_system_functions_move_c" title="Remove system function call(s) inside loop" confidence="1" gain="-1"/>
+  </hotspot>
+  <hotspot filename="/usr/lib/gcc/x86_64-linux-gnu/13/../../../../include/c++/13/bits/basic_string.h"
+           line_no="427"
+           routine="yggdrasil_decision_forests::dataset::Tokenize"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="0.000000E+00"
+           trip_counts=""
+           func_instance="46"
+           priority="0">
+           <recommendation id="rec_indirect_call_simd_c" title="Vectorize call(s) to virtual method" confidence="1" gain="-1"/>
+  </hotspot>
+  <hotspot filename="/usr/lib/gcc/x86_64-linux-gnu/13/../../../../include/c++/13/bits/string_view.tcc"
+           line_no="138"
+           routine="std::basic_string_view&lt;char, std::char_traits&lt;char&gt;&gt;::find_first_of"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="0.000000E+00"
+           trip_counts=""
+           func_instance="59"
+           priority="0">
+           <recommendation id="rec_system_functions_move_c" title="Remove system function call(s) inside loop" confidence="1" gain="-1"/>
+  </hotspot>
+  <hotspot filename="/usr/lib/gcc/x86_64-linux-gnu/13/../../../../include/c++/13/bits/new_allocator.h"
+           line_no="0"
+           routine="yggdrasil_decision_forests::dataset::LooksMultiDimensional"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="0.000000E+00"
+           trip_counts=""
+           func_instance="70"
+           priority="0">
+           <recommendation id="rec_system_functions_move_c" title="Remove system function call(s) inside loop" confidence="1" gain="-1"/>
+  </hotspot>
+</IntelParallelAdvisorSummary >

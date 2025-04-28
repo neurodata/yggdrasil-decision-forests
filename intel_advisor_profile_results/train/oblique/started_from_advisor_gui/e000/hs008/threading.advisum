@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- <!DOCTYPE IntelParallelAdvisorSummaryCollection SYSTEM  "IntelParallelAdvisorSummaryCollection.dtd"> -->
+
+<IntelParallelAdvisorSummary version="" 
+                             kind="DATAKIND_SURVEY_EX" >
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/utils/concurrency_default.cc"
+           line_no="61"
+           routine="yggdrasil_decision_forests::utils::concurrency::ThreadPool::ThreadLoop"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="8.370000E+00"
+           trip_counts="1"
+           func_instance="255"
+           priority="0"/>
+  <hotspot filename="/usr/lib/gcc/x86_64-linux-gnu/13/../../../../include/c++/13/ostream"
+           line_no="250"
+           routine="yggdrasil_decision_forests::model::decision_tree::FindBestConditionSparseObliqueTemplate&lt;yggdrasil_decision_forests::model::decision_tree::ClassificationLabelStats&gt;"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="7.090000E+00"
+           trip_counts="1000"
+           func_instance="293"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/learner/decision_tree/oblique.cc"
+           line_no="252"
+           routine="yggdrasil_decision_forests::model::decision_tree::FindBestConditionSparseObliqueTemplate&lt;yggdrasil_decision_forests::model::decision_tree::ClassificationLabelStats&gt;"
+           is_vectorized="0"
+           self_time="3.000000E-02"
+           total_time="7.070000E+00"
+           trip_counts="2523"
+           func_instance="292"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/learner/decision_tree/oblique.cc"
+           line_no="230"
+           routine="yggdrasil_decision_forests::model::decision_tree::FindBestConditionSparseObliqueTemplate&lt;yggdrasil_decision_forests::model::decision_tree::ClassificationLabelStats&gt;"
+           is_vectorized="0"
+           self_time="0.000000E+00"
+           total_time="1.197946E+00"
+           trip_counts="1000"
+           func_instance="269"
+           priority="0"/>
+  <hotspot filename="/usr/lib/gcc/x86_64-linux-gnu/13/../../../../include/c++/13/bits/stl_algobase.h"
+           line_no="2092"
+           routine="yggdrasil_decision_forests::model::decision_tree::FindBestConditionSparseObliqueTemplate&lt;yggdrasil_decision_forests::model::decision_tree::ClassificationLabelStats&gt;"
+           is_vectorized="0"
+           self_time="7.000000E-02"
+           total_time="5.900000E-01"
+           trip_counts="127"
+           func_instance="287"
+           priority="0"/>
+</IntelParallelAdvisorSummary >

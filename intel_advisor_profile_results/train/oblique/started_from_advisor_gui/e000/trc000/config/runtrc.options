@@ -1,0 +1,13 @@
+-r
+/home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/trc000
+--return-app-exitcode
+--cs-mode=no-count-loops,no-count-flops,stl-profiling,stack-stitching
+--cs-file=/home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/callstacks.def
+--jit-profiling
+--target-gpu=none
+--app-working-dir=/home/ariel/yggdrasil-decision-forests
+--
+/home/ariel/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train
+/home/ariel/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv
+Cancer Status
+tmp/ariel_rf_model

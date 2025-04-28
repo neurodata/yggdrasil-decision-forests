@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<log version="1.0" tool="runtool">
+
+<msg id="1" tool="runtool">
+  <type>log-start</type>
+  <arg>2025/04/28 16:55:38</arg>
+</msg>
+<msg id="2" tool="runtool">
+  <type>collector-starts</type>
+</msg>
+<msg id="3" tool="runtool">
+  <type>marker-file</type>
+  <arg>/home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/trc000/trc000.advixe</arg>
+</msg>
+<msg id="4" tool="trc">
+  <type>PROCESS_START</type>
+  <arg>/home/ariel/.cache/bazel/_bazel_ariel/bd548f66b01d5731d7bdb24822ab17cb/execroot/yggdrasil_decision_forests/bazel-out/k8-dbg/bin/examples/ariel_rf_train</arg>
+  <arg>76146</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:55:38 2025</timestamp>
+</msg>
+<msg id="5" tool="trc">
+  <type>PROCESS_ANALYSIS_MODE</type>
+  <arg>full</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:55:38 2025</timestamp>
+</msg>
+<msg id="6" tool="trc">
+  <type>LOAD_MODULE</type>
+  <arg>/home/ariel/.cache/bazel/_bazel_ariel/bd548f66b01d5731d7bdb24822ab17cb/execroot/yggdrasil_decision_forests/bazel-out/k8-dbg/bin/examples/ariel_rf_train</arg>
+  <arg>0x400000</arg>
+  <arg>0xc1df7f</arg>
+  <arg>yes</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:55:42 2025</timestamp>
+</msg>
+<msg id="7" tool="trc">
+  <type>LOAD_MODULE</type>
+  <arg>/lib64/ld-linux-x86-64.so.2</arg>
+  <arg>0x7f76febe7000</arg>
+  <arg>0x7f76fec202d7</arg>
+  <arg>no</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:55:42 2025</timestamp>
+</msg>
+<msg id="8" tool="trc">
+  <type>LOAD_MODULE</type>
+  <arg>[vdso]</arg>
+  <arg>0x7ffe6a3fd000</arg>
+  <arg>0x7ffe6a3fdce4</arg>
+  <arg>no</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:55:42 2025</timestamp>
+</msg>
+<msg id="9" tool="trc">
+  <type>LOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libm.so.6</arg>
+  <arg>0x7f76b5934000</arg>
+  <arg>0x7f76b5a1c017</arg>
+  <arg>no</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:55:42 2025</timestamp>
+</msg>
+<msg id="10" tool="trc">
+  <type>LOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libstdc++.so.6</arg>
+  <arg>0x7f76b55c8000</arg>
+  <arg>0x7f76b584513f</arg>
+  <arg>no</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:55:42 2025</timestamp>
+</msg>
+<msg id="11" tool="trc">
+  <type>LOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libgcc_s.so.1</arg>
+  <arg>0x7f76b559a000</arg>
+  <arg>0x7f76b55c73a7</arg>
+  <arg>no</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:55:42 2025</timestamp>
+</msg>
+<msg id="12" tool="trc">
+  <type>LOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libc.so.6</arg>
+  <arg>0x7f76b5331000</arg>
+  <arg>0x7f76b5542d8f</arg>
+  <arg>no</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:55:42 2025</timestamp>
+</msg>
+<msg id="13" tool="trc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/home/ariel/.cache/bazel/_bazel_ariel/bd548f66b01d5731d7bdb24822ab17cb/execroot/yggdrasil_decision_forests/bazel-out/k8-dbg/bin/examples/ariel_rf_train</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:56:22 2025</timestamp>
+</msg>
+<msg id="14" tool="trc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/lib64/ld-linux-x86-64.so.2</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:56:22 2025</timestamp>
+</msg>
+<msg id="15" tool="trc">
+  <type>UNLOAD_MODULE</type>
+  <arg>[vdso]</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:56:22 2025</timestamp>
+</msg>
+<msg id="16" tool="trc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libm.so.6</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:56:22 2025</timestamp>
+</msg>
+<msg id="17" tool="trc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libstdc++.so.6</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:56:22 2025</timestamp>
+</msg>
+<msg id="18" tool="trc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libgcc_s.so.1</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:56:22 2025</timestamp>
+</msg>
+<msg id="19" tool="trc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libc.so.6</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:56:22 2025</timestamp>
+</msg>
+<msg id="20" tool="trc">
+  <type>PROCESS_FINISH</type>
+  <arg>/home/ariel/.cache/bazel/_bazel_ariel/bd548f66b01d5731d7bdb24822ab17cb/execroot/yggdrasil_decision_forests/bazel-out/k8-dbg/bin/examples/ariel_rf_train</arg>
+  <arg>76146</arg>
+  <arg>0x0</arg>
+  <severity>INFO</severity>
+  <timestamp>Mon Apr 28 16:56:22 2025</timestamp>
+</msg>
+<msg id="21" tool="runtool">
+  <type>app-exit-code</type>
+  <arg>0</arg>
+</msg>
+<msg id="22" tool="runtool">
+  <type>marker-file</type>
+  <arg>/home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/trc000/trc000.advixe</arg>
+</msg>
+<msg id="23" tool="runtool">
+  <type>collector-done</type>
+</msg>
+<msg id="24" tool="runtool">
+  <type>log-end</type>
+  <arg>2025/04/28 16:56:26</arg>
+</msg>
+
+</log>
+

@@ -66,6 +66,10 @@ build:intel --host_cxxopt=-g
 build:intel --host_cxxopt=-O2
 build:intel --host_linkopt=-g
 
+# Max vectorization
+build:intel --cxxopt=-qopt-zmm-usage=high
+
+
 
 build --incompatible_enable_cc_toolchain_resolution
 

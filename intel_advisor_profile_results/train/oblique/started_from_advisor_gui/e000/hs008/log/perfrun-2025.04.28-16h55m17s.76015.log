@@ -1,0 +1,95 @@
+1 [140591566638144] INFO perfrun.launcher <> - Launcher main begin
+1 [140591566638144] INFO perfrun.launcher <> - MessageCatalogInit finished
+1 [140591566638144] INFO perfrun.launcher <> - Launcher instance created
+1 [140591566638144] INFO perfrun.launcher <> - argc = 7; cmdline = /home/ariel/intel/oneapi/advisor/2025.1/bin64/advixe-runss --ui-output-format xml --ui-output-fd 187 --option-file /home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/hs008/config/runss.options 
+30 [140591566638144] INFO perfrun.launcher <> - create msngr2::ICliToolContext
+30 [140591566638144] INFO perfrun.launcher <> - create file finder object
+30 [140591566638144] INFO perfrun.launcher <> - create a result directory: pattern = /home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/hs008 pid = 4294967295
+32 [140591566638144] INFO perfrun.sdk <> - checked that the directory /home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/hs008 is a local directory
+32 [140591566638144] INFO perfrun.sdk <> - the directory /home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/hs008 is a local directory with FS type ID 61267
+32 [140591566638144] INFO perfrun.launcher <> - create data directory = /home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/hs008/data.0
+32 [140591566638144] INFO perfrun.launcher <> - Creating the master collection flag
+36 [140591566638144] INFO perfrun.launcher <> - Done creating the master collection flag
+37 [140591409129152] INFO perfrun.launcher <> - plugin [remoteplug] was disabled because it doesn't support the given collection type.
+37 [140591409129152] INFO perfrun.sdk <> - Allocating TMU :/home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/hs008/data.0/systemcollector-76015-DESKTOP-VB7ASQL.sc
+37 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+37 [140591409129152] INFO perfrun.launcher <> - plugin [gpu] was disabled because it doesn't support the given collection type.
+37 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+37 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+37 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+37 [140591409129152] INFO perfrun.mrte <> - system-wide mode is 0
+37 [140591409129152] INFO perfrun.mrte <> - Getting  mrte profiling environment ...
+39 [140591409129152] INFO perfrun.mrte <> - INTEL_MRTE_DATA_DIR=/home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/hs008/data.0
+39 [140591409129152] INFO perfrun.mrte <> - INTEL_MRTE_HOST_NAME=DESKTOP-VB7ASQL
+39 [140591409129152] INFO perfrun.mrte <> - JAVA_TOOL_OPTIONS=-agentlib:advixe_samplingmrte_javaprof_1.0 -Dsun.boot.library.path=/home/ariel/intel/oneapi/advisor/2025.1/lib32/runtime:/home/ariel/intel/oneapi/advisor/2025.1/lib64/runtime
+39 [140591409129152] INFO perfrun.mrte <> - LD_LIBRARY_PATH=/home/ariel/intel/oneapi/advisor/2025.1/lib32/runtime:/home/ariel/intel/oneapi/advisor/2025.1/lib64/runtime
+39 [140591409129152] INFO perfrun.mrte <> - Data directory: /home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/hs008/data.0
+39 [140591409129152] INFO perfrun.mrte <> - Mrte plugin is initialized
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591409129152] INFO perfrun.tpss <> - initialize tpss controller
+39 [140591409129152] INFO perfrun.tpss <> - configure collection mode: value = cpu:stack
+39 [140591409129152] INFO perfrun.tpss <> - default obj-size-min=1024
+39 [140591409129152] INFO perfrun.tpss <> - default hash-table-size=0
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591409129152] INFO perfrun.launcher <> - plugin [] was disabled because it doesn't support the given collection type.
+39 [140591566638144] INFO perfrun.launcher <> - set environment variable: LD_LIBRARY_PATH = /home/ariel/intel/oneapi/advisor/2025.1/lib32/runtime:/home/ariel/intel/oneapi/advisor/2025.1/lib64/runtime
+39 [140591566638144] INFO perfrun.launcher <> - set environment variable: INTEL_LIBITTNOTIFY32 = /home/ariel/intel/oneapi/advisor/2025.1/lib32/runtime/libittnotify_collector.so
+39 [140591566638144] INFO perfrun.launcher <> - set environment variable: INTEL_LIBITTNOTIFY64 = /home/ariel/intel/oneapi/advisor/2025.1/lib64/runtime/libittnotify_collector.so
+40 [140591566638144] INFO perfrun.launcher <> - set environment variable: INTEL_ITTNOTIFY_GROUPS = 
+40 [140591566638144] INFO perfrun.launcher <> - set environment variable: INTEL_JIT_PROFILER32 = /home/ariel/intel/oneapi/advisor/2025.1/lib32/runtime/libittnotify_collector.so
+40 [140591566638144] INFO perfrun.launcher <> - set environment variable: INTEL_JIT_PROFILER64 = /home/ariel/intel/oneapi/advisor/2025.1/lib64/runtime/libittnotify_collector.so
+40 [140591566638144] INFO perfrun.launcher <> - set environment variable: CCL_ITT_LEVEL = 1
+40 [140591566638144] INFO perfrun.launcher <> - set environment variable: ENABLE_JITPROFILING = 1
+40 [140591566638144] INFO perfrun.launcher <> - set environment variable: CL_CONFIG_USE_VTUNE = True
+41 [140591566638144] INFO perfrun.launcher <> - set environment variable: KMP_FORKJOIN_FRAMES = 0
+41 [140591566638144] INFO perfrun.launcher <> - set environment variable: KMP_FORKJOIN_FRAMES_MODE = 0
+41 [140591566638144] INFO perfrun.launcher <> - set environment variable: INTEL_MRTE_DATA_DIR = /home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/hs008/data.0
+41 [140591566638144] INFO perfrun.launcher <> - set environment variable: INTEL_MRTE_HOST_NAME = DESKTOP-VB7ASQL
+41 [140591566638144] INFO perfrun.launcher <> - set environment variable: JAVA_TOOL_OPTIONS = -agentlib:advixe_samplingmrte_javaprof_1.0 -Dsun.boot.library.path=/home/ariel/intel/oneapi/advisor/2025.1/lib32/runtime:/home/ariel/intel/oneapi/advisor/2025.1/lib64/runtime
+42 [140591566638144] INFO perfrun.launcher <> - set environment variable: LD_LIBRARY_PATH = /home/ariel/intel/oneapi/advisor/2025.1/lib32/runtime:/home/ariel/intel/oneapi/advisor/2025.1/lib64/runtime
+42 [140591566638144] INFO perfrun.launcher <> - RpcServer: run RPC server to handle requests
+43 [140591566638144] INFO perfrun.launcher <> - Launcher: command line to start before modification = /home/ariel/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train /home/ariel/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv Cancer Status tmp/ariel_rf_model
+43 [140591566638144] INFO perfrun.launcher <> - Launcher: command line to start after modification = /home/ariel/intel/oneapi/advisor/2025.1/bin64/pin -error_file /home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/hs008/data.0/pinerr.tpsslog -detach_reattach -follow_execv -tool_load_option deepbind -t64 /home/ariel/intel/oneapi/advisor/2025.1/lib64/libtpsstool.so -t /home/ariel/intel/oneapi/advisor/2025.1/lib32/libtpsstool.so -server_name tpss_ipc.76015 -prd_dir /home/ariel/intel/oneapi/advisor/2025.1 -- /home/ariel/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train /home/ariel/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv Cancer Status tmp/ariel_rf_model
+43 [140591566638144] INFO perfrun.launcher <> - ProcessCreator object was created
+44 [140591566638144] INFO perfrun.launcher <> - Launcher: the process was started in suspend mode
+45 [140591409129152] WARN perfrun.system <> - Could not do anything with /sys/kernel/debug/kvm: boost::filesystem::status: Permission denied [system:13]: "/sys/kernel/debug/kvm", at file: vcs/perfrun1/plugins/system/src/trace_writer.cpp:787
+45 [140591409129152] WARN perfrun.system <> - Folder "/var/run/libvirt/qemu/"doesn't exist, at file: vcs/perfrun1/plugins/system/src/trace_writer.cpp:800
+45 [140591409129152] WARN perfrun.sdk <> - Failed to find xl binary on any of the system paths: /bin, /sbin, /usr/bin, /usr/sbin., at file: vcs/perfrun1/sdk/src/utils.cpp:205
+48 [140591409129152] INFO perfrun.vdso <> - Helper runtool '/home/ariel/intel/oneapi/advisor/2025.1/bin32/advixe-runss -dump-vdso -r /home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/hs008 --tmp-dir /tmp/advixe-tmp-ariel' returned 1
+91 [140591409129152] INFO perfrun.vdso <> - Helper runtool '/home/ariel/intel/oneapi/advisor/2025.1/bin64/advixe-runss -dump-vdso -r /home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/hs008 --tmp-dir /tmp/advixe-tmp-ariel' returned 0
+91 [140591409129152] INFO perfrun.itt <> - start itt controller for pid #76026
+91 [140591409129152] INFO perfrun.tpss <> - start tpss controller for pid #76026
+142 [140591566638144] INFO perfrun.launcher <> - Launcher: all plugins were started
+142 [140591566638144] INFO perfrun.launcher <> - DirectoryMonitor object was created
+142 [140591566638144] INFO perfrun.launcher <> - DirectoryMonitor: a callback was added
+142 [140591566638144] INFO perfrun.launcher <> - DirectoryMonitor was started with pingTime = 1000
+142 [140591566638144] INFO perfrun.launcher <> - DeadlineTimer is going to be constructed
+142 [140591566638144] INFO perfrun.launcher <> - DeadlineTimer: a callback was added
+146 [140591566638144] INFO perfrun.launcher <> - Launcher: resume the profiled application and  wait its termination or stop command
+13215 [140591566638144] INFO perfrun.launcher <> - Launcher: the profiled application was terminated  with exit code = 0
+13218 [140591409129152] INFO perfrun.itt <> - detach itt controller
+13218 [140591409129152] INFO perfrun.itt <> - detach itt controller done
+13218 [140591409129152] INFO perfrun.tpss <> - stop tpss controller
+13218 [140591409129152] INFO perfrun.sdk <> - De-allocating TMU: /home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/hs008/data.0/systemcollector-76015-DESKTOP-VB7ASQL.sc
+13218 [140591409129152] INFO perfrun.system <> - closed the system trace file: /home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/hs008/data.0/systemcollector-76015-DESKTOP-VB7ASQL.sc
+13218 [140591566638144] INFO perfrun.launcher <> - Launcher: all plugins were stopped.
+13218 [140591566638144] INFO perfrun.launcher <> - DeadlineTimer is going to be destroyed
+13218 [140591566638144] INFO perfrun.launcher <> - DeadlineTimer was destroyed
+13218 [140591566638144] INFO perfrun.launcher <> - DirectoryMonitor object was destroyed
+13219 [140591566638144] WARN perfrun.launcher <> - Stop command is ignored because it is received when collection is already stopped, at file: vcs/perfrun1/launcher/src/command_handler.cpp:226
+13219 [140591566638144] INFO perfrun.launcher <> - Application exit code: 0
+13219 [140591566638144] INFO perfrun.launcher <> - Exit code: 0

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- <!DOCTYPE IntelParallelAdvisorSummaryCollection SYSTEM  "IntelParallelAdvisorSummaryCollection.dtd"> -->
+
+<IntelParallelAdvisorSummary version="" 
+                             kind="DATAKIND_SURVEY_EX" >
+  <hotspot filename="/usr/lib/gcc/x86_64-linux-gnu/13/../../../../include/c++/13/bits/stl_algo.h"
+           line_no="1880"
+           routine="std::__introsort_loop&lt;__gnu_cxx::__normal_iterator&lt;yggdrasil_decision_forests::model::decision_tree::ExampleBucket&lt;yggdrasil_decision_forests::model::decision_tree::FeatureNumericalBucket, yggdrasil_decision_forests::model::decision_tree::LabelBinaryCategoricalOneValueBucket&lt;(bool)1&gt;&gt;*, std::vector&lt;yggdrasil_decision_forests::model::decision_tree::ExampleBucket&lt;yggdrasil_decision_forests::model::decision_tree::FeatureNumericalBucket, yggdrasil_decision_forests::model::decision_tree::LabelBinaryCategoricalOneValueBucket&lt;(bool)1&gt;&gt;, std::allocator&lt;yggdrasil_decision_forests::model::decision_tree::ExampleBucket&lt;yggdrasil_decision_forests::model::decision_tree::FeatureNumericalBucket, yggdrasil_decision_forests::model::decision_tree::LabelBinaryCategoricalOneValueBucket&lt;(bool)1&gt;&gt;&gt;&gt;&gt;, long, __gnu_cxx::__ops::_Iter_comp_iter&lt;yggdrasil_decision_forests::model::decision_tree::ExampleBucket&lt;yggdrasil_decision_forests::model::decision_tree::FeatureNumericalBucket, yggdrasil_decision_forests::model::decision_tree::LabelBinaryCategoricalOneValueBucket&lt;(bool)1&gt;&gt;::SortFeature&gt;&gt;"
+           is_vectorized="0"
+           self_time="5.000000E-02"
+           total_time="5.000000E-02"
+           trip_counts=""
+           func_instance="157"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/yggdrasil_decision_forests/utils/csv.cc"
+           line_no="109"
+           routine="yggdrasil_decision_forests::utils::csv::Reader::NextRow"
+           is_vectorized="0"
+           self_time="3.000000E-02"
+           total_time="6.000000E-02"
+           trip_counts=""
+           func_instance="54"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/bazel-out/k8-opt/bin/yggdrasil_decision_forests/model/decision_tree/decision_tree.pb.h"
+           line_no="6585"
+           routine="yggdrasil_decision_forests::model::decision_tree::FindSplitLabelClassificationFeatureNumericalCart"
+           is_vectorized="1"
+           self_time="2.000000E-02"
+           total_time="2.000000E-02"
+           trip_counts=""
+           func_instance="162"
+           priority="0"/>
+  <hotspot filename="/proc/self/cwd/external/com_google_absl/absl/strings/ascii.cc"
+           line_no="191"
+           routine="absl::lts_20240722::ascii_internal::AsciiStrCaseFoldLong&lt;(bool)0&gt;"
+           is_vectorized="1"
+           self_time="2.000000E-02"
+           total_time="2.000000E-02"
+           trip_counts=""
+           func_instance="174"
+           priority="0"/>
+  <hotspot filename="/usr/lib/gcc/x86_64-linux-gnu/13/../../../../include/c++/13/bits/basic_string.h"
+           line_no="427"
+           routine="yggdrasil_decision_forests::dataset::Tokenize"
+           is_vectorized="0"
+           self_time="2.000000E-02"
+           total_time="3.000000E-02"
+           trip_counts=""
+           func_instance="45"
+           priority="0"/>
+</IntelParallelAdvisorSummary >

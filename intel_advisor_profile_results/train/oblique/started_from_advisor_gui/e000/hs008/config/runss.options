@@ -1,0 +1,21 @@
+-r
+/home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/hs008
+--mrte-mode=auto
+--return-app-exitcode
+--follow-child
+--strategy=ld-linux.so.2:notrace:notrace,ld-linux-x86-64.so.2:notrace:notrace
+--interval=10
+--itt-config=frame,task,event,counter,model
+--type=cpu:stack
+--stack-stitching
+--stackwalk=offline
+--stack-unwind-limit=8388608
+--data-limit-mb=500
+--mrte-type=java,python
+--opencl-trace-mode=default
+--app-working-dir=/home/ariel/yggdrasil-decision-forests
+--
+/home/ariel/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train
+/home/ariel/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv
+Cancer Status
+tmp/ariel_rf_model

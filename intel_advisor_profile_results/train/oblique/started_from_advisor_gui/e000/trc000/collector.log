@@ -1,0 +1,33 @@
+Analysis started...
+Collection has been started.
+Result file: /home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/trc000/trc000.advixe 
+Application exit code: 0 
+Result file: /home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/trc000/trc000.advixe 
+Analysis completed
+Finalizing results
+Finalizing the result
+Loading raw data to the database
+Loading 'tripcounts_76146_0.tcs' file
+Updating precomputed scalar metrics
+Raw data has been loaded to the database, elapsed time is 0.037 seconds.
+Processing profile metrics and debug information
+Data transformations have been finished, elapsed time is 0.001 seconds.
+Setting data model parameters
+Resolving module symbols
+Resolving information for dangling locations
+Symbol resolution has been finished, elapsed time is 0.019 seconds.
+Processing profile metrics and debug information
+Resolving FLOP information
+Deferred data transformations have been finished, elapsed time is 0.017 seconds.
+Setting data model parameters
+Data model parameters have been set, elapsed time is 0.007 seconds.
+Precomputing frequently used data
+Precomputing frequently used data
+Updating precomputed scalar metrics
+Precomputing frequently used data has been finished, elapsed time is 0.004 seconds.
+Discarding redundant overtime data
+Saving the result
+Redundant overtime data has been discarded, elapsed time is 0.001 seconds.
+Raw collector data has been discarded, elapsed time is 0.000 seconds.
+Finalizing the result took 0.114 seconds.
+Preparing data for display of survey call tree

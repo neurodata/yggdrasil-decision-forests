@@ -1,0 +1,8 @@
+
+=== Start: [2025/04/28 16:55:38] === 
+Analysis started...
+Result file: /home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/trc000/trc000.advixe 
+Application exit code: 0 
+Result file: /home/ariel/yggdrasil-decision-forests/intel_advisor_profile_results/train/oblique/started_from_advisor_gui/e000/trc000/trc000.advixe 
+Analysis completed
+=== End: [2025/04/28 16:56:26] === 
