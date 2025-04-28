@@ -47,6 +47,28 @@ build:debug --linkopt=-g
 # Common flags.
 common --experimental_repo_remote_exec
 
+# -----------------------------------------------------------------------------
+# Intel Compiler (ICX) Configuration
+# -----------------------------------------------------------------------------
+
+build:intel --crosstool_top=//toolchains:intel_cc_toolchain_suite
+build:intel --cpu=local
+
+# Compiler flags
+build:intel --cxxopt=-std=c++17
+build:intel --cxxopt=-g
+build:intel --cxxopt=-O2
+build:intel --cxxopt=-qopt-report=5
+build:intel --cxxopt=-xHost
+
+# Linker flags
+build:intel --linkopt=-g
+build:intel --linkopt=-O2
+
+
+build:intel --cpu=local
+build:intel --compiler=local
+
 # Avoid long path issues on Windows
 # startup --output_user_root=C:/tmpbld
 
