@@ -62,6 +62,10 @@ using LDACache = internal::LDACache;
 
 }  // namespace
 
+
+static bool ENABLE_PROJECTION_MATRIX_LOGGING;
+
+
 template <typename T>
 std::vector<T> Extract(const std::vector<T>& values,
                        const absl::Span<const UnsignedExampleIdx> selected) {
@@ -128,20 +132,22 @@ int GetNumProjections(const proto::DecisionTreeTrainingConfig& dt_config,
 
 template <typename LabelStats>
 absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
-    const dataset::VerticalDataset&       train_dataset,
+    const dataset::VerticalDataset& train_dataset,
     const absl::Span<const UnsignedExampleIdx> selected_examples,
-    const std::vector<float>&             weights,
-    const model::proto::TrainingConfig&   config,
+    const std::vector<float>& weights,
+    const model::proto::TrainingConfig& config,
     const model::proto::TrainingConfigLinking& config_link,
-    const proto::DecisionTreeTrainingConfig&   dt_config,
-    const proto::Node&                    parent,
-    const InternalTrainConfig&            internal_config,
-    const LabelStats&                     label_stats,
-    const std::optional<int>&             override_num_projections,
-    const NodeConstraints&                constraints,
-    proto::NodeCondition*                 best_condition,
-    utils::RandomEngine*                  random,
-    SplitterPerThreadCache*               cache) {
+    const proto::DecisionTreeTrainingConfig& dt_config,
+    const proto::Node& parent,
+    const InternalTrainConfig& internal_config,
+    const LabelStats& label_stats,
+    const std::optional<int>& override_num_projections,
+    const NodeConstraints& constraints,
+    proto::NodeCondition* best_condition,
+    utils::RandomEngine* random,
+    SplitterPerThreadCache* cache) {
+
+  ENABLE_PROJECTION_MATRIX_LOGGING = false;
 
   // ---------- original sanity‑checks --------------------
   if (!weights.empty()) {
@@ -151,50 +157,49 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     return false;
   }
 
-  // ---------- how many projections this node will test --
   int num_projections = override_num_projections.has_value()
-        ? override_num_projections.value()
-        : GetNumProjections(dt_config, config_link.numerical_features_size());
+      ? override_num_projections.value()
+      : GetNumProjections(dt_config, config_link.numerical_features_size());
 
   const float projection_density =
       dt_config.sparse_oblique_split().projection_density_factor() /
       config_link.numerical_features_size();
 
-  // ---------- helpers & caches --------------------------
   ProjectionEvaluator projection_evaluator(train_dataset,
                                            config_link.numerical_features());
 
-  const auto   selected_labels  = ExtractLabels(label_stats, selected_examples);
+  const auto selected_labels = ExtractLabels(label_stats, selected_examples);
   std::vector<float> selected_weights;
-  if (!weights.empty()) { selected_weights = Extract(weights, selected_examples); }
+  if (!weights.empty()) {
+    selected_weights = Extract(weights, selected_examples);
+  }
 
   std::vector<UnsignedExampleIdx> dense_idxs(selected_examples.size());
   std::iota(dense_idxs.begin(), dense_idxs.end(), 0);
 
-  auto&       projection_values = cache->projection_values;
-  Projection  best_projection, current_projection;
-  float       best_threshold    = 0.f;
-
-  // ----------  LOGGING SET‑UP ---------------------------
-  // open once (truncate the file the very first time we enter here)
-  static bool first_call   = true;
-  static int  node_counter = 0;
-  std::ofstream log;
-  if (first_call) {
-    log.open("ariel_results/projection_matrices.txt", std::ios::trunc);
-    first_call = false;
-  } else {
-    log.open("ariel_results/projection_matrices.txt", std::ios::app);
-  }
+  auto& projection_values = cache->projection_values;
+  Projection best_projection, current_projection;
+  float best_threshold = 0.f;
 
   const int num_features = config_link.numerical_features_size();
-  // matrix[proj_idx][feat_idx]  initialised to 0
-  std::vector<std::vector<float>> matrix(
-        num_projections, std::vector<float>(num_features, 0.f));
 
-  // std::cout << "num_features: " << num_features << std::endl;
+  // ------- Always declare, only open log if needed -----
+  static bool first_call = true;
+  static int node_counter = 0;
+  std::ofstream log;
+  std::vector<std::vector<float>> matrix;
+
+  if (ENABLE_PROJECTION_MATRIX_LOGGING) {
+    if (first_call) {
+      log.open("ariel_results/projection_matrices.txt", std::ios::trunc);
+      first_call = false;
+    } else {
+      log.open("ariel_results/projection_matrices.txt", std::ios::app);
+    }
+    matrix.resize(num_projections, std::vector<float>(num_features, 0.f));
+  }
+
   std::cout << "num_projections: " << num_projections << std::endl;
-  // std::cout << "projection_density: " << projection_density << std::endl;
 
   // ----------  MAIN k‑PROJECTION LOOP  ------------------
   for (int proj_idx = 0; proj_idx < num_projections; ++proj_idx) {
@@ -204,18 +209,16 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
                      train_dataset.data_spec(), config_link, projection_density,
                      &current_projection, &monotonic, random);
 
-    // ---- populate the matrix for logging ---------------
-    for (const auto& item : current_projection) {
-      // locate the feature's column index inside numerical_features()
-      const auto begin = config_link.numerical_features().begin();
-      const int   col   = std::distance(
-            begin, std::find(begin,
-                             config_link.numerical_features().end(),
+    if (ENABLE_PROJECTION_MATRIX_LOGGING) {
+      for (const auto& item : current_projection) {
+        const auto begin = config_link.numerical_features().begin();
+        const int col = std::distance(
+            begin, std::find(begin, config_link.numerical_features().end(),
                              item.attribute_idx));
-      matrix[proj_idx][col] = item.weight;
+        matrix[proj_idx][col] = item.weight;
+      }
     }
 
-    // ---- normal YDF split evaluation -------------------
     RETURN_IF_ERROR(projection_evaluator.Evaluate(
                         current_projection, selected_examples, &projection_values));
 
@@ -224,41 +227,38 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
         EvaluateProjection(dt_config, label_stats, dense_idxs, selected_weights,
                            selected_labels, projection_values, internal_config,
                            current_projection.front().attribute_idx,
-                           constraints,  monotonic,
+                           constraints, monotonic,
                            best_condition, cache));
 
     if (result == SplitSearchResult::kBetterSplitFound) {
       best_projection = current_projection;
-      best_threshold  =
+      best_threshold =
           best_condition->condition().higher_condition().threshold();
     }
-  } // ---------- end projection loop ---------------------
-
-  // ----------  DUMP THE k×d MATRIX ----------------------
-  log << "Node " << node_counter++ << " | "
-      << num_projections << " projections × "
-      << num_features     << " features\n";
-
-  // header row: feature indices
-  log << "      ";
-  for (const int feat_idx : config_link.numerical_features()) {
-    log << std::setw(6) << feat_idx;
   }
-  log << '\n';
 
-  // rows 0‑8
-  for (int r = 0; r < num_projections; ++r) {
-    log << "proj " << r << ' ';
-    for (int c = 0; c < num_features; ++c) {
-      log << std::setw(6) << matrix[r][c];
+  if (ENABLE_PROJECTION_MATRIX_LOGGING) {
+    log << "Node " << node_counter++ << " | "
+        << num_projections << " projections × "
+        << num_features << " features\n";
+
+    log << "      ";
+    for (const int feat_idx : config_link.numerical_features()) {
+      log << std::setw(6) << feat_idx;
     }
     log << '\n';
-  }
-  log << '\n';                   // blank line between nodes
-  log.close();
-  // ----------  END LOGGING  -----------------------------
 
-  // ----------  normal return path -----------------------
+    for (int r = 0; r < num_projections; ++r) {
+      log << "proj " << r << ' ';
+      for (int c = 0; c < num_features; ++c) {
+        log << std::setw(6) << matrix[r][c];
+      }
+      log << '\n';
+    }
+    log << '\n';
+    log.close();
+  }
+
   if (!best_projection.empty()) {
     RETURN_IF_ERROR(SetCondition(best_projection, best_threshold,
                                  train_dataset.data_spec(), best_condition));
@@ -872,7 +872,7 @@ void SampleProjection(const absl::Span<const int>& features,
   }
 
   // (Optional) Print the running total — can remove later
-  std::cout << "Total nonzeros in projection matrix: " << total_nonzero_weights << std::endl;
+  // std::cout << "Total nonzeros in projection matrix: " << total_nonzero_weights << std::endl;
 
   int max_num_features = dt_config.sparse_oblique_split().max_num_features();
   int cur_num_projections = projection->size();

@@ -40,9 +40,8 @@ absl::Status TrainRandomForest(const std::string& csv_path,
         /*require_same_dataset_fields=*/false,
         guide,
         &data_spec);
-    // (Optional) Print the resulting dataspec:
-    // std::cout << dataset::PrintHumanReadable(data_spec) << std::endl;
-    }
+
+    // TODO Oblique not being called here
 
     // 2) **** Configure a RandomForest learner object. No training yet ****
     // Ariel - TrainingConfig is defined in learner/abstract_learner.proto
@@ -64,6 +63,7 @@ absl::Status TrainRandomForest(const std::string& csv_path,
         auto& dt_config = *train_config.MutableExtension(
           model::decision_tree::proto::decision_tree_config);
 
+          // Set depth to 1 to help profiling
           dt_config.set_max_depth(-1);  // -1 => unlimited
 
 
