@@ -51,11 +51,12 @@ common --experimental_repo_remote_exec
 # Intel Compiler (ICX) Configuration
 # -----------------------------------------------------------------------------
 
-# build:intel --cpu=x86_64
+# build:intel --cpu=x86_64 # Don't set this. this is for older bazel versions. will lead to "no toolchain defined for cpu x86_64
 build:intel --cxxopt=-std=c++17
-build:intel --cxxopt=-g
+build:intel --cxxopt=-g --cxxopt=-O2
+# build:intel --cxxopt=-g
 build:intel --cxxopt=-O2
-build:intel --cxxopt=-qopt-report=5
+build:intel --cxxopt=-qopt-report=max
 build:intel --cxxopt=-xHost
 build:intel --linkopt=-g
 build:intel --linkopt=-O2
