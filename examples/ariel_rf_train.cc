@@ -61,7 +61,7 @@ absl::Status TrainRandomForest(const std::string& csv_path,
   auto& rf_config = *train_config.MutableExtension(
       model::random_forest::proto::random_forest_config);
 
-  rf_config.set_num_trees(1);
+  rf_config.set_num_trees(10);
   rf_config.mutable_decision_tree()->set_max_depth(-1);  // -1 => unlimited
   rf_config.set_bootstrap_training_dataset(true);
   rf_config.set_bootstrap_size_ratio(1.0);
@@ -81,6 +81,7 @@ absl::Status TrainRandomForest(const std::string& csv_path,
     ->mutable_sparse_oblique_split()
     ->set_num_projections_exponent(1); // Should be n_features=2523^1 > 1000=max_n_projections => n_projections should be = 1000
 
+  rf_config.set_compute_oob_performances(false);
 
   // 3) Create the learner.
   std::unique_ptr<model::AbstractLearner> learner;

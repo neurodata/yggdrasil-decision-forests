@@ -70,6 +70,17 @@ build:intel --host_linkopt=-g
 build:intel --cxxopt=-qopt-zmm-usage=high
 
 
+build:intel_single_threaded --cxxopt=-std=c++17
+build:intel_single_threaded --cxxopt=-g
+build:intel_single_threaded --cxxopt=-O2
+build:intel_single_threaded --cxxopt=-qopt-report=max
+build:intel_single_threaded --cxxopt=-xHost
+build:intel_single_threaded --cxxopt=-qopt-zmm-usage=high
+
+# === SINGLE-THREAD EXECUTION FLAGS ===
+build:intel_single_threaded --cxxopt=-qno-openmp
+build:intel_single_threaded --cxxopt=-no-parallel
+
 
 build --incompatible_enable_cc_toolchain_resolution
 
