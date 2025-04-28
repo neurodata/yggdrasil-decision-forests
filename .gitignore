@@ -12,3 +12,4 @@ no_sync*
 *.cfg
 ariel_test_data/random_csvs/
 jupyter_notebooks/jupyter_env/
+intel_advisor_profile_results/*
