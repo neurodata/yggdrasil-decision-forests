@@ -79,7 +79,12 @@ build:intel_single_threaded --cxxopt=-qopt-zmm-usage=high
 
 # === SINGLE-THREAD EXECUTION FLAGS ===
 build:intel_single_threaded --cxxopt=-qno-openmp
-build:intel_single_threaded --cxxopt=-no-parallel
+
+build:intel_single_threaded --host_cxxopt=-g
+build:intel_single_threaded --host_cxxopt=-O2
+build:intel_single_threaded --host_linkopt=-g
+
+# build:intel_single_threaded --cxxopt=-no-parallel  # for old intel icc
 
 
 build --incompatible_enable_cc_toolchain_resolution
