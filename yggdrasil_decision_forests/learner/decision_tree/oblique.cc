@@ -199,7 +199,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     matrix.resize(num_projections, std::vector<float>(num_features, 0.f));
   }
 
-  std::cout << "num_projections: " << num_projections << std::endl;
+  // std::cout << "num_projections: " << num_projections << std::endl;
 
   // ----------  MAIN k‑PROJECTION LOOP  ------------------
   for (int proj_idx = 0; proj_idx < num_projections; ++proj_idx) {
