@@ -5,18 +5,10 @@
       "name": "Random Forest Haberman",
       "type": "cppdbg",
       "request": "launch",
-      "program": "/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train",
-      // "args": [ // MIGHT data
-      //   "/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv",
-      //   "Cancer Status",
-      //   "tmp/ariel_rf_model"
-      // ],
-
-      // Haberman Basic dataset
+      "program": "${workspaceFolder}/bazel-bin/examples/ariel_rf_train",
       "args": [
-        "/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/haberman.csv",
-        "survival_status",
-        "tmp/ariel_rf_model"
+        "--train_csv=${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
+        "--label=Cancer Status",
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
@@ -43,7 +35,7 @@
       "name": "Random Forest MIGHT",
       "type": "cppdbg",
       "request": "launch",
-      "program": "/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_rf_train",
+      "program": "${workspaceFolder}/bazel-bin/examples/ariel_rf_train",
       "args": [ // MIGHT data
         "/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv",
         "Cancer Status",
@@ -76,9 +68,9 @@
       "name": "Decision Tree MIGHT",
       "type": "cppdbg",
       "request": "launch",
-      "program": "/home/ubuntu/yggdrasil-decision-forests/bazel-bin/examples/ariel_dt_train",
+      "program": "${workspaceFolder}/bazel-bin/examples/ariel_dt_train",
       "args": [ // MIGHT data
-        "/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv",
+        "${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
         "Cancer Status",
         "tmp/ariel_rf_model"
       ],
