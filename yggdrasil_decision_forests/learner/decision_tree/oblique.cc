@@ -65,6 +65,8 @@ using LDACache = internal::LDACache;
 
 static bool ENABLE_PROJECTION_MATRIX_LOGGING;
 
+// TODO Ariel - important for access pattern
+/* #region Extract() - select out vector Indices at positions */
 
 template <typename T>
 std::vector<T> Extract(const std::vector<T>& values,
@@ -107,6 +109,9 @@ GradientAndHessian ExtractLabels(
           /*.hessian_data =*/Extract(labels.hessian_data, selected)};
 }
 
+/* #endregion */
+
+
 int GetNumProjections(const proto::DecisionTreeTrainingConfig& dt_config,
                       const int num_numerical_features) {
   if (num_numerical_features <= 1) {
@@ -147,6 +152,8 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     utils::RandomEngine* random,
     SplitterPerThreadCache* cache) {
 
+  /* #region Initializations */
+
   ENABLE_PROJECTION_MATRIX_LOGGING = false;
 
   // ---------- original sanity‑checks --------------------
@@ -157,6 +164,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     return false;
   }
 
+  // Decide Num Projections
   int num_projections = override_num_projections.has_value()
       ? override_num_projections.value()
       : GetNumProjections(dt_config, config_link.numerical_features_size());
@@ -168,6 +176,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   ProjectionEvaluator projection_evaluator(train_dataset,
                                            config_link.numerical_features());
 
+  // TODO Understand Memory Access Pattern
   const auto selected_labels = ExtractLabels(label_stats, selected_examples);
   std::vector<float> selected_weights;
   if (!weights.empty()) {
@@ -201,10 +210,13 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
 
   // std::cout << "num_projections: " << num_projections << std::endl;
 
-  // ----------  MAIN k‑PROJECTION LOOP  ------------------
+  /* #endregion */
+
+  /* #region ----------  PROJECTION Sample & Eval LOOP  ------------------ */
   for (int proj_idx = 0; proj_idx < num_projections; ++proj_idx) {
     int8_t monotonic = 0;
 
+    // Sample a projection.
     SampleProjection(config_link.numerical_features(), dt_config,
                      train_dataset.data_spec(), config_link, projection_density,
                      &current_projection, &monotonic, random);
@@ -222,6 +234,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     RETURN_IF_ERROR(projection_evaluator.Evaluate(
                         current_projection, selected_examples, &projection_values));
 
+    // Evaluate the sampled projection.
     ASSIGN_OR_RETURN(
         const auto result,
         EvaluateProjection(dt_config, label_stats, dense_idxs, selected_weights,
@@ -236,6 +249,8 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
           best_condition->condition().higher_condition().threshold();
     }
   }
+
+  /* #endregion */
 
   if (ENABLE_PROJECTION_MATRIX_LOGGING) {
     log << "Node " << node_counter++ << " | "
@@ -337,6 +352,9 @@ struct ScoreAndThreshold {
   float threhsold;
 };
 
+/* #region EvaluateProjection() and Templates */
+
+// TODO ariel understand projection eval
 template <typename LabelStats, typename Labels>
 absl::StatusOr<SplitSearchResult> EvaluateProjection(
     const proto::DecisionTreeTrainingConfig& dt_config,
@@ -460,6 +478,7 @@ EvaluateProjection<RegressionHessianLabelStats, GradientAndHessian>(
     const NodeConstraints& constraints, int8_t monotonic_direction,
     proto::NodeCondition* condition, SplitterPerThreadCache* cache);
 
+
 template <typename LabelStats, typename Labels>
 absl::Status EvaluateProjectionAndSetCondition(
     const dataset::proto::DataSpecification& dataspec,
@@ -555,6 +574,10 @@ absl::Status EvaluateMHLDCandidates(
   return absl::OkStatus();
 }
 
+
+/* #endregion */
+
+// TODO what does this do? Is this the Bootstrapped data per-feature access? Or MHLD specific?
 absl::StatusOr<std::vector<int>> SampleAttributes(
     const model::proto::TrainingConfigLinking& config_link,
     const model::proto::TrainingConfig& config,
@@ -682,6 +705,8 @@ absl::StatusOr<bool> FindBestConditionMHLDObliqueTemplate(
   return found_better_global;
 }
 
+
+/* #region NonInteresting semaphore functions for choosing MHLD or Regular Oblique, based on user call */
 absl::StatusOr<bool> FindBestConditionOblique(
     const dataset::VerticalDataset& train_dataset,
     const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -769,6 +794,8 @@ absl::StatusOr<bool> FindBestConditionOblique(
       return absl::InvalidArgumentError("Oblique split expected");
   }
 }
+
+/* #endregion */
 
 namespace internal {
 
@@ -900,6 +927,8 @@ void SampleProjection(const absl::Span<const int>& features,
   }
 }
 
+
+// TODO Loops over items in projection - interesting!
 absl::Status SetCondition(const Projection& projection, const float threshold,
                           const dataset::proto::DataSpecification& dataspec,
                           proto::NodeCondition* condition) {
@@ -921,6 +950,9 @@ absl::Status SetCondition(const Projection& projection, const float threshold,
   condition->set_na_value(false);
   return absl::OkStatus();
 }
+
+
+/* #region LDA-Specific f() */
 
 absl::Status LDACache::ComputeClassification(
     const proto::DecisionTreeTrainingConfig& dt_config,
@@ -1078,6 +1110,10 @@ absl::Status LDACache::GetSW(const std::vector<int>& selected_features,
   return Extract(selected_features, sw_, out);
 }
 
+/* #endregion */
+
+
+// TODO Important - Loop over p - numerical features - selects out columns? 
 ProjectionEvaluator::ProjectionEvaluator(
     const dataset::VerticalDataset& train_dataset,
     const google::protobuf::RepeatedField<int32_t>& numerical_features) {
@@ -1102,6 +1138,8 @@ ProjectionEvaluator::ProjectionEvaluator(
   }
 }
 
+
+// TODO Important - Main Loop - over Bag, then over a projection's selection
 absl::Status ProjectionEvaluator::Evaluate(
     const Projection& projection,
     const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -1137,6 +1175,7 @@ absl::Status ProjectionEvaluator::Evaluate(
   return absl::OkStatus();
 }
 
+// TODO Important - Loop over Bag, what happens?
 absl::Status ProjectionEvaluator::ExtractAttribute(
     const int attribute_idx,
     const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -1157,6 +1196,8 @@ absl::Status ProjectionEvaluator::ExtractAttribute(
   return absl::OkStatus();
 }
 
+
+/* #region SubtractTransposeMultiplyAdd Interesting Kernels! */
 void SubtractTransposeMultiplyAdd(double weight, absl::Span<double> a,
                                   absl::Span<double> b,
                                   std::vector<double>& output) {
@@ -1190,6 +1231,8 @@ void SubtractTransposeMultiplyAdd(
     }
   }
 }
+
+/* #endregion */
 
 }  // namespace internal
 }  // namespace decision_tree
