@@ -8,7 +8,7 @@
       "program": "${workspaceFolder}/bazel-bin/examples/ariel_rf_train",
       "args": [
         "--train_csv=${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
-        "--label=Cancer Status",
+        "--label_col=survival_status",
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
@@ -36,11 +36,11 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/bazel-bin/examples/ariel_rf_train",
-      "args": [ // MIGHT data
-        "/home/ubuntu/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv",
-        "Cancer Status",
-        "tmp/ariel_rf_model"
-      ],
+"args": [
+  "--train_csv", "${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
+  "--label_col", "Cancer Status"
+],
+
 
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
