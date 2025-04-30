@@ -135,6 +135,7 @@ int GetNumProjections(const proto::DecisionTreeTrainingConfig& dt_config,
 }
 
 
+// Main Loop
 template <typename LabelStats>
 absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     const dataset::VerticalDataset& train_dataset,
@@ -928,7 +929,7 @@ void SampleProjection(const absl::Span<const int>& features,
 }
 
 
-// TODO Loops over items in projection - interesting!
+// TODO interesting! Loops over items in projection
 absl::Status SetCondition(const Projection& projection, const float threshold,
                           const dataset::proto::DataSpecification& dataspec,
                           proto::NodeCondition* condition) {
