@@ -62,7 +62,8 @@
 #include "absl/base/attributes.h"
 #include "absl/types/span.h"
 #include "yggdrasil_decision_forests/dataset/types.h"
-#include "yggdrasil_decision_forests/dataset/vertical_dataset.h"
+// Ariel - I commented out. Doesn't seem to be used here
+// #include "yggdrasil_decision_forests/dataset/vertical_dataset.h"
 #include "yggdrasil_decision_forests/learner/decision_tree/preprocessing.h"
 #include "yggdrasil_decision_forests/learner/decision_tree/splitter_accumulator.h"
 #include "yggdrasil_decision_forests/learner/decision_tree/uplift.h"

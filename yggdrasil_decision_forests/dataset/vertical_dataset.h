@@ -293,6 +293,7 @@ class VerticalDataset {
     std::vector<std::pair<size_t, size_t>> values_;
   };
 
+  // Ariel: This is MIGHT data - regular numeric
   class NumericalColumn : public TemplateScalarStorage<float> {
    public:
     proto::ColumnType type() const override {

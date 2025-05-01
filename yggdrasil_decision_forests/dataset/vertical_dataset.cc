@@ -171,7 +171,7 @@ void VerticalDataset::ExtractExample(const row_t example_idx,
   DCHECK_LT(example_idx, nrow_);
   example->mutable_attributes()->Clear();
 
-  
+
   for (int col_idx = 0; col_idx < columns_.size(); col_idx++) {
     const auto& col = *column(col_idx);
     auto* attribute = example->add_attributes();
@@ -405,9 +405,9 @@ absl::Status VerticalDataset::CategoricalListColumn::ConvertToGivenDataspec(
 
 void VerticalDataset::NumericalColumn::ExtractExample(
     const row_t example_idx, proto::Example::Attribute* attribute) const {
-  if (IsNa(example_idx)) {
-    return;
-  }
+  if (IsNa(example_idx)) { return; }
+
+  // Ariel - this is the simple access pattern for numerical columns
   attribute->set_numerical(values()[example_idx]);
 }
 

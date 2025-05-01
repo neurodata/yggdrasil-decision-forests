@@ -5384,6 +5384,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
       DCHECK(std::is_sorted(examples.active.begin(), examples.active.end()));
 
       ExampleSplitRollingBuffer example_split;
+
+      // Ariel: Accesses from here
       RETURN_IF_ERROR(EvalConditionOnDataset(dataset, examples, condition,
                                              dataset_is_dense, &example_split));
 
