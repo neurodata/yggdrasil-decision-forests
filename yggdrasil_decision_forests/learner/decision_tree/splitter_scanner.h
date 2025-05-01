@@ -689,6 +689,7 @@ SplitSearchResult ScanSplits(
     PerThreadCacheV2* cache) {
   using FeatureBucketType = typename ExampleBucketSet::FeatureBucketType;
 
+  /* #region Check Validity, Initialize */
   if (example_bucket_set.items.size() <= 1) {
     return SplitSearchResult::kInvalidAttribute;
   }
@@ -709,13 +710,14 @@ SplitSearchResult ScanSplits(
   initializer.InitEmpty(&neg);
   initializer.InitFull(&pos);
 
-  // Running statistics.
   SignedExampleIdx num_pos_examples = num_examples;
   SignedExampleIdx num_neg_examples = 0;
   bool tried_one_split = false;
 
   const double weighted_num_examples = pos.WeightedNumExamples();
   const int end_bucket_idx = example_bucket_set.items.size() - 1;
+
+  /* #endregion */
 
   double best_score =
       std::max<double>(condition->split_score(), initializer.MinimumScore());
@@ -734,6 +736,7 @@ SplitSearchResult ScanSplits(
             << " weighted_num_examples:" << weighted_num_examples;
 #endif
 
+  // Loop over buckets
   for (int bucket_idx = 0; bucket_idx < end_bucket_idx; bucket_idx++) {
     const auto& item = example_bucket_set.items[bucket_idx];
 
@@ -742,6 +745,7 @@ SplitSearchResult ScanSplits(
               << "\n\tlabel: " << item.label;
 #endif
 
+    // Ariel: I think this is for missing data. Skipping for now
     if constexpr (bucket_interpolation) {
       if (no_new_examples_since_last_new_best_split && item.label.count > 0) {
         best_bucket_interpolation_idx = bucket_idx;
@@ -1019,8 +1023,7 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
   // TODO Ariel how does this mask look like?
   const auto& selected_examples_mask = get_mask();
 
-  // Initialize the accumulators. Initially, all the buckets are in the positive
-  // accumulators.
+  // Initialize the accumulators. Initially, all the buckets are in the positive accumulators.
   LabelScoreAccumulator& neg = *GetCachedLabelScoreAccumulator<LabelScoreAccumulator>(false, cache);
   LabelScoreAccumulator& pos = *GetCachedLabelScoreAccumulator<LabelScoreAccumulator>(true, cache);
 
@@ -1166,6 +1169,8 @@ SplitSearchResult ScanSplitsPresortedSparse(
     const int min_num_obs, const int attribute_idx,
     const bool duplicate_examples, proto::NodeCondition* condition,
     PerThreadCacheV2* cache) {
+
+  // Are these bagged samples?
   if (duplicate_examples) {
     return ScanSplitsPresortedSparseDuplicateExampleTemplate<
         ExampleBucketSet, LabelScoreAccumulator, true>(

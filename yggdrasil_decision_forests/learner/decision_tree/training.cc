@@ -2309,6 +2309,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
                        : SplitSearchResult::kNoBetterSplitFound;
   }
 
+  // Ariel - oblique.cc MIGHT data fn.
   absl::StatusOr<SplitSearchResult> FindSplitLabelClassificationFeatureNumericalCart(
       const absl::Span<const UnsignedExampleIdx> selected_examples,
       const std::vector<float> &weights, const absl::Span<const float> attributes,
@@ -2339,8 +2340,9 @@ namespace yggdrasil_decision_forests::model::decision_tree
     // Binary classification.
     if (num_label_classes == 3)
     {
-      if (weights.empty())
+      if (weights.empty()) // Ariel: This is our case. Idk what weights mean
       {
+        // TODO Ariel Wtf is this?
         LabelBinaryCategoricalOneValueBucket</*weighted=*/false>::Filler
             label_filler(labels, weights);
         LabelBinaryCategoricalOneValueBucket</*weighted=*/false>::Initializer
@@ -4985,24 +4987,25 @@ namespace yggdrasil_decision_forests::model::decision_tree
       SelectedExamplesRollingBuffer selected_examples,
       std::optional<SelectedExamplesRollingBuffer> leaf_examples)
   {
-    // Ariel - dumb checks
     if (selected_examples.empty())
-    {
-      return absl::InternalError("No examples fed to the node trainer");
-    }
+      { return absl::InternalError("No examples fed to the node trainer"); }
+    
+    // Where is it decided whether samples are weighed?
     node->mutable_node()->set_num_pos_training_examples_without_weight(
         selected_examples.size());
 
-    // Ariel: I think this applies "majority"/voting label to leaf
+    // No clue what this is
     if (!set_leaf_already_set)
     {
       // Set the node value (i.e. the label distribution).
-      RETURN_IF_ERROR(internal_config.set_leaf_value_functor(
+      RETURN_IF_ERROR(
+        internal_config.set_leaf_value_functor(
           train_dataset, selected_examples.active, weights, config, config_link,
           node));
       RETURN_IF_ERROR(ApplyConstraintOnNode(constraints, node));
     }
 
+    // Evaluate Exit Conditions
     if (selected_examples.size() < dt_config.min_examples() ||
         (dt_config.max_depth() >= 0 && depth >= dt_config.max_depth()) ||
         (internal_config.timeout.has_value() &&
@@ -5022,7 +5025,11 @@ namespace yggdrasil_decision_forests::model::decision_tree
       return absl::OkStatus();
     }
 
-    // Dataset used to train this node.
+    // If not exit - Train
+
+    // In-memory transactional dataset with heterogeneous column type, stored column
+    // by column for fast row-wise iteration.
+    // Ariel! Seems Row-Major!
     const dataset::VerticalDataset *train_dataset_for_splitter;
     absl::Span<const UnsignedExampleIdx> selected_examples_for_splitter;
     // If true, the entire dataset "local_train_dataset" is composed of training
@@ -5031,8 +5038,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     // for this node i.e. local_train_dataset[selected_examples[i]].
     bool splitter_dataset_is_compact;
 
-    // Extract the random local imputation.
-    // Ariel - what is this? important?
+    // Ariel: deal w/ missing data: Extract the random local imputation. (??)
     dataset::VerticalDataset random_local_imputation_train_dataset;
     std::vector<UnsignedExampleIdx> random_local_imputation_selected_examples;
     if (dt_config.missing_value_policy() ==
@@ -5061,15 +5067,15 @@ namespace yggdrasil_decision_forests::model::decision_tree
       train_dataset_for_splitter = &train_dataset;
     }
 
-    // Determine the best split.
     if (selected_examples_for_splitter.empty())
     {
       return absl::InternalError("No examples fed to the splitter");
     }
 
+    // Determine the best split.
     ASSIGN_OR_RETURN(
         const auto has_better_condition,
-        // TODO Ariel - analyze FindBestCondition()
+
         FindBestCondition(
             *train_dataset_for_splitter, selected_examples_for_splitter, weights,
             config, config_link, dt_config, splitter_concurrency_setup,
@@ -5082,10 +5088,17 @@ namespace yggdrasil_decision_forests::model::decision_tree
       node->FinalizeAsLeaf(dt_config.store_detailed_label_distribution());
       return absl::OkStatus();
     }
+
+    // ********** Else: Better condition found **********
+
+    // Evaluate Training Exit conditions
     STATUS_CHECK_EQ(
         selected_examples.size(),
         node->node().condition().num_training_examples_without_weight());
+
     node->CreateChildren();
+
+    // I guess if it doesn't meet Termination constraint, it's not a leaf
     node->FinalizeAsNonLeaf(dt_config.keep_non_leaf_label_distribution(),
                             dt_config.store_detailed_label_distribution());
 
@@ -5107,8 +5120,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
       return absl::OkStatus();
     }
 
-    // Separate the positive and negative examples used only to determine the node
-    // value.
+    // Separate the positive and negative examples used only to determine the node value.
     std::optional<ExampleSplitRollingBuffer> node_only_example_split;
     if (leaf_examples.has_value())
     {

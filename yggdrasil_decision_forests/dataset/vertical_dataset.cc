@@ -170,6 +170,8 @@ void VerticalDataset::ExtractExample(const row_t example_idx,
   DCHECK_GE(example_idx, 0);
   DCHECK_LT(example_idx, nrow_);
   example->mutable_attributes()->Clear();
+
+  
   for (int col_idx = 0; col_idx < columns_.size(); col_idx++) {
     const auto& col = *column(col_idx);
     auto* attribute = example->add_attributes();

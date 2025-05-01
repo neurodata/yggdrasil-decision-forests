@@ -153,17 +153,19 @@ void VerticalDataset::NumericalVectorSequenceColumn::Set(
 }
 
 void VerticalDataset::NumericalVectorSequenceColumn::ExtractExample(
-    row_t example_idx, proto::Example::Attribute* attribute) const {
-  if (IsNa(example_idx)) {
-    return;
-  }
-  auto* dst = attribute->mutable_numerical_vector_sequence()->mutable_vectors();
-  const auto num_sequences = SequenceLength(example_idx);
-  for (uint32_t sequence_idx = 0; sequence_idx < num_sequences;
-       sequence_idx++) {
-    const auto src = GetVector(example_idx, sequence_idx).value();
-    *dst->Add()->mutable_values() = {src.begin(), src.end()};
-  }
+    row_t example_idx, proto::Example::Attribute* attribute) const 
+  {
+    if (IsNa(example_idx)) { return; }
+
+    auto* dst = attribute->mutable_numerical_vector_sequence()->mutable_vectors();
+    const auto num_sequences = SequenceLength(example_idx);
+
+    for (uint32_t sequence_idx = 0; sequence_idx < num_sequences; sequence_idx++) {
+      // Retrieve
+      const auto src = GetVector(example_idx, sequence_idx).value();
+      // Write
+      *dst->Add()->mutable_values() = {src.begin(), src.end()};
+    }
 }
 
 absl::Status

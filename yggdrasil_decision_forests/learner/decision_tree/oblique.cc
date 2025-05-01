@@ -367,6 +367,8 @@ absl::StatusOr<SplitSearchResult> EvaluateProjection(
     const NodeConstraints& constraints, int8_t monotonic_direction,
     proto::NodeCondition* condition, SplitterPerThreadCache* cache) {
   InternalTrainConfig effective_internal_config = internal_config;
+
+  // Assign sorting method to use
   effective_internal_config.override_sorting_strategy =
       proto::DecisionTreeTrainingConfig::Internal::SortingStrategy::
           DecisionTreeTrainingConfig_Internal_SortingStrategy_IN_NODE;
