@@ -232,8 +232,9 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
       }
     }
 
-    RETURN_IF_ERROR(projection_evaluator.Evaluate(
-                        current_projection, selected_examples, &projection_values));
+    // Ariel IMPORTANT - Data Loaded here
+    RETURN_IF_ERROR(
+      projection_evaluator.Evaluate(current_projection, selected_examples, &projection_values));
 
     // Evaluate the sampled projection.
     ASSIGN_OR_RETURN(
@@ -1152,11 +1153,14 @@ absl::Status ProjectionEvaluator::Evaluate(
 
   // std::cout << "Projection vector: " << projection;
 
+  // TODO make these loops in a vector operation
+  // TODO start w/ full dataE
+
   for (size_t selected_idx = 0; selected_idx < selected_examples.size(); selected_idx++) {
     float value = 0;
     const auto example_idx = selected_examples[selected_idx];
 
-    // Ariel Why are there many items in projection?
+    // Ariel: This is one-per-nonzero in projection vector - optimal
     for (const auto& item : projection) {
       // Sanity checks
       DCHECK_LT(item.attribute_idx, numerical_attributes_.size());

@@ -33,6 +33,7 @@
 
 # Ariel - set C++ 17 and add debug flags
 build --cxxopt=-std=c++17
+
 build:debug --cxxopt=-std=c++17
 # TODO Ariel - remove - Debug build config
 build:debug --compilation_mode=dbg
