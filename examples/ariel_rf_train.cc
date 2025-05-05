@@ -35,6 +35,8 @@ ABSL_FLAG(bool, compute_oob_performances, false, "Whether to compute out-of-bag 
 #include "yggdrasil_decision_forests/learner/random_forest/random_forest.pb.h"
 #include "yggdrasil_decision_forests/learner/random_forest/random_forest.h"
 
+#include "yggdrasil_decision_forests/utils/status_macros.h"
+
 // Ariel - Profiling
 // #include <gperftools/profiler.h>
 
@@ -102,15 +104,8 @@ absl::Status TrainRandomForest(const std::string &csv_path,
 
   // 3) Create the learner
   std::unique_ptr<model::AbstractLearner> learner;
-  {
-    absl::Status get_learner_status =
-        model::GetLearner(train_config, &learner);
-    if (!get_learner_status.ok())
-    {
-      return absl::InternalError("Could not create RandomForest learner: " +
-                                 std::string(get_learner_status.message()));
-    }
-  }
+  CHECK_OK(model::GetLearner(train_config, &learner, deployment_config));
+
 
   // 4) Train
   absl::StatusOr<std::unique_ptr<model::AbstractModel>> model_or =
