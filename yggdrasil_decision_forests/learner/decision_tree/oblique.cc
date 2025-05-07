@@ -232,11 +232,13 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
       }
     }
 
-    // Ariel IMPORTANT - Data Loaded here
+    // Applies the projection linear fn. to the data: x1+x3-x4 ...
+    // Better if called "apply"
+    // Should return a vector of size (n_samples)
     RETURN_IF_ERROR(
       projection_evaluator.Evaluate(current_projection, selected_examples, &projection_values));
 
-    // Evaluate the sampled projection.
+    // Find a split along this hyperplane and Grade it.
     ASSIGN_OR_RETURN(
         const auto result,
         EvaluateProjection(dt_config, label_stats, dense_idxs, selected_weights,
@@ -878,15 +880,16 @@ void SampleProjection(const absl::Span<const int>& features,
   // Copy indices locally so we can shuffle.
   std::vector<int> pool(features.begin(), features.end());
 
+  // TODO pick 2xp one-time - it's what Treeple does
   for (int i = 0; i < k; ++i) {
-  // Pick j uniformly in [i, p)
-  const int j = absl::Uniform<int>(*random, i, p);
-  std::swap(pool[i], pool[j]);
+      // Pick j uniformly in [i, p)
+      const int j = absl::Uniform<int>(*random, i, p);
+      std::swap(pool[i], pool[j]);
 
-  const int feature = pool[i];
-  DCHECK_EQ(data_spec.columns(feature).type(), dataset::proto::NUMERICAL);
+      const int feature = pool[i];
+      DCHECK_EQ(data_spec.columns(feature).type(), dataset::proto::NUMERICAL);
 
-  projection->push_back({feature, gen_weight(feature)});
+      projection->push_back({feature, gen_weight(feature)});
   }
   // ===========================================================
 

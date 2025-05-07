@@ -622,12 +622,16 @@ void FillExampleBucketSet(
 
   // Fill the buckets.
   const auto num_selected_examples = selected_examples.size();
-  for (size_t select_idx = 0; select_idx < num_selected_examples;
-       select_idx++) {
+  
+  for (size_t select_idx = 0; select_idx < num_selected_examples; select_idx++) {
+    // Get an example
     const UnsignedExampleIdx example_idx = selected_examples[select_idx];
+
     const size_t item_idx =
         feature_filler.GetBucketIndex(select_idx, example_idx);
+
     auto& bucket = example_bucket_set->items[item_idx];
+    
     feature_filler.ConsumeExample(example_idx, &bucket.feature);
     label_filler.ConsumeExample(example_idx, &bucket.label);
   }
@@ -643,9 +647,14 @@ void FillExampleBucketSet(
                 "Bucket require sorting");
 
   if constexpr (ExampleBucketSet::FeatureBucketType::kRequireSorting) {
+    // Ariel: Sorting done here!
+    int ariel = 1+1;
     std::sort(example_bucket_set->items.begin(),
               example_bucket_set->items.end(),
               typename ExampleBucketSet::ExampleBucketType::SortFeature());
+  }
+  else {
+    int ariel = 2;
   }
 
   if constexpr (require_label_sorting) {

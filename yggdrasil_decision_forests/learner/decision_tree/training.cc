@@ -2349,6 +2349,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
             initializer(label_distribution);
 
         // Ariel: depending on sorting strategy, choose find split
+        // So, the best split and sort are done together?
         if (sorting_strategy == proto::DecisionTreeTrainingConfig::Internal::FORCE_PRESORTED)
         {
           const auto &sorted_attributes = internal_config.preprocessing->presorted_numerical_features()[attribute_idx];
@@ -2364,6 +2365,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
         }
         else if (sorting_strategy == proto::DecisionTreeTrainingConfig::Internal::IN_NODE)
         {
+          // This is what's done by MIGHT, w/ default settings
           return FindBestSplit_LabelUnweightedBinaryClassificationFeatureNumerical(
               selected_examples, feature_filler, label_filler, initializer,
               min_num_obs, attribute_idx, condition, &cache->cache_v2);
