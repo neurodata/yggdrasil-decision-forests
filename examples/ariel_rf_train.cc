@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <chrono>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -107,9 +108,17 @@ absl::Status TrainRandomForest(const std::string &csv_path,
   CHECK_OK(model::GetLearner(train_config, &learner, deployment_config));
 
 
-  // 4) Train
+  // 4) Train with timing
+  auto start_time = std::chrono::high_resolution_clock::now();
+
   absl::StatusOr<std::unique_ptr<model::AbstractModel>> model_or =
       learner->TrainWithStatus("csv:" + csv_path, data_spec);
+
+  auto end_time = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> duration = end_time - start_time;
+  std::cout << "Training time: " << duration.count() << " seconds" << std::endl;
+
+
   if (!model_or.ok())
   {
     return absl::InternalError("Training failed: " +
