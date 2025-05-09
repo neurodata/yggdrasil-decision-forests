@@ -108,15 +108,11 @@ absl::Status TrainRandomForest(const std::string &csv_path,
   CHECK_OK(model::GetLearner(train_config, &learner, deployment_config));
 
 
-  // 4) Train with timing
-  auto start_time = std::chrono::high_resolution_clock::now();
+  // 4) Train with timing - this also causes data loading!
+  //    Can't time training here
 
   absl::StatusOr<std::unique_ptr<model::AbstractModel>> model_or =
       learner->TrainWithStatus("csv:" + csv_path, data_spec);
-
-  auto end_time = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> duration = end_time - start_time;
-  std::cout << "Training time: " << duration.count() << " seconds" << std::endl;
 
 
   if (!model_or.ok())
@@ -143,6 +139,8 @@ absl::Status TrainRandomForest(const std::string &csv_path,
 
 
 int main(int argc, char** argv) {
+  auto start_time = std::chrono::high_resolution_clock::now();
+
   absl::ParseCommandLine(argc, argv);
 
   std::string train_csv = absl::GetFlag(FLAGS_train_csv);
@@ -175,6 +173,11 @@ int main(int argc, char** argv) {
   }
 
   std::cout << "Training complete.\n";
+
+  auto end_time = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> duration = end_time - start_time;
+  std::cout << "Ariel Wall time: " << duration.count() << " seconds" << std::endl;
+  
   return 0;
 }
 

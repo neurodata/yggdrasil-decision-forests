@@ -391,9 +391,10 @@ namespace yggdrasil_decision_forests
                                     /*num_examples=*/-1);
       const auto begin_training = absl::Now();
 
+      // Even here we're not done loading data yet
       ASSIGN_OR_RETURN(
           auto model, TrainWithStatusImpl(typed_path, data_spec, typed_valid_path));
-
+      
       utils::usage::OnTrainingEnd(data_spec, training_config(),
                                   /*num_examples=*/-1, *model,
                                   absl::Now() - begin_training);
@@ -440,7 +441,16 @@ namespace yggdrasil_decision_forests
             /*required_columns=*/{}, dataset_loading_config));
         valid_dataset = valid_dataset_data;
       }
-      return TrainWithStatusImpl(train_dataset, valid_dataset);
+
+      auto start_time = std::chrono::high_resolution_clock::now();
+
+      auto train_result = TrainWithStatusImpl(train_dataset, valid_dataset);
+
+      auto end_time = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> duration = end_time - start_time;
+      std::cout << "Ariel Training time: " << duration.count() << " seconds" << std::endl;
+
+      return train_result;
     }
 
     absl::Status CheckGenericHyperParameterSpecification(

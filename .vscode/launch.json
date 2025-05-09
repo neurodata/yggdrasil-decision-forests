@@ -38,10 +38,43 @@
       "program": "${workspaceFolder}/bazel-bin/examples/ariel_rf_train",
 "args": [
   "--train_csv", "${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
-  "--label_col", "Cancer Status"
+  "--label_col", "Cancer Status",
+  "--projection_density_factor", "3",
 ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      // "sourceFileMap": {
+      //   "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
+      // },
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
 
-
+    {
+      "name": "RF MIGHT 1-split 1-tree",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/bazel-bin/examples/ariel_rf_train",
+"args": [
+  "--train_csv", "${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
+  "--label_col", "Cancer Status",
+  "--projection_density_factor", "3",
+  "--num_trees", "1",
+  "--tree_depth","1",
+],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],

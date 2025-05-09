@@ -213,6 +213,12 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
 
   /* #endregion */
 
+  // std::cout << "Num projections: " << num_projections << "\n";
+  // TODO Ariel remove this after profiling
+  // num_projections = 100000;
+
+  // std::cout << "Num projections: " << num_projections << "\n";
+
   /* #region ----------  PROJECTION Sample & Eval LOOP  ------------------ */
   for (int proj_idx = 0; proj_idx < num_projections; ++proj_idx) {
     int8_t monotonic = 0;
@@ -235,6 +241,8 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     // Applies the projection linear fn. to the data: x1+x3-x4 ...
     // Better if called "apply"
     // Should return a vector of size (n_samples)
+
+    // TODO Time only this function - apply mask & re-time
     RETURN_IF_ERROR(
       projection_evaluator.Evaluate(current_projection, selected_examples, &projection_values));
 
