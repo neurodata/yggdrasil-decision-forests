@@ -82,6 +82,8 @@ dataset::VerticalDataset MakeDataset(const dataset::proto::DataSpecification& sp
 
 // ── main ────────────────────────────────────────────────────────────────
 int main(int argc, char** argv) {
+    auto t0 = std::chrono::steady_clock::now();
+
   absl::ParseCommandLine(argc, argv);
 
   const int64_t rows  = absl::GetFlag(FLAGS_rows);
@@ -117,7 +119,7 @@ int main(int argc, char** argv) {
   std::unique_ptr<model::AbstractLearner> learner;
   CHECK_OK(model::GetLearner(tc, &learner, deploy));
 
-  auto t0 = std::chrono::steady_clock::now();
+  
   auto model_or = learner->TrainWithStatus(ds);
   auto t1 = std::chrono::steady_clock::now();
 
@@ -125,7 +127,7 @@ int main(int argc, char** argv) {
 
   std::cout << "✓ trained on " << rows << " × " << cols
             << " with depth=" << absl::GetFlag(FLAGS_depth)
-            << " in " << std::chrono::duration<double>(t1-t0).count() << " s\n";
+            << " in WALL TIME: " << std::chrono::duration<double>(t1-t0).count() << " s\n";
 
   const auto out_dir = absl::GetFlag(FLAGS_model_out_dir);
   if (!out_dir.empty()) {

@@ -345,9 +345,14 @@ namespace yggdrasil_decision_forests
                                     GetMetadataWithDefaults(training_config()),
                                     train_dataset.nrow());
       const auto begin_training = absl::Now();
+      auto start_time = std::chrono::high_resolution_clock::now();
 
       ASSIGN_OR_RETURN(auto model,
                        TrainWithStatusImpl(train_dataset, valid_dataset));
+
+      auto end_time = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> duration = end_time - start_time;
+      std::cout << "\nAriel Training time: " << duration.count() << " seconds\n" << std::endl;
 
       utils::usage::OnTrainingEnd(train_dataset.data_spec(), training_config(),
                                   train_dataset.nrow(), *model,
@@ -394,7 +399,7 @@ namespace yggdrasil_decision_forests
       // Even here we're not done loading data yet
       ASSIGN_OR_RETURN(
           auto model, TrainWithStatusImpl(typed_path, data_spec, typed_valid_path));
-      
+
       utils::usage::OnTrainingEnd(data_spec, training_config(),
                                   /*num_examples=*/-1, *model,
                                   absl::Now() - begin_training);
