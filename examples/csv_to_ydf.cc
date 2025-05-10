@@ -50,12 +50,14 @@ int main(int argc, char** argv) {
   CHECK_OK(dataset::LoadVerticalDataset("csv:" + csv, spec, &ds));
 
   // ── 3. save in YDF native format (“tfrecord:” prefix) ─────────────────
-  CHECK_OK(dataset::SaveVerticalDataset(ds, "tfrecord:" + out));
+  const std::string out_dir = absl::GetFlag(FLAGS_out_path);   // must not exist
+  // 3. save the TF-Record (creates one file at FLAGS_out_path)
+CHECK_OK(dataset::SaveVerticalDataset(ds, "tfrecord:" + out));
 
-  CHECK_OK(file::SetBinaryProto(
-            absl::StrCat(out, "/data_spec.pb"),  // /tmp/synth_ds/data_spec.pb
-            spec,
-            file::Defaults()));
+// 4. save the spec *next to* it
+CHECK_OK(file::SetBinaryProto(out + ".data_spec.pb", spec, file::Defaults()));
+
+
 
   std::cout << "✓ wrote dataset to  tfrecord:" << out << '\n';
   return 0;
