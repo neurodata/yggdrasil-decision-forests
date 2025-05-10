@@ -118,6 +118,7 @@ cc_binary(
     deps = [
         "//yggdrasil_decision_forests/learner:all_learners",
         "//yggdrasil_decision_forests/model:all_models",
+        "//yggdrasil_decision_forests/dataset:data_spec",
         "@com_google_absl//absl/log",
     ],
 )
