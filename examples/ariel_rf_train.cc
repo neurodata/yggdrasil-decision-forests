@@ -176,7 +176,7 @@ int main(int argc, char** argv) {
 
   auto end_time = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration = end_time - start_time;
-  std::cout << "Ariel Wall time: " << duration.count() << " seconds" << std::endl;
+  std::cout << "\nAriel Wall time: " << duration.count() << " seconds\n" << std::endl;
   
   return 0;
 }

@@ -448,7 +448,7 @@ namespace yggdrasil_decision_forests
 
       auto end_time = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> duration = end_time - start_time;
-      std::cout << "Ariel Training time: " << duration.count() << " seconds" << std::endl;
+      std::cout << "\nAriel Training time: " << duration.count() << " seconds\n" << std::endl;
 
       return train_result;
     }
