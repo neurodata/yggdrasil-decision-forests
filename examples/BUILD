@@ -107,3 +107,18 @@ cc_binary(
         "@com_google_absl//absl/strings",
     ],
 )
+
+
+cc_binary(
+    name = "synthetic_matrix_train",
+    srcs = ["synthetic_matrix_train.cc"],
+    copts = ["-g"],        # add -pg later when it runs
+    linkopts = ["-g"],
+    features = ["c++17"],
+    deps = [
+        "//yggdrasil_decision_forests/learner:all_learners",
+        "//yggdrasil_decision_forests/model:all_models",
+        "@com_google_absl//absl/log",
+    ],
+)
+
