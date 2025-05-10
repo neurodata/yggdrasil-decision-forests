@@ -142,3 +142,17 @@ cc_binary(
     features = ["c++17"],
 )
 
+
+
+cc_binary(
+    name = "train_from_tfrecord",
+    srcs = ["train_from_tfrecord.cc"],
+    deps = [
+        "//yggdrasil_decision_forests/learner:all_learners",
+        "//yggdrasil_decision_forests/model:all_models",
+        "//yggdrasil_decision_forests/dataset:all_dataset_formats",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/log",
+    ],
+)
