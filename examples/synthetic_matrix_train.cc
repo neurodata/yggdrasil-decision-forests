@@ -45,7 +45,7 @@ dataset::proto::DataSpecification MakeSpec(int cols, int64_t rows,
   auto* lbl = spec.add_columns();
   lbl->set_name("y");
   lbl->set_type(dataset::proto::CATEGORICAL);
-  lbl->mutable_categorical()->set_number_of_unique_values(label_mod);
+  lbl->mutable_categorical()->set_number_of_unique_values(label_mod+1);
   lbl->mutable_categorical()->set_is_already_integerized(true);
   spec.set_created_num_rows(rows);
   return spec;
