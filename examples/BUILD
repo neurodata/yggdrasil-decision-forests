@@ -123,3 +123,22 @@ cc_binary(
     ],
 )
 
+
+cc_binary(
+    name = "csv_to_ydf",
+    srcs = ["csv_to_ydf.cc"],
+    deps = [
+        # ── YDF helpers
+        "//yggdrasil_decision_forests/dataset:data_spec",
+        "//yggdrasil_decision_forests/dataset:csv_example_reader",
+        "//yggdrasil_decision_forests/dataset:data_spec_inference",
+        "//yggdrasil_decision_forests/dataset:vertical_dataset_io",
+        "//yggdrasil_decision_forests/dataset/tensorflow_no_dep:tf_record_tf_example",
+        # ── Abseil
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/log",
+    ],
+    features = ["c++17"],
+)
+
