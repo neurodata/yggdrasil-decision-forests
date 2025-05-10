@@ -3,7 +3,7 @@
 //   bazel run :csv_to_ydf -- \
 //        --csv_path=path/to/file.csv \
 //        --label_col=Target \
-//        --out_path=/tmp/synth_ds
+//        --out_path=<non-existing-folder-path> // MAKE SURE FOLDER DOESN'T EXIST!
 // Generates  /tmp/synth_ds/{data_spec.pb, shard-00000-of-00001}
 
 #include <iostream>
@@ -15,6 +15,7 @@
 #include "yggdrasil_decision_forests/dataset/vertical_dataset.h"
 #include "yggdrasil_decision_forests/dataset/vertical_dataset_io.h"
 #include "yggdrasil_decision_forests/utils/status_macros.h"
+#include "yggdrasil_decision_forests/utils/filesystem.h"
 
 using namespace yggdrasil_decision_forests;
 
@@ -50,6 +51,11 @@ int main(int argc, char** argv) {
 
   // ── 3. save in YDF native format (“tfrecord:” prefix) ─────────────────
   CHECK_OK(dataset::SaveVerticalDataset(ds, "tfrecord:" + out));
+
+  CHECK_OK(file::SetBinaryProto(
+            absl::StrCat(out, "/data_spec.pb"),  // /tmp/synth_ds/data_spec.pb
+            spec,
+            file::Defaults()));
 
   std::cout << "✓ wrote dataset to  tfrecord:" << out << '\n';
   return 0;
