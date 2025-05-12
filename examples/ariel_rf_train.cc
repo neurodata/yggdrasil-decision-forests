@@ -19,7 +19,7 @@ ABSL_FLAG(int, num_threads, 1, "Number of threads to use.");
 ABSL_FLAG(int, num_trees, 50, "Number of trees in the random forest.");
 ABSL_FLAG(int, tree_depth, -1, "Maximum depth of trees (-1 for unlimited).");
 ABSL_FLAG(int, max_num_projections, 1000, "Maximum number of projections for oblique splits.");
-ABSL_FLAG(float, projection_density_factor, 128.0f, "Projection density factor.");
+ABSL_FLAG(float, projection_density_factor, 3.0f, "Projection density factor.");
 ABSL_FLAG(int, num_projections_exponent, 1, "Exponent to determine number of projections.");
 ABSL_FLAG(bool, compute_oob_performances, false, "Whether to compute out-of-bag performances.");
 

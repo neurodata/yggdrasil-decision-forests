@@ -27,8 +27,8 @@ ABSL_FLAG(int,     trees, 1,        "Number of trees");
 ABSL_FLAG(int,     depth, 1,        "Max depth (root-only = 1)");
 ABSL_FLAG(int,     threads, 1,      "Threads");
 
-ABSL_FLAG(int,   max_num_projections,      4096,  "");
-ABSL_FLAG(float, projection_density_factor, 128.0, "");
+ABSL_FLAG(int,   max_num_projections,      1000,  "");
+ABSL_FLAG(float, projection_density_factor, 3.0, "");
 ABSL_FLAG(int,   num_projections_exponent, 1,     "");
 
 ABSL_FLAG(std::string, model_out_dir, "", "Optional save dir");

@@ -26,8 +26,8 @@ ABSL_FLAG(int, trees, 1,   "Num trees");
 ABSL_FLAG(int, depth, 2,   "Max depth");
 ABSL_FLAG(int, threads, 1, "CPU threads");
 
-ABSL_FLAG(int,   max_num_projections,      4096,  "");
-ABSL_FLAG(float, projection_density_factor, 128.0, "");
+ABSL_FLAG(int,   max_num_projections,      1000,  "");
+ABSL_FLAG(float, projection_density_factor, 3.0, "");
 ABSL_FLAG(int,   num_projections_exponent, 1,     "");
 
 int main(int argc, char** argv) {
