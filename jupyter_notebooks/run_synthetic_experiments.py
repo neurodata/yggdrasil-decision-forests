@@ -55,7 +55,7 @@ for n in n_values:
             try:
                 output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
                 # Parse timing output
-                match = re.search(r"WALL TIME: ([\d.]+) s", output)
+                match = re.search(r"Ariel Training time: ([\d.]+) s", output)
                 if match:
                     t = float(match.group(1))
                     times.append(t)
