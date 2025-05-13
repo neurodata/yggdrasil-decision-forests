@@ -117,7 +117,9 @@ int main(int argc, char** argv) {
       absl::GetFlag(FLAGS_num_projections_exponent));
 
   model::proto::DeploymentConfig deploy;
-  deploy.set_num_threads(absl::GetFlag(FLAGS_threads));
+  if (absl::GetFlag(FLAGS_threads) != -1) {
+      deploy.set_num_threads(absl::GetFlag(FLAGS_threads));
+  }
 
   std::unique_ptr<model::AbstractLearner> learner;
   CHECK_OK(model::GetLearner(tc, &learner, deploy));
