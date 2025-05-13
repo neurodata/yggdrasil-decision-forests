@@ -82,6 +82,9 @@ dataset::VerticalDataset MakeDataset(const dataset::proto::DataSpecification& sp
 
 // ── main ────────────────────────────────────────────────────────────────
 int main(int argc, char** argv) {
+
+  std::cout << "\n\n CAREFUL: HARD-CODED 1000 PROJECTIONS FOR PROFILING!!\n\n";
+
     auto t0 = std::chrono::steady_clock::now();
 
   absl::ParseCommandLine(argc, argv);

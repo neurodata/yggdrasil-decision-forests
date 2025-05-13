@@ -215,9 +215,9 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
 
   // std::cout << "Num projections: " << num_projections << "\n";
   // TODO Ariel remove this after profiling
-  // num_projections = 100000;
+  num_projections = 1000;
 
-  // std::cout << "Num projections: " << num_projections << "\n";
+  // std::cout << "Hard coded 1000 projections! " << num_projections << "\n";
 
   /* #region ----------  PROJECTION Sample & Eval LOOP  ------------------ */
   for (int proj_idx = 0; proj_idx < num_projections; ++proj_idx) {
