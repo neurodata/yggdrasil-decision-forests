@@ -79,7 +79,9 @@ absl::Status TrainRandomForest(const std::string &csv_path,
   train_config.set_label(label_column_name);
 
   model::proto::DeploymentConfig deployment_config;
-  deployment_config.set_num_threads(num_threads);
+  if (absl::GetFlag(FLAGS_num_threads) != -1) {
+    deployment_config.set_num_threads(num_threads);
+  }
 
   auto &rf_config = *train_config.MutableExtension(
       model::random_forest::proto::random_forest_config);

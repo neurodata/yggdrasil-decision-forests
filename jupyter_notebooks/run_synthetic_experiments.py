@@ -17,7 +17,7 @@ static_args = [
     "--projection_density_factor=3.0",
     "--trees=50",
     "--depth=-1",
-    "--threads=-1",
+    "--threads=96",
     "--max_num_projections=1000",
     "--num_projections_exponent=1"
 ]
@@ -40,7 +40,7 @@ def save_matrix(matrix, filepath, title_row):
             writer.writerow(row)
 
 # Initial header
-header = ["YDF with Synthetic Matrices", "d=1000 (HARD-CODED!)", "nnz=3", "trees=50", "3 repeats", "-1 depth", "<CPU>"]
+header = ["YDF with Synthetic Matrices", "d=1000 (HARD-CODED!)", str("nnz="+n_runs), "trees=50", "3 repeats", "-1 depth", "<CPU>"]
 save_matrix(avg_matrix, avg_csv, header)
 save_matrix(std_matrix, std_csv, header)
 

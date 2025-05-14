@@ -13,7 +13,7 @@ std_csv = os.path.join(results_dir, "matrix_std_results.csv")
 n_runs = 3
 
 # Flags and regex
-static_args = ["--label_col=Target", "--projection_density_factor=3.0"]
+static_args = ["--label_col=Target", "--projection_density_factor=3.0", "--num_threads=96"]
 time_pattern = re.compile(r"Training time: ([\d.]+) seconds")
 filename_pattern = re.compile(r"random_n=(\d+)_d=(\d+)\.csv")
 

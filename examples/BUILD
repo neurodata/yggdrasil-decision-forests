@@ -74,8 +74,12 @@ cc_binary(
     linkopts = ["-pg"],
     features = ["c++17"],
     deps = [
-        "//yggdrasil_decision_forests/learner:all_learners",
-        "//yggdrasil_decision_forests/model:all_models",
+"//yggdrasil_decision_forests/learner/random_forest:random_forest",
+"//yggdrasil_decision_forests/learner:learner_library",
+
+"//yggdrasil_decision_forests/model/random_forest:random_forest",
+"//yggdrasil_decision_forests/model:model_library",
+
         "//yggdrasil_decision_forests/dataset:data_spec",
 "//yggdrasil_decision_forests/dataset:csv_example_reader",
     "//yggdrasil_decision_forests/utils:logging",
