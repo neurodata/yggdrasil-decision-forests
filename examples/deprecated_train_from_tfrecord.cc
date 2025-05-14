@@ -1,3 +1,5 @@
+// Deprecated: Surprisingly not faster than loading CSV from Disk
+
 // Usage
 // ./bazel-bin/examples/train_from_tfrecord --ds_path=./ariel_test_data/random_csvs/tf_binaries/4096x4096   --label_col=Target   --trees=1 --depth=2 --projection_density_factor=3.0 --max_num_projections=1000
 
