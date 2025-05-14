@@ -2,13 +2,13 @@
     "version": "2.0.0",
     "tasks": [
       {
-        "label": "Build profile_rf_training with Bazel",
+        "label": "Build train_oblique_forest with Bazel",
         "type": "shell",
         "command": "bazel",
         "args": [
           "build",
           "-c", "dbg",
-          "//examples:profile_rf_training"
+          "//examples:train_oblique_forest"
         ],
         "group": {
           "kind": "build",

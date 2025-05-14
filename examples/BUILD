@@ -68,8 +68,8 @@ cc_binary(
 
 
 cc_binary(
-    name = "profile_rf_training",
-    srcs = ["profile_rf_training.cc"],
+    name = "train_oblique_forest",
+    srcs = ["train_oblique_forest.cc"],
     copts = ["-pg"], # Ariel - for profiling
     linkopts = ["-pg"],
     features = ["c++17"],
@@ -114,27 +114,8 @@ cc_binary(
 
 
 cc_binary(
-    name = "synthetic_matrix_train",
-    srcs = ["synthetic_matrix_train.cc"],
-    copts = ["-g"],        # add -pg later when it runs
-    linkopts = ["-g"],
-    features = ["c++17"],
-    deps = [
-"//yggdrasil_decision_forests/learner/random_forest:random_forest",
-"//yggdrasil_decision_forests/learner:learner_library",
-
-"//yggdrasil_decision_forests/model/random_forest:random_forest",
-"//yggdrasil_decision_forests/model:model_library",
-
-        "//yggdrasil_decision_forests/dataset:data_spec",
-        "@com_google_absl//absl/log",
-    ],
-)
-
-
-cc_binary(
-    name = "csv_to_ydf",
-    srcs = ["csv_to_ydf.cc"],
+    name = "convert_csv_to_tfrecord",
+    srcs = ["convert_csv_to_tfrecord.cc"],
     deps = [
         # ── YDF helpers
         "//yggdrasil_decision_forests/dataset:data_spec",
@@ -148,19 +129,4 @@ cc_binary(
         "@com_google_absl//absl/log",
     ],
     features = ["c++17"],
-)
-
-
-
-cc_binary(
-    name = "train_from_tfrecord",
-    srcs = ["train_from_tfrecord.cc"],
-    deps = [
-        "//yggdrasil_decision_forests/learner:all_learners",
-        "//yggdrasil_decision_forests/model:all_models",
-        "//yggdrasil_decision_forests/dataset:all_dataset_formats",
-        "@com_google_absl//absl/flags:flag",
-        "@com_google_absl//absl/flags:parse",
-        "@com_google_absl//absl/log",
-    ],
 )

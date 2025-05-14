@@ -5,9 +5,10 @@
       "name": "Random Forest Haberman",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/bazel-bin/examples/profile_rf_training",
+      "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
       "args": [
-        "--train_csv=${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
+        "--input_mode=csv",
+        "--train_csv=${workspaceFolder}/ariel_test_data/haberman.csv",
         "--label_col=survival_status",
       ],
       "stopAtEntry": false,
@@ -35,7 +36,7 @@
       "name": "Random Forest MIGHT",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/bazel-bin/examples/profile_rf_training",
+      "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
 "args": [
   "--train_csv", "${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
   "--label_col", "Cancer Status",
@@ -99,7 +100,7 @@
       "name": "RF MIGHT 1-split 1-tree",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/bazel-bin/examples/profile_rf_training",
+      "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
 "args": [
   "--train_csv", "${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
   "--label_col", "Cancer Status",
