@@ -40,7 +40,7 @@ def save_matrix(matrix, filepath, title_row):
             writer.writerow(row)
 
 # Initial header
-header = ["YDF with Synthetic Matrices", "d=1000 (HARD-CODED!)", str("nnz="+n_runs), "trees=50", "3 repeats", "-1 depth", "<CPU>"]
+header = ["YDF with Synthetic Matrices", "d=1000 (HARD-CODED!)", "nnz=3", "trees=50", str(n_runs)+" repeats", "-1 depth", "<CPU>"]
 save_matrix(avg_matrix, avg_csv, header)
 save_matrix(std_matrix, std_csv, header)
 
