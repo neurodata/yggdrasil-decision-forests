@@ -35,7 +35,7 @@ def save_matrix(matrix, filepath, title_row):
 # Execution for CSV mode
 if args.mode == "csv":
     data_dir = "ariel_test_data/random_csvs"
-    binary_path = "./bazel-bin/examples/ariel_rf_train"
+    binary_path = "./bazel-bin/examples/profile_rf_training"
     n_runs = 3
     static_args = ["--label_col=Target", "--projection_density_factor=3.0", "--num_threads=96"]
     time_pattern = re.compile(r"Training time: ([\d.]+) seconds")

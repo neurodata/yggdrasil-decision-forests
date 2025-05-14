@@ -2,13 +2,13 @@
     "version": "2.0.0",
     "tasks": [
       {
-        "label": "Build ariel_rf_train with Bazel",
+        "label": "Build profile_rf_training with Bazel",
         "type": "shell",
         "command": "bazel",
         "args": [
           "build",
           "-c", "dbg",
-          "//examples:ariel_rf_train"
+          "//examples:profile_rf_training"
         ],
         "group": {
           "kind": "build",

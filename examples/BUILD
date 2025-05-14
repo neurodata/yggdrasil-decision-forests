@@ -68,8 +68,8 @@ cc_binary(
 
 
 cc_binary(
-    name = "ariel_rf_train",
-    srcs = ["ariel_rf_train.cc"],
+    name = "profile_rf_training",
+    srcs = ["profile_rf_training.cc"],
     copts = ["-pg"], # Ariel - for profiling
     linkopts = ["-pg"],
     features = ["c++17"],
