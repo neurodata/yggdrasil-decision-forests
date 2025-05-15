@@ -4,12 +4,22 @@ import re
 import statistics
 import csv
 import argparse
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler()]
+)
+
 
 # Argument parser
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["csv", "synthetic"], required=True,
                         help="Experiment mode: 'csv' to load data via train_forest, 'rng' to generate via train_forest synthetic")
+    parser.add_argument("--threads", type=int, default=-1,
+                    help="Number of threads to use. Use -1 for all logical CPUs.")
     return parser.parse_args()
 
 # Grid definitions
@@ -30,6 +40,13 @@ def save_matrix(matrix, filepath, title_row=None):
 
 def main():
     args = get_args()
+
+    # Determine number of threads
+    if args.threads == -1:
+        threads = os.cpu_count()
+        logging.info(f"\n\nUnlimited threads requested. Found {threads} logical CPUs. Calling train_oblique_forest with --threads={threads}\n\n")
+    else:
+        threads = args.threads
 
     # Prepare output files and dirs
     results_dir = "ariel_results"
@@ -55,7 +72,7 @@ def main():
         static_args = [
             "--label_col=Target",
             "--projection_density_factor=3.0",
-            "--num_threads=96"
+            f"--num_threads={threads}"
         ]
         time_rx = re.compile(r"Training time: ([\d.]+) seconds")
         header = ["YDF Built from Source", "d=1000", "nnz=3", "trees=50", "3 repeats", "-1 depth", "<CPU>"]
@@ -66,7 +83,7 @@ def main():
                 filename = f"random_n={n}_d={d}.csv"
                 path = os.path.join(data_dir, filename)
                 if not os.path.exists(path):
-                    print(f"Skipping missing file: {filename}")
+                    logging.warning(f"Skipping missing file: {filename}")
                     continue
                 print(f"\nRunning on: {filename}")
                 times = []
@@ -80,9 +97,9 @@ def main():
                             times.append(t)
                             print(f"  Run {i+1}: {t:.4f} s")
                         else:
-                            print(f"  Run {i+1}: parse fail")
+                            logging.error(f"  Run {i+1}: parse fail")
                     except subprocess.CalledProcessError as e:
-                        print(f"  Run {i+1}: error\n{e.output}")
+                        logging.error(f"  Run {i+1}: error\n{e.output}")
                 if times:
                     avg = statistics.mean(times)
                     std = statistics.stdev(times) if len(times)>1 else 0.0
@@ -90,7 +107,7 @@ def main():
                     std_matrix[n][d] = f"{std:.4f}"
                     print(f"  ➤ Avg: {avg:.4f}s | Std: {std:.4f}s")
                 else:
-                    print("  ➤ All runs failed.")
+                    logging.critical("  ➤ All runs failed.")
 
                 # Save after each cell
                 save_matrix(avg_matrix, avg_csv, header)
@@ -102,7 +119,7 @@ def main():
             "--projection_density_factor=3.0",
             "--num_trees=50",
             "--tree_depth=-1",
-            "--num_threads=96",
+            f"--num_threads={threads}",
             "--max_num_projections=1000",
             "--num_projections_exponent=1"
         ]
@@ -123,9 +140,9 @@ def main():
                             times.append(t)
                             print(f"  Run {i+1}: {t:.4f} s")
                         else:
-                            print(f"  Run {i+1}: parse fail")
+                            logging.error(f"  Run {i+1}: parse fail")
                     except subprocess.CalledProcessError as e:
-                        print(f"  Run {i+1}: error\n{e.output}")
+                        logging.error(f"  Run {i+1}: error\n{e.output}")
                 if times:
                     avg = statistics.mean(times)
                     std = statistics.stdev(times) if len(times)>1 else 0.0
@@ -133,7 +150,7 @@ def main():
                     std_matrix[n][d] = f"{std:.4f}"
                     print(f"  ➤ Avg: {avg:.4f}s | Std: {std:.4f}s")
                 else:
-                    print("  ➤ All runs failed.")
+                    logging.critical("  ➤ All runs failed.")
 
                 # Save after each cell
                 save_matrix(avg_matrix, avg_csv, header)
