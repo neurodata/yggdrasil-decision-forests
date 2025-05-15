@@ -27,8 +27,8 @@ def get_args():
 
 # Grid definitions
 global n_values, d_values
-n_values = [128, 256, 512, 1024, 2048, 4096]
-d_values = [128, 256, 512, 1024, 2048, 4096]
+n_values = [4096]
+d_values = [1024]
 
 
 # Save helper
@@ -56,6 +56,7 @@ def main():
     binary = "./bazel-bin/examples/train_oblique_forest"
 
     for t in threads_to_test:
+        print("Running w/ Threads=", t)
         # resolve -1 to all logical CPUs
         if t == -1:
             thread_count = os.cpu_count()
