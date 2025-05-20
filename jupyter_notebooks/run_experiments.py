@@ -83,7 +83,7 @@ def main():
             # CSV mode static args
             static_args = [
                 "--label_col=Target",
-                "--projection_density_factor={projection_density_factor}.0",
+                f"--projection_density_factor={args.projection_density_factor}.0",
                 f"--num_threads={thread_count}"
             ]
             time_rx = re.compile(r"Training time: ([\d.]+) seconds")
@@ -128,7 +128,7 @@ def main():
         else:  # rng mode
             static_args = [
                 "--label_mod=2",
-                "--projection_density_factor={projection_density_factor}.0",
+                f"--projection_density_factor={args.projection_density_factor}.0",
                 "--num_trees=50",
                 "--tree_depth=-1",
                 f"--num_threads={thread_count}",
