@@ -20,6 +20,8 @@ def get_args():
                         help="Experiment mode: 'csv' to load data via train_forest, 'rng' to generate via train_forest synthetic")
     parser.add_argument("--threads", type=int, default=-1,
                         help="Number of threads to use. Use -1 for all logical CPUs.")
+    parser.add_argument("--projection_density_factor", type=int, default=3,
+                    help="Number of nonzeros per projection. Default: 3")
     parser.add_argument("--threads_list", type=int, nargs="+", default=None,
                         help="List of number of threads to test, e.g. --threads_list 1 2 4 8 16 32 64")
     return parser.parse_args()
@@ -81,7 +83,7 @@ def main():
             # CSV mode static args
             static_args = [
                 "--label_col=Target",
-                "--projection_density_factor=3.0",
+                "--projection_density_factor={projection_density_factor}.0",
                 f"--num_threads={thread_count}"
             ]
             time_rx = re.compile(r"Training time: ([\d.]+) seconds")
@@ -126,7 +128,7 @@ def main():
         else:  # rng mode
             static_args = [
                 "--label_mod=2",
-                "--projection_density_factor=3.0",
+                "--projection_density_factor={projection_density_factor}.0",
                 "--num_trees=50",
                 "--tree_depth=-1",
                 f"--num_threads={thread_count}",
