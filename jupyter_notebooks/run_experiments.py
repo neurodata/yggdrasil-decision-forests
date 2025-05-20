@@ -27,8 +27,8 @@ def get_args():
 
 # Grid definitions
 global n_values, d_values
-n_values = [4096]
-d_values = [1024]
+n_values = [128, 256, 512,1024, 2048, 4096, 8192]
+d_values = [128,256,512,1024,2048,4096]
 
 
 # Save helper
