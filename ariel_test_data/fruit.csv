@@ -1,0 +1,5 @@
+weight,diameter,is_apple
+150,7.0,TRUE
+170,8.5,FALSE
+140,6.5,TRUE
+160,8.0,FALSE
