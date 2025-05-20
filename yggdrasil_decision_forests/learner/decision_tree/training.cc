@@ -2006,7 +2006,6 @@ namespace yggdrasil_decision_forests::model::decision_tree
         cache);
   }
 
-  // TODO Ariel read this code
   absl::StatusOr<bool> FindBestCondition(
       const dataset::VerticalDataset &train_dataset,
       const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -2170,7 +2169,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     return false;
   }
 
-  // Ariel - I think this is most used - CART build
+  // Ariel - this is used for CART build
   absl::StatusOr<SplitSearchResult>
   FindSplitLabelClassificationFeatureNumericalHistogram(
       const absl::Span<const UnsignedExampleIdx> selected_examples,
