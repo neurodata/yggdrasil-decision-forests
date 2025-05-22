@@ -135,7 +135,7 @@ int GetNumProjections(const proto::DecisionTreeTrainingConfig& dt_config,
 }
 
 
-// Main Loop
+// Loop over Projections
 template <typename LabelStats>
 absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     const dataset::VerticalDataset& train_dataset,
@@ -209,14 +209,11 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     matrix.resize(num_projections, std::vector<float>(num_features, 0.f));
   }
 
-  // std::cout << "num_projections: " << num_projections << std::endl;
-
   /* #endregion */
 
   // std::cout << "Num projections: " << num_projections << "\n";
-  // TODO Ariel remove this after profiling
-  num_projections = 1000;
-
+  // remove this outside of profiling!!
+  // num_projections = 1000;
   // std::cout << "Hard coded 1000 projections! " << num_projections << "\n";
 
   /* #region ----------  PROJECTION Sample & Eval LOOP  ------------------ */
@@ -239,14 +236,11 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     }
 
     // Applies the projection linear fn. to the data: x1+x3-x4 ...
-    // Better if called "apply"
     // Should return a vector of size (n_samples)
-
-    // TODO Time only this function - apply mask & re-time
     RETURN_IF_ERROR(
       projection_evaluator.Evaluate(current_projection, selected_examples, &projection_values));
 
-    // Find a split along this hyperplane and Grade it.
+    // Find a split along this hyperplane and Score it.
     ASSIGN_OR_RETURN(
         const auto result,
         EvaluateProjection(dt_config, label_stats, dense_idxs, selected_weights,
@@ -735,6 +729,7 @@ absl::StatusOr<bool> FindBestConditionOblique(
     SplitterPerThreadCache* cache) {
   switch (dt_config.split_axis_case()) {
     case proto::DecisionTreeTrainingConfig::kSparseObliqueSplit:
+      // a.k.a SPORF
       return FindBestConditionSparseObliqueTemplate<ClassificationLabelStats>(
           train_dataset, selected_examples, weights, config, config_link,
           dt_config, parent, internal_config, label_stats,

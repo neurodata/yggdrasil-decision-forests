@@ -10,6 +10,7 @@
         "--input_mode=csv",
         "--train_csv=${workspaceFolder}/ariel_test_data/haberman.csv",
         "--label_col=survival_status",
+        "--projection_density_factor=3.0"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

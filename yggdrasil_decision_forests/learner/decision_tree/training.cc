@@ -1474,8 +1474,6 @@ namespace yggdrasil_decision_forests::model::decision_tree
       const auto &class_label_stats =
           utils::down_cast<const ClassificationLabelStats &>(label_stats);
 
-      // TODO Ariel so this is calling itself? what does it return?
-      // Ariel: I think it's defined in oblique.cc
       return FindBestConditionOblique(
           train_dataset, selected_examples, weights, config, config_link,
           dt_config, parent, internal_config, class_label_stats,
@@ -1998,12 +1996,13 @@ namespace yggdrasil_decision_forests::model::decision_tree
           dt_config, splitter_concurrency_setup, parent, internal_config,
           label_stats, constraints, best_condition, random, cache);
     }
-
-    // Single thread.
-    return FindBestConditionSingleThreadManager(
-        train_dataset, selected_examples, weights, config, config_link, dt_config,
-        parent, internal_config, label_stats, constraints, best_condition, random,
-        cache);
+    else {
+      // Single thread.
+      return FindBestConditionSingleThreadManager(
+          train_dataset, selected_examples, weights, config, config_link, dt_config,
+          parent, internal_config, label_stats, constraints, best_condition, random,
+          cache);
+    }
   }
 
   absl::StatusOr<bool> FindBestCondition(
@@ -2022,6 +2021,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     {
     case model::proto::Task::CLASSIFICATION:
     {
+      /* #region Check and cast data if necc. */
       STATUS_CHECK(!internal_config.hessian_score);
       ASSIGN_OR_RETURN(const auto labels,
                        train_dataset.ColumnWithCastWithStatus<
@@ -2044,6 +2044,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
             absl::StrCat("The training label column \"", config.label(),
                          "\" contain out-of-dictionary (=0) values."));
       }
+      /* #endregion */
 
       return FindBestConditionManager(
           train_dataset, selected_examples, weights, config, config_link,
@@ -4955,6 +4956,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
     case proto::DecisionTreeTrainingConfig::kGrowingStrategyLocal:
     {
       const auto constraints = NodeConstraints::CreateNodeConstraints();
+
+      // This is the first call - selected_examples_rb should be full bag
       return NodeTrain(train_dataset, config, config_link, dt_config,
                        deployment, splitter_concurrency_setup, weights, 1,
                        internal_config, constraints, false, dt->mutable_root(),
@@ -4986,6 +4989,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
       SelectedExamplesRollingBuffer selected_examples,
       std::optional<SelectedExamplesRollingBuffer> leaf_examples)
   {
+    /* #region Exit Conditions */
     if (selected_examples.empty())
       { return absl::InternalError("No examples fed to the node trainer"); }
     
@@ -5023,6 +5027,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
       node->FinalizeAsLeaf(dt_config.store_detailed_label_distribution());
       return absl::OkStatus();
     }
+    /* #endregion */
 
     // If not exit - Train
 
@@ -5032,13 +5037,14 @@ namespace yggdrasil_decision_forests::model::decision_tree
     const dataset::VerticalDataset *train_dataset_for_splitter;
     absl::Span<const UnsignedExampleIdx> selected_examples_for_splitter;
 
+    // TODO Ariel: This flag shows whether dense or sparse dataset
     // If true, the entire dataset "local_train_dataset" is composed of training
     // examples for this node. If false, only the subset of
     // "local_train_dataset" indexed by "selected_examples" are to be considered
     // for this node i.e. local_train_dataset[selected_examples[i]].
     bool splitter_dataset_is_compact;
 
-    // Ariel: deal w/ missing data: Extract the random local imputation. (??)
+    /* #region  deal w/ missing data: Extract the random local imputation. Ariel Don't Care */
     dataset::VerticalDataset random_local_imputation_train_dataset;
     std::vector<UnsignedExampleIdx> random_local_imputation_selected_examples;
     if (dt_config.missing_value_policy() ==
@@ -5068,9 +5074,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
     }
 
     if (selected_examples_for_splitter.empty())
-    {
-      return absl::InternalError("No examples fed to the splitter");
-    }
+    { return absl::InternalError("No examples fed to the splitter"); }
+    /* #endregion */
 
     // Determine the best split.
     ASSIGN_OR_RETURN(
@@ -5089,9 +5094,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
       return absl::OkStatus();
     }
 
-    // ********** Else: Better condition found **********
+    // ********** ELSE: BETTER CONDITION FOUND - SEARCH DEEPER **********
 
-    // Evaluate Training Exit conditions
     STATUS_CHECK_EQ(
         selected_examples.size(),
         node->node().condition().num_training_examples_without_weight());
@@ -5121,11 +5125,13 @@ namespace yggdrasil_decision_forests::model::decision_tree
     }
 
     // Separate the positive and negative examples used only to determine the node value.
+    // IDK how this is different from example_split
     std::optional<ExampleSplitRollingBuffer> node_only_example_split;
     if (leaf_examples.has_value())
     {
       ASSIGN_OR_RETURN(
           node_only_example_split,
+          // Ariel important - examples are separated here
           internal::SplitExamplesInPlace(
               train_dataset, *leaf_examples, node->node().condition(), false,
               dt_config.internal_error_on_wrong_splitter_statistics(),
@@ -5133,14 +5139,17 @@ namespace yggdrasil_decision_forests::model::decision_tree
     }
 
     // Set leaf outputs
-    // TODO Ariel study positive-negative, inactive-active examples
-    RETURN_IF_ERROR(internal_config.set_leaf_value_functor(
+    // TODO Ariel What leaf outputs? I thought these weren't leaves
+    RETURN_IF_ERROR(
+      internal_config.set_leaf_value_functor(
         train_dataset, example_split.positive_examples.active, weights, config,
-        config_link, node->mutable_pos_child()));
+        config_link, node->mutable_pos_child())
+    );
     RETURN_IF_ERROR(internal_config.set_leaf_value_functor(
         train_dataset, example_split.negative_examples.active, weights, config,
         config_link, node->mutable_neg_child()));
 
+    /* #region Apply Constraints - What's a Constraint? */
     RETURN_IF_ERROR(
         ApplyConstraintOnNode(constraints, node->mutable_pos_child()));
     RETURN_IF_ERROR(
@@ -5159,7 +5168,9 @@ namespace yggdrasil_decision_forests::model::decision_tree
           node->mutable_pos_child(), node->mutable_neg_child(), &pos_constraints,
           &neg_constraints));
     }
+    /* #endregion */
 
+    // *************** RECURSE LEFT & RIGHT ***************
     // Positive child.
     RETURN_IF_ERROR(
         NodeTrain(train_dataset, config, config_link, dt_config, deployment,
