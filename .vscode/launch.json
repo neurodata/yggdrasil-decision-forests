@@ -143,7 +143,7 @@
         "--rows", "32000",
         "--projection_density_factor", "3",
         "--num_trees", "1",
-        "--tree_depth","1",
+        "--tree_depth","2", // depth=1 doesn't run anything due to IF in NodeTrain - considered as root.
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

@@ -4993,7 +4993,6 @@ namespace yggdrasil_decision_forests::model::decision_tree
     node->mutable_node()->set_num_pos_training_examples_without_weight(
         selected_examples.size());
 
-    // No clue what this is
     if (!set_leaf_already_set)
     {
       // Set the node value (i.e. the label distribution).
@@ -5003,6 +5002,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
           node));
       RETURN_IF_ERROR(ApplyConstraintOnNode(constraints, node));
     }
+
 
     // Evaluate Exit Conditions
     if (selected_examples.size() < dt_config.min_examples() ||
@@ -5028,9 +5028,10 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
     // In-memory transactional dataset with heterogeneous column type, stored column
     // by column for fast row-wise iteration.
-    // Ariel! Seems Row-Major!
+    // Ariel! Seems Column-Major!
     const dataset::VerticalDataset *train_dataset_for_splitter;
     absl::Span<const UnsignedExampleIdx> selected_examples_for_splitter;
+
     // If true, the entire dataset "local_train_dataset" is composed of training
     // examples for this node. If false, only the subset of
     // "local_train_dataset" indexed by "selected_examples" are to be considered
