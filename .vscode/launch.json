@@ -2,7 +2,7 @@
   "configurations": [
 
         {
-      "name": "Fruit - Tiny",
+      "name": "Fruit - Tiny 4x3",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
@@ -68,7 +68,7 @@
       ]
     },
     {
-      "name": "Random Forest MIGHT",
+      "name": "Oblique Forest on MIGHT",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
@@ -100,23 +100,24 @@
     },
 
     {
-      "name": "Synthetic matrix",
+      "name": "Synthetic matrix 4096x4096",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/bazel-bin/examples/synthetic_matrix_train",
-// "args": [
-//   "--train_csv", "${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
-//   "--label_col", "Cancer Status",
-//   "--projection_density_factor", "3",
-// ],
+      "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
+      "args": [
+        "--input_mode", "synthetic",
+        "--cols", "4096",
+        "--rows", "4096",
+        "--projection_density_factor", "3",
+      ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": false,
       "MIMode": "gdb",
-      // "sourceFileMap": {
-      //   "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
-      // },
+      "sourceFileMap": {
+        "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
+      },
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",
@@ -132,25 +133,26 @@
     },
 
     {
-      "name": "RF MIGHT 1-split 1-tree",
+      "name": "1-split 1-tree Huge Synthetic",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
-"args": [
-  "--train_csv", "${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
-  "--label_col", "Cancer Status",
-  "--projection_density_factor", "3",
-  "--num_trees", "1",
-  "--tree_depth","1",
-],
+      "args": [
+        "--input_mode", "synthetic",
+        "--cols", "1024",
+        "--rows", "32000",
+        "--projection_density_factor", "3",
+        "--num_trees", "1",
+        "--tree_depth","1",
+      ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": false,
       "MIMode": "gdb",
-      // "sourceFileMap": {
-      //   "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
-      // },
+      "sourceFileMap": {
+        "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
+      },
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",
