@@ -1,41 +1,6 @@
 {
   "configurations": [
 
-        {
-      "name": "Fruit - Tiny 4x3",
-      "type": "cppdbg",
-      "request": "launch",
-      "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
-      "args": [
-        "--input_mode=csv",
-        "--train_csv=${workspaceFolder}/ariel_test_data/fruit.csv",
-        "--label_col=is_apple",
-        "--num_threads=1",
-        "--num_trees=1",
-        "--tree_depth=8"
-      ],
-      "stopAtEntry": false,
-      "cwd": "${workspaceFolder}",
-      "environment": [],
-      "externalConsole": false,
-      "MIMode": "gdb",
-      // "sourceFileMap": {
-      //   "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
-      // },
-      "setupCommands": [
-        {
-          "description": "Enable pretty-printing for gdb",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
-        },
-        {
-          "description": "Set Disassembly Flavor to Intel",
-          "text": "-gdb-set disassembly-flavor intel",
-          "ignoreFailures": true
-        }
-      ]
-    },
-
     {
       "name": "Oblique Forest Haberman",
       "type": "cppdbg",

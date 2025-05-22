@@ -1140,7 +1140,6 @@ absl::Status ProjectionEvaluator::Evaluate(
     std::vector<float>* values) const {
   RETURN_IF_ERROR(constructor_status_);
   values->resize(selected_examples.size());
-
   // std::cout << "Projection vector: " << projection;
 
   // TODO make these loops in a vector operation
