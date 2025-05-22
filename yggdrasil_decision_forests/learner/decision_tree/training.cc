@@ -4722,7 +4722,6 @@ namespace yggdrasil_decision_forests::model::decision_tree
       const std::vector<float> &weights, utils::RandomEngine *random,
       DecisionTree *dt, const InternalTrainConfig &internal_config)
   {
-    // TODO Ariel - see below comment!!!
     // ************* Note: This function is the entry point of all decision tree learning. *************
 
     // Ensure efficient sorting strategy.
@@ -4746,7 +4745,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     std::vector<UnsignedExampleIdx> working_selected_examples;
 
     // Fail if the data spec has invalid columns.
-    // Ariel: Data spec is the specifier for data types of features
+        // INFO: Data spec is the specifier for data types of features
     for (const auto feature_idx : config_link.features())
     {
       const auto &data_spec_columns = train_dataset.data_spec().columns();
@@ -4778,7 +4777,6 @@ namespace yggdrasil_decision_forests::model::decision_tree
     }
 
     // Check if oblique splits are correctly specified
-    // ************* TODO Ariel oblique splits here *************
     if (dt_config.has_sparse_oblique_split())
     {
       if (dt_config.sparse_oblique_split().has_binary_weight() &&

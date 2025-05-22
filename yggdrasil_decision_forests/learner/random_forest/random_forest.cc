@@ -409,7 +409,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
         RETURN_IF_ERROR(dataset::CheckNumExamples(train_dataset.nrow()));
 
-        // 1) ***** Ariel: Boilerplate - checking param validity, initializing configs
+        /* #region Boilerplate - checking param validity, initializing configs */
 
             // Ranking Task should throw error if selected w/ Random Forest
             if (training_config().task() != model::proto::Task::CLASSIFICATION &&
@@ -468,7 +468,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                                             config_with_default, config_link,
                                             rf_config, deployment()));
 
-
+        /* #endregion */
 
 
 
@@ -486,8 +486,8 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         {
           use_optimized_unit_weights = false;
         }
-
-        // Ariel: Not relevant to 1st stage of project
+ 
+        // TODO Ariel: Use this as mask to vectorize (?)
         RETURN_IF_ERROR(dataset::GetWeights(train_dataset, config_link, &weights, use_optimized_unit_weights));
 
         ASSIGN_OR_RETURN(const auto preprocessing,
@@ -499,51 +499,53 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         std::vector<const dataset::VerticalDataset::NumericalVectorSequenceColumn *>
             vector_sequence_columns(train_dataset.ncol(), nullptr);
 
-        // Ariel ******* Assign to GPU *******
-            for (int col_idx = 0; col_idx < train_dataset.ncol(); col_idx++)
-            { vector_sequence_columns[col_idx] = train_dataset.ColumnWithCastOrNull<dataset::VerticalDataset::NumericalVectorSequenceColumn>(col_idx); }
+        /* #region Assign to GPU */
+        for (int col_idx = 0; col_idx < train_dataset.ncol(); col_idx++)
+          { vector_sequence_columns[col_idx] = train_dataset.ColumnWithCastOrNull<dataset::VerticalDataset::NumericalVectorSequenceColumn>(col_idx); }
 
-            std::unique_ptr<decision_tree::gpu::VectorSequenceComputer> vector_sequence_computer;
+          std::unique_ptr<decision_tree::gpu::VectorSequenceComputer> vector_sequence_computer;
 
-            if (!vector_sequence_columns.empty())
+          if (!vector_sequence_columns.empty())
+          {
+            ASSIGN_OR_RETURN(
+                vector_sequence_computer,
+                decision_tree::gpu::VectorSequenceComputer::Create(
+                    vector_sequence_columns, /*use_gpu=*/deployment_.use_gpu()));
+          }
+        /* #endregion */
+
+
+        /* #region Handle User-specified seeds per-tree */
+          utils::RandomEngine global_random(config_with_default.random_seed());
+          // Individual seeds for each tree.
+          std::vector<int64_t> tree_seeds;
+          tree_seeds.reserve(rf_config.num_trees());
+
+
+          if (!rf_config.internal().individual_tree_seeds().empty())
+          {
+            if (rf_config.internal().individual_tree_seeds().size() !=
+                rf_config.num_trees())
             {
-              ASSIGN_OR_RETURN(
-                  vector_sequence_computer,
-                  decision_tree::gpu::VectorSequenceComputer::Create(
-                      vector_sequence_columns, /*use_gpu=*/deployment_.use_gpu()));
+              return absl::InternalError("Wrong number of trees");
             }
-
-
-        // Ariel: User-specified seeds per-tree
-            utils::RandomEngine global_random(config_with_default.random_seed());
-            // Individual seeds for each tree.
-            std::vector<int64_t> tree_seeds;
-            tree_seeds.reserve(rf_config.num_trees());
-
-
-            if (!rf_config.internal().individual_tree_seeds().empty())
-            {
-              if (rf_config.internal().individual_tree_seeds().size() !=
-                  rf_config.num_trees())
-              {
-                return absl::InternalError("Wrong number of trees");
-              }
-              tree_seeds = {rf_config.internal().individual_tree_seeds().begin(),
-                            rf_config.internal().individual_tree_seeds().end()};
-            }
-            else
-            {
-              for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++)
-              {
-                tree_seeds.push_back(global_random());
-              }
-            }
+            tree_seeds = {rf_config.internal().individual_tree_seeds().begin(),
+                          rf_config.internal().individual_tree_seeds().end()};
+          }
+          else
+          {
             for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++)
             {
-              mdl->AddTree(std::make_unique<decision_tree::DecisionTree>());
+              tree_seeds.push_back(global_random());
             }
+          }
+          for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++)
+          {
+            mdl->AddTree(std::make_unique<decision_tree::DecisionTree>());
+          }
+        /* #endregion */
 
-        // ******** OOB (out-of-bag) predictions. ********
+        /* #region Compute Out-of-Bag predictions. */
             utils::concurrency::Mutex oob_metrics_mutex; // Protects all the "oob_*" fields.
 
             // Prediction accumulator for each example in the training dataset
@@ -599,6 +601,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                     &oob_predictions_per_input_features[feature_idx]);
               }
             }
+        /* #endregion */
 
 
         // ************** Start training - distribute **************
@@ -623,7 +626,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                   kAdaptativeWarmUpSeconds, rf_config.min_adapted_subsample());
             }
 
-            // Various fields modified by the various training workers.
+            // Various fields modified by the training workers.
             struct
             {
               // Number of nodes in the "completed" trees.
@@ -665,8 +668,8 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
             // ***** Finally, initiate training *****
             pool.Schedule([&, tree_idx]() {
 
-                  // **** Exit Conditions
-                      // The user interrupted the training.
+                  /* #region Exit Conditions */
+                      // The user interrupted training.
                       if (stop_training_trigger_ != nullptr && *stop_training_trigger_) {
                         if (!training_stopped_early) {
                           training_stopped_early = true;
@@ -694,7 +697,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                         }
                       }
 
-                      // Check if the training should be stopped: memory size, num nodes, any thread fail
+                      // Check if training should be stopped: memory size, num nodes, any thread fail
                       {
                         utils::concurrency::MutexLock lock(&concurrent_fields.mutex);
                         if (!concurrent_fields.status.ok()) {
@@ -718,6 +721,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                           }
                         }
                       }
+                  /* #endregion */
 
                   const absl::Time begin_single_tree = absl::Now();
 
@@ -752,6 +756,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                                             rf_config.bootstrap_size_ratio() *
                                             bootstrap_size_ratio_factor));
 
+                    // TODO Ariel - important, bootstrapped samples masked out here
                     internal::SampleTrainingExamples(
                         train_dataset.nrow(), num_samples,
                         rf_config.sampling_with_replacement(), &random,

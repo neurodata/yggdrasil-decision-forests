@@ -151,7 +151,7 @@
       "externalConsole": false,
       "MIMode": "gdb",
       "sourceFileMap": {
-        "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
+        "/proc/self/cwd/yggdrasil-decision-forests": "${workspaceFolder}/yggdrasil-decision-forests"
       },
       "setupCommands": [
         {

@@ -347,6 +347,7 @@ namespace yggdrasil_decision_forests
       const auto begin_training = absl::Now();
       auto start_time = std::chrono::high_resolution_clock::now();
 
+      // For Random Forests, implemented in learner/random_forest.cc
       ASSIGN_OR_RETURN(auto model,
                        TrainWithStatusImpl(train_dataset, valid_dataset));
 
