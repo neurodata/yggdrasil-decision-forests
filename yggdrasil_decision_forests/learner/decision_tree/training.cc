@@ -5134,12 +5134,14 @@ namespace yggdrasil_decision_forests::model::decision_tree
     }
 
     // Set leaf outputs
+    // TODO Ariel study positive-negative, inactive-active examples
     RETURN_IF_ERROR(internal_config.set_leaf_value_functor(
         train_dataset, example_split.positive_examples.active, weights, config,
         config_link, node->mutable_pos_child()));
     RETURN_IF_ERROR(internal_config.set_leaf_value_functor(
         train_dataset, example_split.negative_examples.active, weights, config,
         config_link, node->mutable_neg_child()));
+
     RETURN_IF_ERROR(
         ApplyConstraintOnNode(constraints, node->mutable_pos_child()));
     RETURN_IF_ERROR(
@@ -5385,6 +5387,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
       DCHECK(std::is_sorted(examples.active.begin(), examples.active.end()));
 
       ExampleSplitRollingBuffer example_split;
+
+      // TODO Ariel What is example_split that's returned? Just indices?
 
       // Ariel: Accesses from here
       RETURN_IF_ERROR(EvalConditionOnDataset(dataset, examples, condition,

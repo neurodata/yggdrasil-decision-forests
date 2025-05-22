@@ -645,16 +645,18 @@ void FillExampleBucketSet(
   static_assert(!(ExampleBucketSet::FeatureBucketType::kRequireSorting &&
                   require_label_sorting),
                 "Bucket require sorting");
+  
+  int ariel;
 
   if constexpr (ExampleBucketSet::FeatureBucketType::kRequireSorting) {
     // Ariel: Sorting done here!
-    int ariel = 1+1;
+    ariel = 1;
     std::sort(example_bucket_set->items.begin(),
               example_bucket_set->items.end(),
               typename ExampleBucketSet::ExampleBucketType::SortFeature());
   }
   else {
-    int ariel = 2;
+    ariel = 2;
   }
 
   if constexpr (require_label_sorting) {

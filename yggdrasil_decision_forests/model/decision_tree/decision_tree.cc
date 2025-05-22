@@ -840,6 +840,7 @@ struct EvalConditionOblique {
         const proto::Condition::Oblique& condition) {
       Data data;
       data.attribute_data.reserve(condition.attributes_size());
+      
       for (const auto attribute : condition.attributes()) {
         ASSIGN_OR_RETURN(
             const auto* column_data,
@@ -1139,6 +1140,8 @@ absl::Status EvalConditionOnDataset(const dataset::VerticalDataset& dataset,
 
     case proto::Condition::TypeCase::kObliqueCondition: {
       const auto& ob_condition = condition.condition().oblique_condition();
+
+      // TODO Ariel: Is this created after each split? Is data copied?
       ASSIGN_OR_RETURN(const auto data, EvalConditionOblique::Data::Create(
                                             dataset, ob_condition));
       RETURN_IF_ERROR(EvalConditionTemplate(

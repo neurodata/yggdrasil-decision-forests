@@ -87,7 +87,7 @@ def main():
                 f"--num_threads={thread_count}"
             ]
             time_rx = re.compile(r"Training time: ([\d.]+) seconds")
-            header = ["YDF Built from Source", "d=1000", "nnz=3", "trees=50", "3 repeats", "-1 depth", "<CPU>"]
+            header = ["YDF Built from Source", "d=1000", f"nnz={args.projection_density_factor}", "trees=50", "3 repeats", "-1 depth", "<CPU>"]
 
             data_dir = "ariel_test_data/random_csvs"
             for n in n_values:
@@ -136,7 +136,7 @@ def main():
                 "--num_projections_exponent=1"
             ]
             time_rx = re.compile(r"Training wall-time: ([\d.]+)s")
-            header = ["YDF RNG-generated", "d variable", "nnz=3", "trees=50", "7 repeats", "-1 depth", "<CPU>"]
+            header = ["YDF RNG-generated", "d variable", f"nnz={args.projection_density_factor}", "trees=50", "7 repeats", "-1 depth", "<CPU>"]
 
             for n in n_values:
                 for d in d_values:

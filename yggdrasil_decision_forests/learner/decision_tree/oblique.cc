@@ -1146,9 +1146,18 @@ absl::Status ProjectionEvaluator::Evaluate(
   // TODO make these loops in a vector operation
   // TODO start w/ full dataE
 
+  // TODO Ariel PRIORITY: Show selected_idx and examples_idx - type, domain
+  //    Maybe plot selected_examples as a mask
+  //    selected_examples should be length n at first iteration, then ~n/2, n/4 ...
+
+  // What is this - should be bag indices
+  // Optimization experiment: do this as a vector , then mask out the rows out of bag - values = bag_mask(A+B)
   for (size_t selected_idx = 0; selected_idx < selected_examples.size(); selected_idx++) {
     float value = 0;
+    // Ariel wtf is this?? Is this dense
     const auto example_idx = selected_examples[selected_idx];
+
+    std::cout << "example_idx: " << example_idx;
 
     // Ariel: This is one-per-nonzero in projection vector - optimal
     for (const auto& item : projection) {
@@ -1165,7 +1174,7 @@ absl::Status ProjectionEvaluator::Evaluate(
       if (std::isnan(attribute_value)) {
         attribute_value = na_replacement_value_[item.attribute_idx];
       }
-      value += attribute_value * item.weight;
+      value += attribute_value * item.weight; // e.g. x1 - x2 + x3
     }
     (*values)[selected_idx] = value;
   }
