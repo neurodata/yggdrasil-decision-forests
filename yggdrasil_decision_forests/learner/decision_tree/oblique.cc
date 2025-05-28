@@ -1151,7 +1151,7 @@ absl::Status ProjectionEvaluator::Evaluate(
     // Ariel wtf is this?? Is this dense
     const auto example_idx = selected_examples[selected_idx];
 
-    std::cout << "example_idx: " << example_idx;
+    // std::cout << "example_idx: " << example_idx;
 
     // Ariel: This is one-per-nonzero in projection vector - optimal
     for (const auto& item : projection) {
