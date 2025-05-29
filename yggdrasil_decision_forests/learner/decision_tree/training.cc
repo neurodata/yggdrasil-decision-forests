@@ -443,6 +443,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
   } // namespace
 
+/* #region Irrelevant fns. to MIGHT */
+
   // Specialization in the case of classification.
   absl::StatusOr<SplitSearchResult> FindBestConditionClassification(
       const dataset::VerticalDataset &train_dataset,
@@ -1453,7 +1455,9 @@ namespace yggdrasil_decision_forests::model::decision_tree
     return response;
   }
 
-  // TODO Ariel - this is where the split is found
+/* #endregion */
+
+  // Ariel - Start here
   absl::StatusOr<bool> FindBestConditionOblique(
       const dataset::VerticalDataset &train_dataset,
       const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -1975,6 +1979,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     return false;
   }
 
+  // Wrapper to choose fn. based on n_threads
   absl::StatusOr<bool> FindBestConditionManager(
       const dataset::VerticalDataset &train_dataset,
       const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -2170,7 +2175,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     return false;
   }
 
-  // Ariel - this is used for CART build
+  // Ariel - this is used for __
   absl::StatusOr<SplitSearchResult>
   FindSplitLabelClassificationFeatureNumericalHistogram(
       const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -2482,6 +2487,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
       }
     }
   }
+
+/* #region Ariel: Irrelevant fns. */
 
   absl::StatusOr<SplitSearchResult>
   FindSplitLabelClassificationFeatureDiscretizedNumericalCart(
@@ -4308,6 +4315,10 @@ namespace yggdrasil_decision_forests::model::decision_tree
     }
   }
 
+  /* #endregion */
+
+/* #region Helper fns. */
+
   int NumAttributesToTest(const proto::DecisionTreeTrainingConfig &dt_config,
                           const int num_attributes,
                           const model::proto::Task task)
@@ -4537,6 +4548,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
       config->mutable_sparse_oblique_split()->mutable_binary();
     }
   }
+
+/* #endregion */
 
   absl::Status GrowTreeBestFirstGlobal(
       const dataset::VerticalDataset &train_dataset,

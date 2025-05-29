@@ -1144,6 +1144,8 @@ absl::Status ProjectionEvaluator::Evaluate(
   //    Maybe plot selected_examples as a mask
   //    selected_examples should be length n at first iteration, then ~n/2, n/4 ...
 
+  // Ariel UPDATE: This consumes <5% of runtime - skip
+
   // What is this - should be bag indices
   // Optimization experiment: do this as a vector , then mask out the rows out of bag - values = bag_mask(A+B)
   for (size_t selected_idx = 0; selected_idx < selected_examples.size(); selected_idx++) {
