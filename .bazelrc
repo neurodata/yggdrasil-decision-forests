@@ -1,3 +1,60 @@
+###############################################################################
+# Ariel MIGHT Presets - Intel Compiler icx only!
+###############################################################################
+
+# Base Intel toolchain, no debug, optimize for speed – the new default.
+build:intel_base --cxxopt=-std=c++17
+build:intel_base --cxxopt=-O2
+build:intel_base --linkopt=-O2
+# Comment-out if you prefer not to pin to host μarch
+# build:intel_base --cxxopt=-xHost
+
+
+# -------------------------------------------------
+# DEBUGGING
+#   bazel build -c dbg //foo:bar
+# -------------------------------------------------
+# Can't add to bazel dbg using build:dbg!! Define separate config!
+build:intel_dbg --config=intel_base
+build:intel_dbg --strip=never          # keep symbols, don’t fiddle with fission
+build:intel_dbg --cxxopt=-g --linkopt=-g
+build:intel_dbg --cxxopt=-O0 --linkopt=-O0
+
+
+# -------------------------------------------------
+# 2. VTune profiling (-O2 + DWARF symbols)
+#  USE: bazel build -c opt --config=intel_profiler //foo:bar
+build:intel_profiler --config=intel_base
+build:intel_profiler --strip=never   # keep symbols
+build:intel_profiler --cxxopt=-g --linkopt=-g
+# Make sure split-DWARF is off – VTune hates .dwo/.dwp
+build:intel_profiler --features=-fission
+build:intel_profiler --cxxopt=-gno-split-dwarf
+
+
+# -------------------------------------------------
+# 3. Timing / benchmark binary (small, fast)
+#   bazel build -c opt --config=intel_release //foo:bar
+build:intel_release --config=intel_base
+build:intel_release --strip=always   # strip everything
+# Optional: crank it to O3 or LTO if you care
+# build:intel_release --cxxopt=-O3 --linkopt=-O3
+# build:intel_release --cxxopt=-flto --linkopt=-flto
+
+###############################################################################
+# Sensible project-wide defaults
+###############################################################################
+
+# Use Intel toolchain unless caller overrides it.
+build --config=intel_base
+
+# Nice coloured diagnostics on GCC/Clang too.
+build:linux --copt=-fdiagnostics-color=always
+build --color=yes
+
+
+
+
 # Bazel configuration for Yggdrasil Decision Forests
 #
 # OPTIONS
@@ -29,77 +86,6 @@
 #   tensorflow_with_header_lib=1: Uses tensorflow header only library. Useful to
 #     use tensorflow dynamic linking. Otherwise, links tensorflow statically (if
 #     tensorflow is used).
-
-
-###############################################################################
-# ─── Make Intel oneAPI (icx/icpx) the DEFAULT C/C++ toolchain ───────────────
-###############################################################################
-# From now on every `bazel build …` picks up the `build:intel` options without
-# you having to pass --config=intel each time.  REMOVE or change this line
-# whenever you want to switch to a different toolchain.
-build --config=intel
-
-
-
-# Ariel - set C++ 17 and add debug flags
-build --cxxopt=-std=c++17
-
-###############################################################################
-# Full debug info for Intel oneAPI (or any other) toolchain
-###############################################################################
-build:dbg            --strip=never          # keep symbols
-build:dbg            --fission=no           # disable .dwp workflow
-build:dbg            --features=-fission    # belt-and-braces
-
-# Cancel split-DWARF and minimal-debug flags that icx adds,
-# then append a plain “-g” so it’s the last one on the command line
-build:dbg            --copt=-gno-split-dwarf
-build:dbg            --cxxopt=-gno-split-dwarf
-build:dbg            --copt=-g
-build:dbg            --cxxopt=-g
-build:dbg            --linkopt=-g
-
-# Common flags.
-common --experimental_repo_remote_exec
-
-# -----------------------------------------------------------------------------
-# Intel Compiler (ICX) Configuration
-# -----------------------------------------------------------------------------
-
-# build:intel --cpu=x86_64 # Don't set this. this is for older bazel versions. will lead to "no toolchain defined for cpu x86_64
-build:intel --cxxopt=-std=c++17
-build:intel --cxxopt=-g --cxxopt=-O2
-# build:intel --cxxopt=-g
-# build:intel --cxxopt=-O2
-build:intel --cxxopt=-qopt-report=max
-build:intel --cxxopt=-xHost
-build:intel --linkopt=-g
-build:intel --linkopt=-O2
-
-# Avoid even more warnings
-build:intel --host_cxxopt=-g
-build:intel --host_cxxopt=-O2
-build:intel --host_linkopt=-g
-
-# Max vectorization
-build:intel --cxxopt=-qopt-zmm-usage=high
-
-
-build:intel_single_threaded --cxxopt=-std=c++17
-build:intel_single_threaded --cxxopt=-g
-build:intel_single_threaded --cxxopt=-O2
-build:intel_single_threaded --cxxopt=-qopt-report=max
-build:intel_single_threaded --cxxopt=-xHost
-build:intel_single_threaded --cxxopt=-qopt-zmm-usage=high
-
-# === SINGLE-THREAD EXECUTION FLAGS ===
-build:intel_single_threaded --cxxopt=-qno-openmp
-
-build:intel_single_threaded --host_cxxopt=-g
-build:intel_single_threaded --host_cxxopt=-O2
-build:intel_single_threaded --host_linkopt=-g
-
-# build:intel_single_threaded --cxxopt=-no-parallel  # for old intel icc
 
 
 build --incompatible_enable_cc_toolchain_resolution

@@ -443,6 +443,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
   } // namespace
 
+
   // Specialization in the case of classification.
   absl::StatusOr<SplitSearchResult> FindBestConditionClassification(
       const dataset::VerticalDataset &train_dataset,
@@ -457,9 +458,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
       utils::RandomEngine *random, SplitterPerThreadCache *cache)
   {
     if (dt_config.internal().generate_fake_error_in_splitter())
-    {
-      return absl::InternalError("Fake error");
-    }
+      { return absl::InternalError("Fake error"); }
 
     const int min_num_obs =
         dt_config.in_split_min_examples_check() ? dt_config.min_examples() : 1;
@@ -477,9 +476,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     case dataset::proto::ColumnType::NUMERICAL:
     {
       if (!dt_config.has_axis_aligned_split())
-      {
-        return SplitSearchResult::kNoBetterSplitFound;
-      }
+        { return SplitSearchResult::kNoBetterSplitFound; }
 
       ASSIGN_OR_RETURN(
           const auto &attribute_data,
@@ -487,6 +484,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
               dataset::VerticalDataset::NumericalColumn>(attribute_idx));
 
       const auto na_replacement = attribute_column_spec.numerical().mean();
+
+      // TODO Ariel - parameter for exact (CART) vs. approx. (Histogram) splits
       if (dt_config.numerical_split().type() == proto::NumericalSplit::EXACT)
       {
         ASSIGN_OR_RETURN(
@@ -639,6 +638,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
     return result;
   }
+
+/* #region Irrelevant fns. to MIGHT */
 
   absl::StatusOr<SplitSearchResult> FindBestConditionRegressionHessianGain(
       const dataset::VerticalDataset &train_dataset,
@@ -1453,7 +1454,9 @@ namespace yggdrasil_decision_forests::model::decision_tree
     return response;
   }
 
-  // Ariel - this is where the split is found
+/* #endregion */
+
+  // Ariel - Start here
   absl::StatusOr<bool> FindBestConditionOblique(
       const dataset::VerticalDataset &train_dataset,
       const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -1975,6 +1978,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     return false;
   }
 
+  // Wrapper to choose fn. based on n_threads
   absl::StatusOr<bool> FindBestConditionManager(
       const dataset::VerticalDataset &train_dataset,
       const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -2170,7 +2174,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     return false;
   }
 
-  // Ariel - this is used for CART build
+  // Ariel - this is used for approx. splits
   absl::StatusOr<SplitSearchResult>
   FindSplitLabelClassificationFeatureNumericalHistogram(
       const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -2309,7 +2313,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
                        : SplitSearchResult::kNoBetterSplitFound;
   }
 
-  // Ariel - oblique.cc MIGHT data fn.
+  // Ariel - train oblique rf w/ MIGHT hits this, not Histogram
   absl::StatusOr<SplitSearchResult> FindSplitLabelClassificationFeatureNumericalCart(
       const absl::Span<const UnsignedExampleIdx> selected_examples,
       const std::vector<float> &weights, const absl::Span<const float> attributes,
@@ -2482,6 +2486,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
       }
     }
   }
+
+/* #region Ariel: Irrelevant fns. */
 
   absl::StatusOr<SplitSearchResult>
   FindSplitLabelClassificationFeatureDiscretizedNumericalCart(
@@ -4308,6 +4314,10 @@ namespace yggdrasil_decision_forests::model::decision_tree
     }
   }
 
+  /* #endregion */
+
+/* #region Helper fns. */
+
   int NumAttributesToTest(const proto::DecisionTreeTrainingConfig &dt_config,
                           const int num_attributes,
                           const model::proto::Task task)
@@ -4538,6 +4548,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
     }
   }
 
+/* #endregion */
+
   absl::Status GrowTreeBestFirstGlobal(
       const dataset::VerticalDataset &train_dataset,
       const model::proto::TrainingConfig &config,
@@ -4712,7 +4724,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     return absl::OkStatus();
   }
 
-  // Ariel: Main Decision Tree training function
+  // Ariel: Entry point for DT learning
   absl::Status DecisionTreeTrain(
       const dataset::VerticalDataset &train_dataset,
       const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -4723,7 +4735,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
       const std::vector<float> &weights, utils::RandomEngine *random,
       DecisionTree *dt, const InternalTrainConfig &internal_config)
   {
-    // ************* Note: This function is the entry point of all decision tree learning. *************
+
+    /* #region Pre-flight checks */
 
     // Ensure efficient sorting strategy.
     if (dt_config.internal().has_ensure_effective_sorting_strategy() &&
@@ -4740,12 +4753,10 @@ namespace yggdrasil_decision_forests::model::decision_tree
           "(actual)"));
     }
 
-    // Decide if execution should happen in single-thread or concurrent mode.
-
     std::optional<std::vector<UnsignedExampleIdx>> leaf_examples;
     std::vector<UnsignedExampleIdx> working_selected_examples;
 
-    // Fail if the data spec has invalid columns.
+    // Check for invalid columns and Fail if yes
         // INFO: Data spec is the specifier for data types of features
     for (const auto feature_idx : config_link.features())
     {
@@ -4866,21 +4877,26 @@ namespace yggdrasil_decision_forests::model::decision_tree
                                        selected_examples.end());
     }
 
+    /* #endregion */
+
     auto leaf_example_span = leaf_examples.has_value()
                                  ? std::optional<absl::Span<UnsignedExampleIdx>>(
                                        absl::MakeSpan(leaf_examples.value()))
                                  : std::nullopt;
 
     SplitterConcurrencySetup splitter_concurrency_setup;
+    
+    // Single-Threaded
     if (internal_config.num_threads <= 1)
     {
       splitter_concurrency_setup.concurrent_execution = false;
-      // TODO Ariel - figure out DecisionTreeCoreTrain()
+      
       return DecisionTreeCoreTrain(
           train_dataset, config, config_link, dt_config, deployment,
           splitter_concurrency_setup, weights, random, internal_config, dt,
           absl::MakeSpan(working_selected_examples), leaf_example_span);
     }
+    // Multi-Threaded
     else
     {
       splitter_concurrency_setup.concurrent_execution = true;
@@ -4925,7 +4941,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
     return absl::OkStatus();
   }
 
-  // Ariel: This function is basic - skip down to NodeTrain()
+  // Ariel: Wrapped by DecisionTreeTrain
+  // handles both Single and Multicore, if-s Growth Strategy -- Frontier Best vs. Local
   absl::Status DecisionTreeCoreTrain(
       const dataset::VerticalDataset &train_dataset,
       const model::proto::TrainingConfig &config,
@@ -4941,7 +4958,6 @@ namespace yggdrasil_decision_forests::model::decision_tree
     dt->CreateRoot();
     PerThreadCache cache;
 
-    // Ariel: Why do we need a buffer?
     auto selected_examples_rb = SelectedExamplesRollingBuffer::Create(
         selected_examples, &cache.selected_example_buffer);
     std::optional<SelectedExamplesRollingBuffer> leaf_examples_rb;
@@ -4953,25 +4969,25 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
     switch (dt_config.growing_strategy_case())
     {
-    case proto::DecisionTreeTrainingConfig::kGrowingStrategyLocal:
-    {
-      const auto constraints = NodeConstraints::CreateNodeConstraints();
+      case proto::DecisionTreeTrainingConfig::kGrowingStrategyLocal:
+      {
+        const auto constraints = NodeConstraints::CreateNodeConstraints();
 
-      // This is the first call - selected_examples_rb should be full bag
-      return NodeTrain(train_dataset, config, config_link, dt_config,
-                       deployment, splitter_concurrency_setup, weights, 1,
-                       internal_config, constraints, false, dt->mutable_root(),
-                       random, &cache, selected_examples_rb, leaf_examples_rb);
-    }
-    break;
-    case proto::DecisionTreeTrainingConfig::kGrowingStrategyBestFirstGlobal:
-      return GrowTreeBestFirstGlobal(
-          train_dataset, config, config_link, dt_config, deployment,
-          splitter_concurrency_setup, weights, internal_config,
-          dt->mutable_root(), random, selected_examples_rb, leaf_examples_rb);
+        // This is the first call - selected_examples_rb should be full bag
+        return NodeTrain(train_dataset, config, config_link, dt_config,
+                        deployment, splitter_concurrency_setup, weights, 1,
+                        internal_config, constraints, false, dt->mutable_root(),
+                        random, &cache, selected_examples_rb, leaf_examples_rb);
+      }
       break;
-    default:
-      return absl::InvalidArgumentError("Grow strategy not set");
+      case proto::DecisionTreeTrainingConfig::kGrowingStrategyBestFirstGlobal:
+        return GrowTreeBestFirstGlobal(
+            train_dataset, config, config_link, dt_config, deployment,
+            splitter_concurrency_setup, weights, internal_config,
+            dt->mutable_root(), random, selected_examples_rb, leaf_examples_rb);
+        break;
+      default:
+        return absl::InvalidArgumentError("Grow strategy not set");
     }
   }
 
@@ -5033,11 +5049,12 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
     // In-memory transactional dataset with heterogeneous column type, stored column
     // by column for fast row-wise iteration.
-    // Ariel! Seems Column-Major!
+    // Ariel: Data is Column-Major!
     const dataset::VerticalDataset *train_dataset_for_splitter;
     absl::Span<const UnsignedExampleIdx> selected_examples_for_splitter;
 
-    // TODO Ariel: This flag shows whether dense or sparse dataset
+    // TODO Ariel: CATBOOST IDEA! This flag shows whether dense or sparse dataset - does it consolidate when sparse enough?
+
     // If true, the entire dataset "local_train_dataset" is composed of training
     // examples for this node. If false, only the subset of
     // "local_train_dataset" indexed by "selected_examples" are to be considered
@@ -5077,7 +5094,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     { return absl::InternalError("No examples fed to the splitter"); }
     /* #endregion */
 
-    // Determine the best split.
+    // Initialize the search - FindBestCondition is wrapper
     ASSIGN_OR_RETURN(
         const auto has_better_condition,
 
@@ -5087,14 +5104,18 @@ namespace yggdrasil_decision_forests::model::decision_tree
             node->node(), internal_config, constraints,
             node->mutable_node()->mutable_condition(), random, cache)
         );
+
+    // ***** POST-PROCESS *****
+    // IF better_split: split & recurse    // else: finalize as leaf
     if (!has_better_condition)
     {
       // No good condition found. Close the branch.
+      // Ariel: what exactly does the "finalization" do?
       node->FinalizeAsLeaf(dt_config.store_detailed_label_distribution());
       return absl::OkStatus();
     }
 
-    // ********** ELSE: BETTER CONDITION FOUND - SEARCH DEEPER **********
+    /*********** ELSE: BETTER CONDITION FOUND - SEARCH DEEPER **********/
 
     STATUS_CHECK_EQ(
         selected_examples.size(),
@@ -5106,7 +5127,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     node->FinalizeAsNonLeaf(dt_config.keep_non_leaf_label_distribution(),
                             dt_config.store_detailed_label_distribution());
 
-    // Separate the positive and negative examples.
+    // Split Bag into +/-
     ASSIGN_OR_RETURN(
         auto example_split,
         internal::SplitExamplesInPlace(
@@ -5125,7 +5146,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     }
 
     // Separate the positive and negative examples used only to determine the node value.
-    // IDK how this is different from example_split
+    // Ariel: IDK how this is different from example_split. What's the node value?
     std::optional<ExampleSplitRollingBuffer> node_only_example_split;
     if (leaf_examples.has_value())
     {
@@ -5138,18 +5159,19 @@ namespace yggdrasil_decision_forests::model::decision_tree
               /*examples_are_training_examples=*/false));
     }
 
-    // Set leaf outputs
-    // TODO Ariel What leaf outputs? I thought these weren't leaves
-    RETURN_IF_ERROR(
+    /* #region Set leaf outputs // Ariel: What leaf outputs? I thought these weren't leaves /*/
+    RETURN_IF_ERROR( // +
       internal_config.set_leaf_value_functor(
         train_dataset, example_split.positive_examples.active, weights, config,
         config_link, node->mutable_pos_child())
     );
-    RETURN_IF_ERROR(internal_config.set_leaf_value_functor(
+    RETURN_IF_ERROR( // -
+      internal_config.set_leaf_value_functor(
         train_dataset, example_split.negative_examples.active, weights, config,
         config_link, node->mutable_neg_child()));
+    /* #endregion */
 
-    /* #region Apply Constraints - What's a Constraint? */
+    /* #region Apply Monotonic Constraints // Ariel: User-domain knowledge that feature X has linear relat. w/ Target - SKIIIIIIP */
     RETURN_IF_ERROR(
         ApplyConstraintOnNode(constraints, node->mutable_pos_child()));
     RETURN_IF_ERROR(
@@ -5170,8 +5192,9 @@ namespace yggdrasil_decision_forests::model::decision_tree
     }
     /* #endregion */
 
-    // *************** RECURSE LEFT & RIGHT ***************
-    // Positive child.
+    /**************** RECURSE LEFT & RIGHT ****************/
+
+    // +
     RETURN_IF_ERROR(
         NodeTrain(train_dataset, config, config_link, dt_config, deployment,
                   splitter_concurrency_setup, weights, depth + 1, internal_config,
@@ -5182,7 +5205,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
                             node_only_example_split->positive_examples)
                       : std::nullopt));
 
-    // Negative child.
+    // -
     RETURN_IF_ERROR(
         NodeTrain(train_dataset, config, config_link, dt_config, deployment,
                   splitter_concurrency_setup, weights, depth + 1, internal_config,
