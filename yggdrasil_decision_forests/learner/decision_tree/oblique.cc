@@ -135,7 +135,7 @@ int GetNumProjections(const proto::DecisionTreeTrainingConfig& dt_config,
 }
 
 
-// Loop over Projections
+// Ariel - actual work, not wrapper. Loop over Projections
 template <typename LabelStats>
 absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     const dataset::VerticalDataset& train_dataset,
@@ -157,7 +157,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
 
   ENABLE_PROJECTION_MATRIX_LOGGING = false;
 
-  // ---------- original sanity‑checks --------------------
+  // ---------- basic sanity‑checks --------------------
   if (!weights.empty()) {
     DCHECK_EQ(weights.size(), train_dataset.nrow());
   }
@@ -174,6 +174,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
       dt_config.sparse_oblique_split().projection_density_factor() /
       config_link.numerical_features_size();
 
+  // This is a class object
   ProjectionEvaluator projection_evaluator(train_dataset,
                                            config_link.numerical_features());
 

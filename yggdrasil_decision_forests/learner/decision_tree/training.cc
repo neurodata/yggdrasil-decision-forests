@@ -1453,7 +1453,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     return response;
   }
 
-  // TODO Ariel - this is where the split is found
+  // Ariel - this is where the split is found
   absl::StatusOr<bool> FindBestConditionOblique(
       const dataset::VerticalDataset &train_dataset,
       const absl::Span<const UnsignedExampleIdx> selected_examples,
