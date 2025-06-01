@@ -457,12 +457,14 @@ namespace yggdrasil_decision_forests::model::decision_tree
       const NodeConstraints &constraints, proto::NodeCondition *best_condition,
       utils::RandomEngine *random, SplitterPerThreadCache *cache)
   {
+    /* #region Inits. - no significant memory access */
     if (dt_config.internal().generate_fake_error_in_splitter())
       { return absl::InternalError("Fake error"); }
 
     const int min_num_obs =
         dt_config.in_split_min_examples_check() ? dt_config.min_examples() : 1;
 
+    // Get column type
     const auto &attribute_column_spec =
         train_dataset.data_spec().columns(attribute_idx);
 
@@ -470,7 +472,10 @@ namespace yggdrasil_decision_forests::model::decision_tree
                                     "classification"));
 
     SplitSearchResult result;
+    /* #endregion */
 
+    // Call appropriate fns. based on col. type
+    // Ariel: Isn't this always NUMERICAL if Oblique?
     switch (train_dataset.column(attribute_idx)->type())
     {
     case dataset::proto::ColumnType::NUMERICAL:
@@ -1456,7 +1461,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
 /* #endregion */
 
-  // Ariel - Start here
+  // Wrapper w.r.t. ML Task
   absl::StatusOr<bool> FindBestConditionOblique(
       const dataset::VerticalDataset &train_dataset,
       const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -1512,6 +1517,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     return false;
   }
 
+  // Calls GetCandidateAttributes(), then appropriate fn. based on ML Task
   absl::StatusOr<bool> FindBestConditionSingleThreadManager(
       const dataset::VerticalDataset &train_dataset,
       const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -1534,12 +1540,13 @@ namespace yggdrasil_decision_forests::model::decision_tree
     {
     case proto::DecisionTreeTrainingConfig::SPLIT_AXIS_NOT_SET:
     case proto::DecisionTreeTrainingConfig::kAxisAlignedSplit:
-      // Nothing to do.
-      break;
+      break; // Nothing to do.
     case proto::DecisionTreeTrainingConfig::kSparseObliqueSplit:
     case proto::DecisionTreeTrainingConfig::kMhldObliqueSplit:
+      // ATTN Ariel: This executes for kSparseObliqueSplit too! Confusing switch()
       ASSIGN_OR_RETURN(
           found_good_condition,
+          // This is the familiar SampleProj - ApplyProj - EvalProj
           FindBestConditionOblique(
               train_dataset, selected_examples, weights, config, config_link,
               dt_config, parent, internal_config, label_stats, {}, constraints,
@@ -1547,9 +1554,14 @@ namespace yggdrasil_decision_forests::model::decision_tree
       break;
     }
 
+    
+    /***CONTINING HERE after Condition Found***/
+
     // Get the indices of the attributes to test.
     int remaining_attributes_to_test;
     std::vector<int32_t> &candidate_attributes = cache->candidate_attributes;
+
+    // TODO Ariel understand this
     GetCandidateAttributes(config, config_link, dt_config,
                            &remaining_attributes_to_test, &candidate_attributes,
                            random);
@@ -1561,13 +1573,15 @@ namespace yggdrasil_decision_forests::model::decision_tree
            candidate_attribute_idx_in_candidate_list <
                candidate_attributes.size())
     {
-      // Get the attribute data.
+      // Get the attribute data
+      // TODO Ariel - this is a single memory access?
       const int32_t attribute_idx =
           candidate_attributes[candidate_attribute_idx_in_candidate_list++];
       SplitSearchResult result;
 
       switch (config.task())
       {
+        // ATTN Ariel: This executes After FindCondOblique()!! So both exec!
       case model::proto::Task::CLASSIFICATION:
       {
         const auto &class_label_stats =
@@ -1580,6 +1594,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
                                      attribute_idx, constraints, best_condition,
                                      random, &cache->splitter_cache_list[0]));
       }
+      /* #region Irrelevant cases */
       break;
       case model::proto::Task::REGRESSION:
         if (internal_config.hessian_score)
@@ -1639,6 +1654,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
       default:
         return absl::UnimplementedError("Non implemented");
       }
+      /* #endregion */
+
       if (result != SplitSearchResult::kInvalidAttribute)
       {
         remaining_attributes_to_test--;
@@ -2009,6 +2026,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     }
   }
 
+  // Wrapper fn. w.r.t. ML Task - skip to FindBestConditionSingleThreadManager // or Concurrent
   absl::StatusOr<bool> FindBestCondition(
       const dataset::VerticalDataset &train_dataset,
       const absl::Span<const UnsignedExampleIdx> selected_examples,

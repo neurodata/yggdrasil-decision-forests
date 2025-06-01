@@ -177,9 +177,14 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   // This is a class object
   ProjectionEvaluator projection_evaluator(train_dataset,
                                            config_link.numerical_features());
+  /* #endregion */                                         
 
-  // TODO Understand Memory Access Pattern
+  // TODO Understand Memory Access Pattern. Is this heavy enough to be important?
+  // Bunch of memory accesses here - how long do they take?
+  // BEWARE: These are executed once per fn. call - may be irrelevant
   const auto selected_labels = ExtractLabels(label_stats, selected_examples);
+
+  // TODO Are weights relevant to the basic Oblique case?
   std::vector<float> selected_weights;
   if (!weights.empty()) {
     selected_weights = Extract(weights, selected_examples);
@@ -189,12 +194,12 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   std::iota(dense_idxs.begin(), dense_idxs.end(), 0);
 
   auto& projection_values = cache->projection_values;
+
+  /* #region Initializations pt. 2 */
   Projection best_projection, current_projection;
   float best_threshold = 0.f;
-
   const int num_features = config_link.numerical_features_size();
 
-  // ------- Always declare, only open log if needed -----
   static bool first_call = true;
   static int node_counter = 0;
   std::ofstream log;
@@ -217,7 +222,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   // num_projections = 1000;
   // std::cout << "Hard coded 1000 projections! " << num_projections << "\n";
 
-  /* #region ----------  PROJECTION Sample & Eval LOOP  ------------------ */
+  /* #region ----------  MAIN LOOP  ------------------ */
   for (int proj_idx = 0; proj_idx < num_projections; ++proj_idx) {
     int8_t monotonic = 0;
 
@@ -236,13 +241,11 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
       }
     }
 
-    // Applies the projection linear fn. to the data: x1+x3-x4 ...
-    // Should return a vector of size (n_samples)
-    RETURN_IF_ERROR(
+    
+    RETURN_IF_ERROR( // Applies the projection linear fn. to the data: x1+x3-x4 ... f: R^(bag x nnz) -> R^bag
       projection_evaluator.Evaluate(current_projection, selected_examples, &projection_values));
 
-    // Find a split along this hyperplane and Score it.
-    ASSIGN_OR_RETURN(
+    ASSIGN_OR_RETURN( // Find a split along this hyperplane and Score it.
         const auto result,
         EvaluateProjection(dt_config, label_stats, dense_idxs, selected_weights,
                            selected_labels, projection_values, internal_config,
@@ -259,6 +262,9 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
 
   /* #endregion */
 
+  /* #region Post-Processing - unimportant for runtime */
+
+  // Save projection matrix to file if desired
   if (ENABLE_PROJECTION_MATRIX_LOGGING) {
     log << "Node " << node_counter++ << " | "
         << num_projections << " projections × "
@@ -287,6 +293,8 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     return true;
   }
   return false;
+
+  /* #endregion */
 }
 
 
