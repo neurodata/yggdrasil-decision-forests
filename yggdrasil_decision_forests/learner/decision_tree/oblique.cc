@@ -382,7 +382,7 @@ absl::StatusOr<SplitSearchResult> EvaluateProjection(
     proto::NodeCondition* condition, SplitterPerThreadCache* cache) {
   InternalTrainConfig effective_internal_config = internal_config;
 
-  // Assign sorting method to use
+  // Choose sorting strategy
   effective_internal_config.override_sorting_strategy =
       proto::DecisionTreeTrainingConfig::Internal::SortingStrategy::
           DecisionTreeTrainingConfig_Internal_SortingStrategy_IN_NODE;
@@ -393,6 +393,7 @@ absl::StatusOr<SplitSearchResult> EvaluateProjection(
   // Projection are never missing.
   const float na_replacement = 0;
 #ifndef NDEBUG
+// Ariel - this grows linearly w/ proj_vals, but not executed in production! Only shows up in Intel Profiler - Ignore
   for (const float v : projection_values) {
     DCHECK(!std::isnan(v));
   }
@@ -1137,7 +1138,8 @@ ProjectionEvaluator::ProjectionEvaluator(
 }
 
 
-// TODO Important - Main Loop - over Bag, then over a projection's selection
+// Takes ~12% of multicore runtime | 4096 x various synthetic n_cols
+// Skip optimizing for now - bigger fish to fry
 absl::Status ProjectionEvaluator::Evaluate(
     const Projection& projection,
     const absl::Span<const UnsignedExampleIdx> selected_examples,

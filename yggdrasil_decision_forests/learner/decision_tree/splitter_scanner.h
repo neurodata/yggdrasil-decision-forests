@@ -765,8 +765,7 @@ SplitSearchResult ScanSplits(
       }
     }
 
-    // Remove the bucket from the positive accumulator and add it to the
-    // negative accumulator.
+    // Remove the bucket from the positive accumulator and add it to the negative accumulator.
     item.label.AddToScoreAcc(&neg);
     item.label.SubToScoreAcc(&pos);
 
@@ -781,6 +780,7 @@ SplitSearchResult ScanSplits(
       continue;
     }
 
+    /* #region Check some conditions e.g. have enough examples? */
     // Enough examples?
     if (num_pos_examples < min_num_obs) {
 #ifdef YDF_DEBUG_PRINT_SPLIT
@@ -803,6 +803,8 @@ SplitSearchResult ScanSplits(
       continue;
     }
 
+    /* #endregion */
+
     const auto score = Score<>(initializer, weighted_num_examples, pos, neg);
     tried_one_split = true;
 
@@ -810,14 +812,13 @@ SplitSearchResult ScanSplits(
     LOG(INFO) << "\tscore: " << score;
 #endif
 
-    if (score > best_score) {
+    if (score > best_score) { // Memorize the split.
 #ifdef YDF_DEBUG_PRINT_SPLIT
       LOG(INFO) << "Score:" << std::setprecision(16) << score
                 << " Best_score: " << best_score;
       LOG(INFO) << "\tnew best split";
 #endif
 
-      // Memorize the split.
       best_bucket_idx = bucket_idx;
       best_score = score;
       condition->set_num_pos_training_examples_without_weight(num_pos_examples);
@@ -836,8 +837,7 @@ SplitSearchResult ScanSplits(
             << "\n\tlabel: " << example_bucket_set.items.back().label;
 #endif
 
-  if (best_bucket_idx != -1) {
-    // Finalize the best found split.
+  if (best_bucket_idx != -1) { // Finalize the best found split.
 
     if constexpr (bucket_interpolation) {
       if (best_bucket_interpolation_idx != -1 &&
@@ -1342,11 +1342,12 @@ SplitSearchResult FindBestSplit(
   // Create buckets.
   ExampleBucketSet& example_set_accumulator =
       *GetCachedExampleBucketSet<ExampleBucketSet>(cache);
+
+  // TODO PRIORITY Ariel: This takes a bunch of time - 15-20% on its own
   FillExampleBucketSet<ExampleBucketSet, require_label_sorting>(
       selected_examples, feature_filler, label_filler, &example_set_accumulator,
       cache);
 
-  // Scan buckets.
   return ScanSplits<ExampleBucketSet, LabelBucketSet, bucket_interpolation>(
       feature_filler, initializer, example_set_accumulator,
       selected_examples.size(), min_num_obs, attribute_idx, condition, cache);

@@ -444,7 +444,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
   } // namespace
 
 
-  // Specialization in the case of classification.
+  // Exits immediately for Oblique splits - cost 0 time
   absl::StatusOr<SplitSearchResult> FindBestConditionClassification(
       const dataset::VerticalDataset &train_dataset,
       const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -480,9 +480,11 @@ namespace yggdrasil_decision_forests::model::decision_tree
     {
     case dataset::proto::ColumnType::NUMERICAL:
     {
+      // Ariel: IMPORTANT! If Oblique splits, skip this entirely
       if (!dt_config.has_axis_aligned_split())
         { return SplitSearchResult::kNoBetterSplitFound; }
 
+        // Ariel - we never seem to get here if Oblique
       ASSIGN_OR_RETURN(
           const auto &attribute_data,
           train_dataset.ColumnWithCastWithStatus<
@@ -628,7 +630,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
           " is not supported."));
     }
 
-    // Condition of the type "Attr is NA".
+    // Condition of the type "Attr is NA". Ariel: this doesnt make sense, but i don't care
     if (dt_config.allow_na_conditions())
     {
       ASSIGN_OR_RETURN(
@@ -1530,7 +1532,6 @@ namespace yggdrasil_decision_forests::model::decision_tree
       proto::NodeCondition *best_condition, utils::RandomEngine *random,
       PerThreadCache *cache)
   {
-    // Single Thread Setup.
     cache->splitter_cache_list.resize(1);
 
     // Was a least one good split found?
@@ -1554,39 +1555,44 @@ namespace yggdrasil_decision_forests::model::decision_tree
       break;
     }
 
+
+    /* #region Irrelevant Code & Post-Processing */
     
-    /***CONTINING HERE after Condition Found***/
+    /***This executes after FindCondOblique, but only finalizes***/
 
     // Get the indices of the attributes to test.
     int remaining_attributes_to_test;
     std::vector<int32_t> &candidate_attributes = cache->candidate_attributes;
 
-    // TODO Ariel understand this
+    // Ariel: I don't understand this, but this fn. takes no runtime - can't be important
+        // I think for Oblique we use all features, but here just a subset permutation?
     GetCandidateAttributes(config, config_link, dt_config,
                            &remaining_attributes_to_test, &candidate_attributes,
                            random);
 
-    // Index of the next attribute to be tested in "candidate_attributes".
-    int candidate_attribute_idx_in_candidate_list = 0;
+    int candidate_attribute_idx_in_candidate_list = 0; // next attribute to be tested in "candidate_attributes".
 
     while (remaining_attributes_to_test >= 0 &&
-           candidate_attribute_idx_in_candidate_list <
-               candidate_attributes.size())
+           candidate_attribute_idx_in_candidate_list < candidate_attributes.size())
     {
       // Get the attribute data
-      // TODO Ariel - this is a single memory access?
+      // Ariel - I think this is a single memory access. How often does the loop run?
       const int32_t attribute_idx =
           candidate_attributes[candidate_attribute_idx_in_candidate_list++];
+      
       SplitSearchResult result;
 
       switch (config.task())
       {
-        // ATTN Ariel: This executes After FindCondOblique()!! So both exec!
+        // Ariel: This executes After FindCondOblique, but exits immediately if no axis-aligned splits
       case model::proto::Task::CLASSIFICATION:
       {
         const auto &class_label_stats =
             utils::down_cast<const ClassificationLabelStats &>(label_stats);
 
+        // This technically executes but immediately exits at this if:
+        //  if (!dt_config.has_axis_aligned_split())  { return SplitSearchResult::kNoBetterSplitFound; }
+        // This is useful for non-numerical columns, where oblique doesn't work
         ASSIGN_OR_RETURN(result, FindBestConditionClassification(
                                      train_dataset, selected_examples, weights,
                                      config, config_link, dt_config, parent,
@@ -1594,7 +1600,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
                                      attribute_idx, constraints, best_condition,
                                      random, &cache->splitter_cache_list[0]));
       }
-      /* #region Irrelevant cases */
+      
       break;
       case model::proto::Task::REGRESSION:
         if (internal_config.hessian_score)
@@ -2192,7 +2198,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     return false;
   }
 
-  // Ariel - this is used for approx. splits
+  // Ariel - this is used for approx. splits. We haven't profiled this
   absl::StatusOr<SplitSearchResult>
   FindSplitLabelClassificationFeatureNumericalHistogram(
       const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -2332,6 +2338,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
   }
 
   // Ariel - train oblique rf w/ MIGHT hits this, not Histogram
+  // ~13% of multicore runtime
   absl::StatusOr<SplitSearchResult> FindSplitLabelClassificationFeatureNumericalCart(
       const absl::Span<const UnsignedExampleIdx> selected_examples,
       const std::vector<float> &weights, const absl::Span<const float> attributes,
@@ -2342,36 +2349,35 @@ namespace yggdrasil_decision_forests::model::decision_tree
       const int32_t attribute_idx, const InternalTrainConfig &internal_config,
       proto::NodeCondition *condition, SplitterPerThreadCache *cache)
   {
-    // If Weights empty
+    /* #region Deal w/ empty weights */
     if (!weights.empty()) { DCHECK_EQ(weights.size(), labels.size()); }
-    // Deal w/ missing values
+    // If Weights empty Deal w/ missing values
     if (dt_config.missing_value_policy() == proto::DecisionTreeTrainingConfig::LOCAL_IMPUTATION)
     { LocalImputationForNumericalAttribute(selected_examples, weights, attributes,
                                            &na_replacement); }
+    /* #endregion */
 
+    // TODO Ariel Optimize - I think this is why this fn. takes ~13% of runtime
     FeatureNumericalBucket::Filler feature_filler(selected_examples.size(), na_replacement, attributes);
 
     const auto sorting_strategy = EffectiveStrategy(dt_config, selected_examples.size(), internal_config);
 
+    
+    if (num_label_classes == 3) { // Binary classification.
     // "Why ==3" ?
     // Categorical attributes always have one class reserved for
     // "out-of-vocabulary" items. The "num_label_classes" takes into account this
     // class. In case of binary classification, "num_label_classes" is 3 (OOB,
     // False, True).
 
-    // Binary classification.
-    if (num_label_classes == 3)
-    {
       if (weights.empty()) // Ariel: This is our case. Idk what weights mean
       {
-        // TODO Ariel Wtf is this?
+        // TODO Ariel Memory access here?
         LabelBinaryCategoricalOneValueBucket</*weighted=*/false>::Filler
             label_filler(labels, weights);
         LabelBinaryCategoricalOneValueBucket</*weighted=*/false>::Initializer
             initializer(label_distribution);
 
-        // Ariel: depending on sorting strategy, choose find split
-        // So, the best split and sort are done together?
         if (sorting_strategy == proto::DecisionTreeTrainingConfig::Internal::FORCE_PRESORTED)
         {
           const auto &sorted_attributes = internal_config.preprocessing->presorted_numerical_features()[attribute_idx];
@@ -2392,12 +2398,9 @@ namespace yggdrasil_decision_forests::model::decision_tree
               selected_examples, feature_filler, label_filler, initializer,
               min_num_obs, attribute_idx, condition, &cache->cache_v2);
         }
-        else
-        {
-          return absl::InvalidArgumentError("Non supported strategy.");
-        }
+        else { return absl::InvalidArgumentError("Non supported strategy."); }
       }
-      else
+      else // Weights not empty
       {
         LabelBinaryCategoricalOneValueBucket</*weighted=*/true>::Filler
             label_filler(labels, weights);
@@ -5009,6 +5012,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     }
   }
 
+  // Doesn't itself show up as non-trivial runtime in profiling
   absl::Status NodeTrain(
       const dataset::VerticalDataset &train_dataset,
       const model::proto::TrainingConfig &config,

@@ -392,11 +392,10 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
       // Ariel - RF training begins here
       absl::StatusOr<std::unique_ptr<AbstractModel>>
       RandomForestLearner::TrainWithStatusImpl(
-          // Ariel: What's VerticalDataset?
           const dataset::VerticalDataset &train_dataset,
           std::optional<std::reference_wrapper<const dataset::VerticalDataset>> valid_dataset) const
       {
-        const auto begin_training = absl::Now(); // Start time
+        const auto begin_training = absl::Now();
 
         // Timeout in the tree training.
         std::optional<absl::Time> timeout;
