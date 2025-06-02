@@ -612,7 +612,8 @@ void FillExampleBucketSet(
   // Allocate the buckets.
   example_bucket_set->items.resize(feature_filler.NumBuckets());
 
-  // Initialize the buckets.
+  // Initialize and Zero the buckets.
+  // Initially n_buckets = n. samples in bag
   int bucket_idx = 0;
   for (auto& bucket : example_bucket_set->items) {
     feature_filler.InitializeAndZero(bucket_idx, &bucket.feature);
@@ -620,11 +621,16 @@ void FillExampleBucketSet(
     bucket_idx++;
   }
 
-  // Fill the buckets.
-  const auto num_selected_examples = selected_examples.size();
+  // TODO Ariel - this never prints anything, so selected_examples always =1??
+  for (int i=0; i<selected_examples.size(); i++) {
+    if (i != selected_examples[i])
+     {std::cout << "i: " << i;}
+    }
   
-  for (size_t select_idx = 0; select_idx < num_selected_examples; select_idx++) {
+  // Fill the buckets.
+  for (size_t select_idx = 0; select_idx < selected_examples.size(); select_idx++) {
     // Get an example
+    // Ariel: my for {} above suggests select_idx = i always
     const UnsignedExampleIdx example_idx = selected_examples[select_idx];
 
     const size_t item_idx =
@@ -641,13 +647,13 @@ void FillExampleBucketSet(
     label_filler.Finalize(&bucket.label);
   }
 
-  //  Sort the buckets.
   static_assert(!(ExampleBucketSet::FeatureBucketType::kRequireSorting &&
                   require_label_sorting),
                 "Bucket require sorting");
   
   int ariel;
 
+  //  Sort the buckets.
   if constexpr (ExampleBucketSet::FeatureBucketType::kRequireSorting) {
     // Ariel: Sorting done here!
     ariel = 1;
@@ -749,6 +755,7 @@ SplitSearchResult ScanSplits(
 #endif
 
   // Loop over buckets
+  // This fn. takes no time = don't care
   for (int bucket_idx = 0; bucket_idx < end_bucket_idx; bucket_idx++) {
     const auto& item = example_bucket_set.items[bucket_idx];
 
