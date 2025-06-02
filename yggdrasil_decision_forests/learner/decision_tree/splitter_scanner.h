@@ -612,6 +612,8 @@ void FillExampleBucketSet(
     const typename ExampleBucketSet::FeatureBucketType::Filler& feature_filler,
     const typename ExampleBucketSet::LabelBucketType::Filler& label_filler,
     ExampleBucketSet* example_bucket_set, PerThreadCacheV2* cache) {
+  // IDK what the Cache does
+  
   // Allocate the buckets.
   example_bucket_set->items.resize(feature_filler.NumBuckets());
 
@@ -653,8 +655,6 @@ void FillExampleBucketSet(
   static_assert(!(ExampleBucketSet::FeatureBucketType::kRequireSorting &&
                   require_label_sorting),
                 "Bucket require sorting");
-  
-  // int ariel;
 
   //  Sort the buckets.
   if constexpr (ExampleBucketSet::FeatureBucketType::kRequireSorting) {
@@ -664,9 +664,6 @@ void FillExampleBucketSet(
               example_bucket_set->items.end(),
               typename ExampleBucketSet::ExampleBucketType::SortFeature());
   }
-  // else {
-  //   ariel = 2;
-  // }
 
   if constexpr (require_label_sorting) {
     std::sort(example_bucket_set->items.begin(),
@@ -758,6 +755,7 @@ SplitSearchResult ScanSplits(
   // Loop over buckets
   // This fn. takes no time = don't care
   for (int bucket_idx = 0; bucket_idx < end_bucket_idx; bucket_idx++) {
+    // Ariel: this assumes example_bucket_set are sorted - we can simply try indices here
     const auto& item = example_bucket_set.items[bucket_idx];
 
 #ifdef YDF_DEBUG_PRINT_SPLIT
@@ -888,6 +886,7 @@ SplitSearchResult ScanSplitsCustomOrder(
     PerThreadCacheV2* cache) {
   using FeatureBucketType = typename ExampleBucketSet::FeatureBucketType;
 
+  /* #region Sanity Checks */
   if (example_bucket_set.items.size() <= 1) {
     return SplitSearchResult::kInvalidAttribute;
   }
@@ -897,6 +896,7 @@ SplitSearchResult ScanSplitsCustomOrder(
           example_bucket_set.items.back().feature)) {
     return SplitSearchResult::kInvalidAttribute;
   }
+  /* #endregion */
 
   // Initialize the accumulators.
   // Initially, all the buckets are in the positive accumulators.
@@ -1351,12 +1351,13 @@ SplitSearchResult FindBestSplit(
   ExampleBucketSet& example_set_accumulator =
       *GetCachedExampleBucketSet<ExampleBucketSet>(cache);
 
-  // TODO PRIORITY Ariel: This takes a bunch of time - 15-20% on its own
+  // PRIORITY Ariel: This takes a bunch of time - 15-20% on its own
   // Sorting within takes 45%!
   FillExampleBucketSet<ExampleBucketSet, require_label_sorting>(
       selected_examples, feature_filler, label_filler, &example_set_accumulator,
       cache);
 
+  // TODO Ariel - create ScanSplitsIndex to use sorted indices in example_set_accumulator, not literal
   return ScanSplits<ExampleBucketSet, LabelBucketSet, bucket_interpolation>(
       feature_filler, initializer, example_set_accumulator,
       selected_examples.size(), min_num_obs, attribute_idx, condition, cache);
