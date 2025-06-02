@@ -62,8 +62,7 @@
 #include "absl/base/attributes.h"
 #include "absl/types/span.h"
 #include "yggdrasil_decision_forests/dataset/types.h"
-// Ariel - I commented out. Doesn't seem to be used here
-// #include "yggdrasil_decision_forests/dataset/vertical_dataset.h"
+
 #include "yggdrasil_decision_forests/learner/decision_tree/preprocessing.h"
 #include "yggdrasil_decision_forests/learner/decision_tree/splitter_accumulator.h"
 #include "yggdrasil_decision_forests/learner/decision_tree/uplift.h"
@@ -76,6 +75,8 @@
 namespace yggdrasil_decision_forests {
 namespace model {
 namespace decision_tree {
+
+/* #region Templated ExampleBucket() */
 
 // TODO: Explain the expected signature of FeatureBucket and LabelBucket.
 template <typename FeatureBucket, typename LabelBucket>
@@ -388,6 +389,8 @@ struct PerThreadCacheV2 {
   std::vector<int> categorical_attribute;
 };
 
+/* #endregion */
+
 // Get the example bucket set from the thread cache.
 template <typename ExampleBucketSet>
 auto* GetCachedExampleBucketSet(PerThreadCacheV2* cache) {
@@ -621,11 +624,11 @@ void FillExampleBucketSet(
     bucket_idx++;
   }
 
-  // TODO Ariel - this never prints anything, so selected_examples always =1??
-  for (int i=0; i<selected_examples.size(); i++) {
-    if (i != selected_examples[i])
-     {std::cout << "i: " << i;}
-    }
+  // // TODO Ariel - this never prints anything, so selected_examples always =1??
+  // for (int i=0; i<selected_examples.size(); i++) {
+  //   if (i != selected_examples[i])
+  //    {std::cout << "i: " << i;}
+  //   }
   
   // Fill the buckets.
   for (size_t select_idx = 0; select_idx < selected_examples.size(); select_idx++) {
@@ -651,19 +654,19 @@ void FillExampleBucketSet(
                   require_label_sorting),
                 "Bucket require sorting");
   
-  int ariel;
+  // int ariel;
 
   //  Sort the buckets.
   if constexpr (ExampleBucketSet::FeatureBucketType::kRequireSorting) {
     // Ariel: Sorting done here!
-    ariel = 1;
+    // ariel = 1;
     std::sort(example_bucket_set->items.begin(),
               example_bucket_set->items.end(),
               typename ExampleBucketSet::ExampleBucketType::SortFeature());
   }
-  else {
-    ariel = 2;
-  }
+  // else {
+  //   ariel = 2;
+  // }
 
   if constexpr (require_label_sorting) {
     std::sort(example_bucket_set->items.begin(),
@@ -672,10 +675,8 @@ void FillExampleBucketSet(
   }
 }
 
-/*
-  If not Weighted: Return preponderance of Binary labels
-  Else, scale by Weight
-*/
+//  If not Weighted: Return preponderance of Binary labels
+//  Else, scale by Weight
 template <typename LabelScoreAccumulator, typename Initializer>
 ABSL_ATTRIBUTE_ALWAYS_INLINE double Score(const Initializer& initializer,
                                           const double weighted_num_examples,
@@ -1351,6 +1352,7 @@ SplitSearchResult FindBestSplit(
       *GetCachedExampleBucketSet<ExampleBucketSet>(cache);
 
   // TODO PRIORITY Ariel: This takes a bunch of time - 15-20% on its own
+  // Sorting within takes 45%!
   FillExampleBucketSet<ExampleBucketSet, require_label_sorting>(
       selected_examples, feature_filler, label_filler, &example_set_accumulator,
       cache);
@@ -1397,8 +1399,8 @@ void AddLabelBucket(const ExampleBucketSet& src, ExampleBucketSet* dst) {
   }
 }
 
-// Pre-defined ExampleBucketSets
 
+/* #region Many FindBestSplit() based on ML Task */
 // Label: Regression.
 
 template <bool weighted>
@@ -1626,6 +1628,8 @@ constexpr auto FindBestSplit_LabelUpliftNumericalFeatureCategoricalCart =
 constexpr auto FindBestSplit_LabelUpliftNumericalFeatureCategoricalRandom =
     FindBestSplitRandom<FeatureCategoricalLabelUpliftNumerical,
                         LabelUpliftNumericalScoreAccumulator>;
+
+/*#endregion*/                        
 
 }  // namespace decision_tree
 }  // namespace model
