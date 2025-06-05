@@ -76,8 +76,6 @@ namespace yggdrasil_decision_forests {
 namespace model {
 namespace decision_tree {
 
-/* #region Templated ExampleBucket() */
-
 // TODO: Explain the expected signature of FeatureBucket and LabelBucket.
 template <typename FeatureBucket, typename LabelBucket>
 struct ExampleBucket {
@@ -108,6 +106,8 @@ struct ExampleBucketSet {
   using FeatureBucketType = typename ExampleBucket::FeatureBucketType;
   using LabelBucketType = typename ExampleBucket::LabelBucketType;
 };
+
+/* #region Templated ExampleBucket() */
 
 // Used bucket sets.
 
@@ -626,11 +626,7 @@ void FillExampleBucketSet(
     bucket_idx++;
   }
 
-  // // TODO Ariel - this never prints anything, so selected_examples always =1??
-  // for (int i=0; i<selected_examples.size(); i++) {
-  //   if (i != selected_examples[i])
-  //    {std::cout << "i: " << i;}
-  //   }
+  // // TODO Already sort data (by feature, paired w/ Label), then assign to Buckets
   
   // Fill the buckets.
   for (size_t select_idx = 0; select_idx < selected_examples.size(); select_idx++) {
