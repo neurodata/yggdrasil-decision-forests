@@ -226,10 +226,18 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   for (int proj_idx = 0; proj_idx < num_projections; ++proj_idx) {
     int8_t monotonic = 0;
 
+    auto start = std::chrono::high_resolution_clock::now();
+
     // Sample a projection.
     SampleProjection(config_link.numerical_features(), dt_config,
                      train_dataset.data_spec(), config_link, projection_density,
                      &current_projection, &monotonic, random);
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> dur = end - start;
+    std::cout << "\n\nSampleProjection took: " << dur.count() << "s\n";
+
+
 
     if (ENABLE_PROJECTION_MATRIX_LOGGING) {
       for (const auto& item : current_projection) {
@@ -241,9 +249,16 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
       }
     }
 
+    start = std::chrono::high_resolution_clock::now();
     
     RETURN_IF_ERROR( // Applies the projection linear fn. to the data: x1+x3-x4 ... f: R^(bag x nnz) -> R^bag
       projection_evaluator.Evaluate(current_projection, selected_examples, &projection_values));
+
+    end = std::chrono::high_resolution_clock::now();
+    dur = end - start;
+    std::cout << "ApplyProjection took: " << dur.count() << "s\n";
+
+    start = std::chrono::high_resolution_clock::now();
 
     ASSIGN_OR_RETURN( // Find a split along this hyperplane and Score it.
         const auto result,
@@ -252,6 +267,10 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
                            current_projection.front().attribute_idx,
                            constraints, monotonic,
                            best_condition, cache));
+                          
+    end = std::chrono::high_resolution_clock::now();
+    dur = end - start;
+    std::cout << "EvaluateProjection took: " << dur.count() << "s\n\n\n";
 
     if (result == SplitSearchResult::kBetterSplitFound) {
       best_projection = current_projection;
