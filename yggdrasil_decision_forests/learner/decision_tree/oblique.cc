@@ -153,6 +153,8 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     utils::RandomEngine* random,
     SplitterPerThreadCache* cache) {
 
+  auto start = std::chrono::high_resolution_clock::now();
+
   /* #region Initializations */
 
   ENABLE_PROJECTION_MATRIX_LOGGING = false;
@@ -216,6 +218,10 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   }
 
   /* #endregion */
+
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> dur = end - start;
+  std::cout << "\n Initialization of FindBestCondOblique Took: " << dur.count() << "s\n";
 
   // std::cout << "Num projections: " << num_projections << "\n";
   // remove this outside of profiling!!
@@ -281,6 +287,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
 
   /* #endregion */
 
+  start = std::chrono::high_resolution_clock::now();
   /* #region Post-Processing - unimportant for runtime */
 
   // Save projection matrix to file if desired
@@ -309,8 +316,17 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   if (!best_projection.empty()) {
     RETURN_IF_ERROR(SetCondition(best_projection, best_threshold,
                                  train_dataset.data_spec(), best_condition));
+
+    end = std::chrono::high_resolution_clock::now();
+    dur = end - start;
+    std::cout << "\n FindBestOblique - SetCond Took: " << dur.count() << "s\n";
     return true;
   }
+
+  end = std::chrono::high_resolution_clock::now();
+  dur = end - start;
+  std::cout << "\n FindBestCondOblique - non-SetCond Took: " << dur.count() << "s\n";
+  
   return false;
 
   /* #endregion */

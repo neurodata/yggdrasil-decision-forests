@@ -630,7 +630,7 @@ void FillExampleBucketSet(
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> dur = end - start;
-  std::cout << "\nBucket Allocation & Initialization=0 took: " << dur.count() << "s\n";
+  std::cout << "\n - - Bucket Allocation & Initialization=0 took: " << dur.count() << "s\n";
 
   // // TODO Already sort data (by feature, paired w/ Label), then assign to Buckets
   
@@ -658,7 +658,7 @@ void FillExampleBucketSet(
 
   end = std::chrono::high_resolution_clock::now();
   dur = end - start;
-  std::cout << "Filling & Finalizing the Buckets took: " << dur.count() << "s\n";
+  std::cout << " - - Filling & Finalizing the Buckets took: " << dur.count() << "s\n";
 
   static_assert(!(ExampleBucketSet::FeatureBucketType::kRequireSorting &&
                   require_label_sorting),
@@ -678,7 +678,7 @@ void FillExampleBucketSet(
 
   end = std::chrono::high_resolution_clock::now();
   dur = end - start;
-  std::cout << "SortFeature took: " << dur.count() << "s\n\n";
+  std::cout << " - - SortFeature took: " << dur.count() << "s\n\n";
 
   if constexpr (require_label_sorting) {
     std::sort(example_bucket_set->items.begin(),

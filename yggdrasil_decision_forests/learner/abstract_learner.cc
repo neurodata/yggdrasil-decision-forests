@@ -345,15 +345,15 @@ namespace yggdrasil_decision_forests
                                     GetMetadataWithDefaults(training_config()),
                                     train_dataset.nrow());
       const auto begin_training = absl::Now();
-      auto start_time = std::chrono::high_resolution_clock::now();
+      // auto start_time = std::chrono::high_resolution_clock::now();
 
       // For Random Forests, implemented in learner/random_forest.cc
       ASSIGN_OR_RETURN(auto model,
                        TrainWithStatusImpl(train_dataset, valid_dataset));
 
-      auto end_time = std::chrono::high_resolution_clock::now();
-      std::chrono::duration<double> duration = end_time - start_time;
-      std::cout << "\nAriel Training time: " << duration.count() << " seconds\n" << std::endl;
+      // auto end_time = std::chrono::high_resolution_clock::now();
+      // std::chrono::duration<double> duration = end_time - start_time;
+      // std::cout << "\nAriel Training time: " << duration.count() << " seconds\n" << std::endl;
 
       utils::usage::OnTrainingEnd(train_dataset.data_spec(), training_config(),
                                   train_dataset.nrow(), *model,
@@ -448,13 +448,13 @@ namespace yggdrasil_decision_forests
         valid_dataset = valid_dataset_data;
       }
 
-      auto start_time = std::chrono::high_resolution_clock::now();
+      // auto start_time = std::chrono::high_resolution_clock::now();
 
       auto train_result = TrainWithStatusImpl(train_dataset, valid_dataset);
 
-      auto end_time = std::chrono::high_resolution_clock::now();
-      std::chrono::duration<double> duration = end_time - start_time;
-      std::cout << "\nAriel Training time: " << duration.count() << " seconds\n" << std::endl;
+      // auto end_time = std::chrono::high_resolution_clock::now();
+      // std::chrono::duration<double> duration = end_time - start_time;
+      // std::cout << "\nAriel Training time: " << duration.count() << " seconds\n" << std::endl;
 
       return train_result;
     }

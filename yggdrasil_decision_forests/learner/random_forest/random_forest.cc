@@ -396,6 +396,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
           std::optional<std::reference_wrapper<const dataset::VerticalDataset>> valid_dataset) const
       {
         const auto begin_training = absl::Now();
+        auto start = std::chrono::high_resolution_clock::now();
 
         // Timeout in the tree training.
         std::optional<absl::Time> timeout;
@@ -469,22 +470,18 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
         /* #endregion */
 
-
-
         std::vector<float> weights;
 
         // Ariel: I think this is what Jovo was referring to - bagging is done as weights
         // Determines if the training code supports `weights` to be empty if
         // all the examples have the same weight. This triggers special handling for
         // improved performance.
-        //
+        
         // This feature is not supported for uplifting.
         bool use_optimized_unit_weights = true;
         if (training_config().task() == model::proto::Task::CATEGORICAL_UPLIFT ||
             training_config().task() == model::proto::Task::NUMERICAL_UPLIFT)
-        {
-          use_optimized_unit_weights = false;
-        }
+            { use_optimized_unit_weights = false; }
  
         // TODO Ariel: Use this as mask to vectorize (?)
         RETURN_IF_ERROR(dataset::GetWeights(train_dataset, config_link, &weights, use_optimized_unit_weights));
@@ -494,6 +491,10 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                              train_dataset, config_with_default, config_link,
                              rf_config.decision_tree(), deployment_.num_threads()
                             ));
+
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> dur = end - start;
+        std::cout << "\n Preprocess training dataset Took: " << dur.count() << "s\n";
 
         std::vector<const dataset::VerticalDataset::NumericalVectorSequenceColumn *>
             vector_sequence_columns(train_dataset.ncol(), nullptr);
@@ -959,6 +960,8 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
           }
         }
 
+        /* #region Check error end conditions */
+
         if (training_stopped_early)
         {
           // Remove the non-trained trees.
@@ -997,6 +1000,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                   concurrent_fields.num_nodes_completed_trees[num_trees_to_keep];
               num_trees_to_keep++;
             }
+
             if (num_trees_to_keep == 0)
             {
               return absl::InvalidArgumentError(absl::StrCat(
@@ -1037,6 +1041,8 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
               oob_predictions, rf_config.export_oob_prediction_path()));
         }
 
+        /* #endregion */
+
         // Cache the structural variable importance in the model data.
         RETURN_IF_ERROR(mdl->PrecomputeVariableImportances(
             mdl->AvailableStructuralVariableImportances()));
@@ -1044,9 +1050,8 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         decision_tree::SetLeafIndices(mdl->mutable_decision_trees());
 
         if (vector_sequence_computer)
-        {
-          RETURN_IF_ERROR(vector_sequence_computer->Release());
-        }
+            { RETURN_IF_ERROR(vector_sequence_computer->Release()); }
+        
         return std::move(mdl);
       }
 
