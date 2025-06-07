@@ -1382,7 +1382,7 @@ SplitSearchResult FindBestSplit(
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> dur = end - start;
-  std::cout << "\n - FillExampleBucketSet (all of above) took: " << dur.count() << "s\n\n";
+  std::cout << "\n - FillExampleBucketSet (calls 3 above) took: " << dur.count() << "s\n\n";
 
   start = std::chrono::high_resolution_clock::now();
 

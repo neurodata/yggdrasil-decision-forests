@@ -664,8 +664,14 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         {
           yggdrasil_decision_forests::utils::concurrency::ThreadPool pool(deployment().num_threads(), {.name_prefix = std::string("TrainRF")});
 
+
+          std::cout << "\nnum_threads being used: " << deployment().num_threads() << "\n";
+
+
           pool.StartWorkers();
           for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++) {
+
+            std::cout << "\nStarting work for Tree " << tree_idx << ":\n";
             
             pool.Schedule([&, tree_idx]() {
 
@@ -791,7 +797,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
                   end = std::chrono::high_resolution_clock::now();
                   dur = end - start;
-                  std::cout << "\n------- Whole DT Train Took: " << dur.count() << "s ------- \n\n";
+                  std::cout << "\nDecisionTree::Train() alone Took: " << dur.count() << "s\n\n";
 
                   start = std::chrono::high_resolution_clock::now();
 
@@ -1080,7 +1086,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
         end = std::chrono::high_resolution_clock::now();
         dur = end - start;
-        std::cout << "\nPost-processing after Train Took: " << dur.count() << "s\n";
+        std::cout << "\nPost-processing after Train Took: " << dur.count() << "s\n\n";
         
         /* --- std::move(mdl) doesn't seem to take any time - Omitted ---
         end = std::chrono::high_resolution_clock::now();
