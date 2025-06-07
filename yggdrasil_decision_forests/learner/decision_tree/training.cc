@@ -5027,6 +5027,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
       SelectedExamplesRollingBuffer selected_examples,
       std::optional<SelectedExamplesRollingBuffer> leaf_examples)
   {
+    bool enable_timing = false;
     auto nodetrain_start = std::chrono::high_resolution_clock::now();
 
     /* #region Exit Conditions */
@@ -5072,7 +5073,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> dur = end - nodetrain_start;
-    std::cout << "\n NodeTrain Exit cond. eval Took: " << dur.count() << "s\n";
+    if (enable_timing)
+      { std::cout << "\n NodeTrain Exit cond. eval Took: " << dur.count() << "s\n"; }
 
     // If not exit - Train
 
@@ -5128,7 +5130,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
-    std::cout << "\n NodeTrain deal w/ Missing Data Took: " << dur.count() << "s\n";
+    if (enable_timing)
+     { std::cout << "\n NodeTrain deal w/ Missing Data Took: " << dur.count() << "s\n"; }
 
     start = std::chrono::high_resolution_clock::now();
 
@@ -5145,7 +5148,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
-    std::cout << "\n Whole of FindBestCondition took: " << dur.count() << "s\n";
+    if (enable_timing)
+    { std::cout << "\n Whole of FindBestCondition took: " << dur.count() << "s\n"; }
 
     start = std::chrono::high_resolution_clock::now();
 
@@ -5238,7 +5242,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
-    std::cout << "\n NodeTrain Finalization took: " << dur.count() << "s\n";
+    if (enable_timing)
+    { std::cout << "\n NodeTrain Finalization took: " << dur.count() << "s\n"; }
 
     /**************** RECURSE LEFT & RIGHT ****************/
 
@@ -5266,7 +5271,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
     end = std::chrono::high_resolution_clock::now();
     dur = end - nodetrain_start;
-    std::cout << "\n Whole of NodeTrain took: " << dur.count() << "s\n";         
+    if (enable_timing)
+     { std::cout << "\n Whole of NodeTrain took: " << dur.count() << "s\n";          }
 
     return absl::OkStatus();
   }

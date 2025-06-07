@@ -221,7 +221,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> dur = end - start;
-  std::cout << "\n Initialization of FindBestCondOblique Took: " << dur.count() << "s\n";
+  std::cout << "\n - Initialization of FindBestCondOblique Took: " << dur.count() << "s\n";
 
   // std::cout << "Num projections: " << num_projections << "\n";
   // remove this outside of profiling!!
@@ -241,7 +241,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> dur = end - start;
-    std::cout << "\n\nSampleProjection took: " << dur.count() << "s\n";
+    std::cout << "\n\n - SampleProjection took: " << dur.count() << "s\n";
 
 
 
@@ -262,7 +262,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
 
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
-    std::cout << "ApplyProjection took: " << dur.count() << "s\n";
+    std::cout << " - ApplyProjection took: " << dur.count() << "s\n";
 
     start = std::chrono::high_resolution_clock::now();
 
@@ -276,7 +276,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
                           
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
-    std::cout << "EvaluateProjection took: " << dur.count() << "s\n\n\n";
+    std::cout << " - EvaluateProjection took: " << dur.count() << "s\n\n\n";
 
     if (result == SplitSearchResult::kBetterSplitFound) {
       best_projection = current_projection;
@@ -287,7 +287,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
 
   /* #endregion */
 
-  start = std::chrono::high_resolution_clock::now();
+  // start = std::chrono::high_resolution_clock::now();
   /* #region Post-Processing - unimportant for runtime */
 
   // Save projection matrix to file if desired
@@ -317,9 +317,10 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     RETURN_IF_ERROR(SetCondition(best_projection, best_threshold,
                                  train_dataset.data_spec(), best_condition));
 
-    end = std::chrono::high_resolution_clock::now();
-    dur = end - start;
-    std::cout << "\n FindBestOblique - SetCond Took: " << dur.count() << "s\n";
+    // e-06 for 512k x 1k
+    // end = std::chrono::high_resolution_clock::now();
+    // dur = end - start;
+    // std::cout << "\nFindBestCondOblique::SetCond() Took: " << dur.count() << "s\n";
     return true;
   }
 

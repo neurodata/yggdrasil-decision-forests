@@ -659,13 +659,14 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         // as to make sure it is not released before "pool".
         std::atomic<int> num_trained_trees{0};
         const absl::Time begin_tree_grow = absl::Now();
+
+        /****** #region FINALLY, START TRAINING ******/
         {
           yggdrasil_decision_forests::utils::concurrency::ThreadPool pool(deployment().num_threads(), {.name_prefix = std::string("TrainRF")});
 
           pool.StartWorkers();
-          for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++)
-          {
-            // ***** Finally, initiate training *****
+          for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++) {
+            
             pool.Schedule([&, tree_idx]() {
 
                   /* #region Exit Conditions */
@@ -732,8 +733,11 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                   // TODO: Cache. - TODO Ariel this may be good for performance optimization
                   std::vector<UnsignedExampleIdx> selected_examples;
 
-                  // ******** Ariel - bootstrap sampling decided here ********
                   auto& decision_tree = (*mdl->mutable_decision_trees())[tree_idx];
+
+                  start = std::chrono::high_resolution_clock::now();
+
+                  // Ariel - bootstrap sampling decided here 
                   if (rf_config.bootstrap_training_dataset()) {
                     if (!rf_config.sampling_with_replacement() &&
                         rf_config.bootstrap_size_ratio() == 1.f) {
@@ -766,24 +770,35 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                     std::iota(selected_examples.begin(), selected_examples.end(), 0);
                   }
 
+                  end = std::chrono::high_resolution_clock::now();
+                  dur = end - start;
+                  std::cout << "\nSelecting Bootstrapped Samples Took: " << dur.count() << "s\n";
+
                   decision_tree::InternalTrainConfig internal_config;
                   internal_config.preprocessing = &preprocessing;
                   internal_config.timeout = timeout;
-                  if (vector_sequence_computer) {
-                    internal_config.vector_sequence_computer =
-                        vector_sequence_computer.get();
-                  }
+                  if (vector_sequence_computer)
+                    { internal_config.vector_sequence_computer = vector_sequence_computer.get(); }
 
-                  // Ariel: Decision Tree Training starts here
+                  start = std::chrono::high_resolution_clock::now();
+
+                  // Ariel: Training starts here
                   auto status_train = decision_tree::Train(
                       train_dataset, selected_examples, config_with_default, config_link,
                       rf_config.decision_tree(), deployment(), weights, &random,
                       decision_tree.get(), internal_config
                     );
 
-                  // TODO Ariel Interesting: Synchronization
+                  end = std::chrono::high_resolution_clock::now();
+                  dur = end - start;
+                  std::cout << "\n------- Whole DT Train Took: " << dur.count() << "s ------- \n\n";
+
+                  start = std::chrono::high_resolution_clock::now();
+
                   int current_num_trained_trees;
+                  /* #region Synchronization & progress measuring - # nodes trained */
                   {
+                    // Ariel: Synchronization
                     utils::concurrency::MutexLock lock(&concurrent_fields.mutex);
                     concurrent_fields.status.Update(status_train);
                     if (!concurrent_fields.status.ok()) {
@@ -791,6 +806,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                       return;
                     }
 
+                    // If a tree exceeds memory, reset
                     if (training_config().has_maximum_model_size_in_memory_in_bytes()) {
                       const auto tree_size_in_bytes =
                           decision_tree->EstimateModelSizeInBytes();
@@ -816,20 +832,21 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
                     current_num_trained_trees = ++num_trained_trees;
 
-                    if (rf_config.total_max_num_nodes() > 0) {
+                    // Ariel: Some sort of progress measuring
+                    if (rf_config.total_max_num_nodes() > 0) 
+                    {
                       concurrent_fields.num_nodes_completed_trees[tree_idx] =
                           decision_tree->NumNodes();
-                      while (concurrent_fields.next_tree_idx_to_account <
-                                concurrent_fields.num_nodes_completed_trees.size() &&
-                            concurrent_fields.num_nodes_completed_trees
-                                    [concurrent_fields.next_tree_idx_to_account] >= 0) {
-                        concurrent_fields.total_num_nodes_accounted +=
-                            concurrent_fields.num_nodes_completed_trees
-                                [concurrent_fields.next_tree_idx_to_account];
+                      while (concurrent_fields.next_tree_idx_to_account < concurrent_fields.num_nodes_completed_trees.size()
+                             &&
+                            concurrent_fields.num_nodes_completed_trees[concurrent_fields.next_tree_idx_to_account] >= 0)
+                      {
+                        concurrent_fields.total_num_nodes_accounted +=  concurrent_fields.num_nodes_completed_trees[concurrent_fields.next_tree_idx_to_account];
                         concurrent_fields.next_tree_idx_to_account++;
                       }
                     }
                   }
+                  /* #endregion */
 
                   // Note: Since the batch size is only impacting the training time (i.e.
                   // the oob computation), and since the adaptive work manager assumes a
@@ -845,7 +862,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                         absl::ToDoubleSeconds(absl::Now() - begin_single_tree));
                   }
 
-                  // General logging
+                  /* #region General logging */
                   const auto build_common_snippet = [&]() -> std::string {
                     std::string snippet =
                         absl::StrFormat("Train tree %d/%d", current_num_trained_trees,
@@ -873,8 +890,9 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                                           tree_idx, since_start, time_per_tree);
                     return snippet;
                   };
+                  /* #endregion */
 
-                  // OOB Metrics.
+                  /* #region OOB Metrics. */
                   if (compute_oob_performances) {
                     utils::concurrency::MutexLock lock(&oob_metrics_mutex);
                     // Update the prediction accumulator.
@@ -955,10 +973,14 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                   } else {
                     LOG_EVERY_N_SEC(INFO, 20)
                         << build_common_snippet() << build_common_snippet_extra();
-                  } }
+                  } 
+                  /* #endregion */
+                  }
       );
           }
         }
+
+        /* #endregion */
 
         /* #region Check error end conditions */
 
@@ -1051,8 +1073,22 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
         if (vector_sequence_computer)
             { RETURN_IF_ERROR(vector_sequence_computer->Release()); }
+
+        // start = std::chrono::high_resolution_clock::now();
+
+        auto return_val = std::move(mdl);
+
+        end = std::chrono::high_resolution_clock::now();
+        dur = end - start;
+        std::cout << "\nPost-processing after Train Took: " << dur.count() << "s\n";
         
-        return std::move(mdl);
+        /* --- std::move(mdl) doesn't seem to take any time - Omitted ---
+        end = std::chrono::high_resolution_clock::now();
+        dur = end - start;
+        std::cout << "\nstd::move mdl Took: " << dur.count() << "s\n";
+        */
+        
+        return return_val;
       }
 
       namespace internal

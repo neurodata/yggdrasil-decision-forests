@@ -678,7 +678,7 @@ void FillExampleBucketSet(
 
   end = std::chrono::high_resolution_clock::now();
   dur = end - start;
-  std::cout << " - - SortFeature took: " << dur.count() << "s\n\n";
+  std::cout << " - - SortFeature took: " << dur.count() << "s";
 
   if constexpr (require_label_sorting) {
     std::sort(example_bucket_set->items.begin(),
@@ -1382,7 +1382,7 @@ SplitSearchResult FindBestSplit(
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> dur = end - start;
-  std::cout << "\n - FillExampleBucketSet took: " << dur.count() << "s\n";
+  std::cout << "\n - FillExampleBucketSet (all of above) took: " << dur.count() << "s\n\n";
 
   start = std::chrono::high_resolution_clock::now();
 
