@@ -19,6 +19,10 @@
 #include "yggdrasil_decision_forests/utils/status_macros.h"
 #include "yggdrasil_decision_forests/utils/filesystem.h"
 
+#include <random>
+#include "absl/random/random.h"          // BitGen (xoshiro)
+#include "absl/random/distributions.h"   // Gaussian()
+
 // Input mode flag: "csv", "synthetic", or "tfrecord"
 ABSL_FLAG(std::string, input_mode, "csv",
           "Data input mode: csv, synthetic, or tfrecord.");
@@ -74,6 +78,47 @@ dataset::proto::DataSpecification MakeSyntheticSpec(
   spec.set_created_num_rows(rows);
   return spec;
 }
+
+
+
+dataset::VerticalDataset MakeSyntheticDatasetFast(
+    const dataset::proto::DataSpecification& spec,
+    int64_t rows, int cols, int label_mod,
+    uint32_t seed, int num_threads /* new */) {
+
+  dataset::VerticalDataset ds;
+  ds.set_data_spec(spec);
+  CHECK_OK(ds.CreateColumnsFromDataspec());
+  ds.Resize(rows);
+
+  // -------------  NUMERICAL FEATURES  -------------
+  // One column is completely independent of another → easy to parallelise.
+  // #pragma omp parallel for schedule(static) num_threads(num_threads)
+  for (int c = 0; c < cols; ++c) {
+    // ---- icx-friendly seeding --------------------------------------------
+    std::uint32_t s = seed + static_cast<std::uint32_t>(c);
+    std::seed_seq seq{ s };           // SeedSequence with one 32-bit word
+    absl::BitGen gen(seq);            // OK for every compiler
+    // -----------------------------------------------------------------------
+
+    auto* v = ds.MutableColumnWithCast<
+        dataset::VerticalDataset::NumericalColumn>(c)->mutable_values();
+    for (auto& x : *v) x = absl::Gaussian<float>(gen);
+  }
+
+  // -------------  CATEGORICAL LABELS  -------------
+  auto* ycol = ds.MutableColumnWithCast<
+      dataset::VerticalDataset::CategoricalColumn>(cols);
+  auto* yval = ycol->mutable_values();
+
+  // #pragma omp parallel for schedule(static) num_threads(num_threads)
+  for (int64_t i = 0; i < rows; ++i) {
+    (*yval)[i] = static_cast<int>((i % label_mod) + 1);   // 1-based
+  }
+
+  return ds;
+}
+
 
 // Generate synthetic dataset
 dataset::VerticalDataset MakeSyntheticDataset(
@@ -144,12 +189,13 @@ int main(int argc, char** argv) {
         absl::GetFlag(FLAGS_rows),
         absl::GetFlag(FLAGS_label_mod),
         label_col);
-    auto ds = MakeSyntheticDataset(
+    auto ds = MakeSyntheticDatasetFast(
         data_spec,
         absl::GetFlag(FLAGS_rows),
         absl::GetFlag(FLAGS_cols),
         absl::GetFlag(FLAGS_label_mod),
-        absl::GetFlag(FLAGS_seed));
+        absl::GetFlag(FLAGS_seed),
+        8); // n_threads for RNG
     // Ownership
     tf_ds = std::make_unique<dataset::VerticalDataset>(std::move(ds));
     ds_ptr = tf_ds.get();
