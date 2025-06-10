@@ -24,6 +24,8 @@
 #include "absl/random/random.h"          // BitGen (xoshiro)
 #include "absl/random/distributions.h"   // Gaussian()
 
+
+/* #region ABSL Flags */
 // Input mode flag: "csv", "synthetic", or "tfrecord"
 ABSL_FLAG(std::string, input_mode, "csv",
           "Data input mode: csv, synthetic, or tfrecord.");
@@ -62,6 +64,8 @@ ABSL_FLAG(uint32_t, seed, 1234,
 
 using namespace yggdrasil_decision_forests;
 
+/* #endregion */
+
 // Build a DataSpecification for synthetic data
 dataset::proto::DataSpecification MakeSyntheticSpec(
     int cols, int64_t rows, int label_mod, const std::string &label_col) {
@@ -82,11 +86,12 @@ dataset::proto::DataSpecification MakeSyntheticSpec(
 
 
 
-dataset::VerticalDataset MakeSyntheticDatasetFast(
+dataset::VerticalDataset MakeSyntheticDataset(
     const dataset::proto::DataSpecification& spec,
     int64_t rows, int cols, int label_mod,
-    uint32_t seed, int num_threads /* new */) {
+    uint32_t seed) {
 
+  int num_threads = 8;
   dataset::VerticalDataset ds;
   ds.set_data_spec(spec);
   CHECK_OK(ds.CreateColumnsFromDataspec());
@@ -94,7 +99,9 @@ dataset::VerticalDataset MakeSyntheticDatasetFast(
 
   // -------------  NUMERICAL FEATURES  -------------
   // One column is completely independent of another → easy to parallelise.
-  #pragma omp parallel for schedule(static) num_threads(num_threads)
+
+  // Haven't managed to get this to work. It compiles, but still runs single-threaded
+  // #pragma omp parallel for schedule(static) num_threads(num_threads)
   for (int c = 0; c < cols; ++c) {
     // ---- icx-friendly seeding --------------------------------------------
     std::uint32_t s = seed + static_cast<std::uint32_t>(c);
@@ -112,7 +119,7 @@ dataset::VerticalDataset MakeSyntheticDatasetFast(
       dataset::VerticalDataset::CategoricalColumn>(cols);
   auto* yval = ycol->mutable_values();
 
-  #pragma omp parallel for schedule(static) num_threads(num_threads)
+  // #pragma omp parallel for schedule(static) num_threads(num_threads)
   for (int64_t i = 0; i < rows; ++i) {
     (*yval)[i] = static_cast<int>((i % label_mod) + 1);   // 1-based
   }
@@ -120,36 +127,6 @@ dataset::VerticalDataset MakeSyntheticDatasetFast(
   return ds;
 }
 
-
-// Generate synthetic dataset
-dataset::VerticalDataset MakeSyntheticDataset(
-    const dataset::proto::DataSpecification& spec,
-    int64_t rows, int cols, int label_mod, uint32_t seed) {
-  dataset::VerticalDataset ds;
-  ds.set_data_spec(spec);
-  CHECK_OK(ds.CreateColumnsFromDataspec());
-  ds.Resize(rows);
-
-  std::mt19937 rng(seed);
-  std::normal_distribution<float> N(0.f, 1.f);
-
-  for (int c = 0; c < cols; ++c) {
-    auto* col = ds.MutableColumnWithCast<
-        dataset::VerticalDataset::NumericalColumn>(c);
-    auto* v = col->mutable_values();
-    for (int64_t i = 0; i < rows; ++i) (*v)[i] = N(rng);
-  }
-
-  // Categorical labels
-  auto* ycol = ds.MutableColumnWithCast<
-      dataset::VerticalDataset::CategoricalColumn>(cols);
-  auto* yval = ycol->mutable_values();
-  for (int64_t i = 0; i < rows; ++i) {
-    (*yval)[i] = static_cast<int>((i % label_mod) + 1);  // 1-based indexing
-  }
-
-  return ds;
-}
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
@@ -190,13 +167,12 @@ int main(int argc, char** argv) {
         absl::GetFlag(FLAGS_rows),
         absl::GetFlag(FLAGS_label_mod),
         label_col);
-    auto ds = MakeSyntheticDatasetFast(
+    auto ds = MakeSyntheticDataset(
         data_spec,
         absl::GetFlag(FLAGS_rows),
         absl::GetFlag(FLAGS_cols),
         absl::GetFlag(FLAGS_label_mod),
-        absl::GetFlag(FLAGS_seed),
-        8); // n_threads for RNG
+        absl::GetFlag(FLAGS_seed));
     // Ownership
     tf_ds = std::make_unique<dataset::VerticalDataset>(std::move(ds));
     ds_ptr = tf_ds.get();
