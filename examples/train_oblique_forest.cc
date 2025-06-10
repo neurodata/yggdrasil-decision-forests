@@ -3,6 +3,7 @@
 #include <chrono>
 #include <memory>
 #include <random>
+#include <thread>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -19,6 +20,12 @@
 #include "yggdrasil_decision_forests/utils/status_macros.h"
 #include "yggdrasil_decision_forests/utils/filesystem.h"
 
+#include <random>
+#include "absl/random/random.h"          // BitGen (xoshiro)
+#include "absl/random/distributions.h"   // Gaussian()
+
+
+/* #region ABSL Flags */
 // Input mode flag: "csv", "synthetic", or "tfrecord"
 ABSL_FLAG(std::string, input_mode, "csv",
           "Data input mode: csv, synthetic, or tfrecord.");
@@ -57,6 +64,8 @@ ABSL_FLAG(uint32_t, seed, 1234,
 
 using namespace yggdrasil_decision_forests;
 
+/* #endregion */
+
 // Build a DataSpecification for synthetic data
 dataset::proto::DataSpecification MakeSyntheticSpec(
     int cols, int64_t rows, int label_mod, const std::string &label_col) {
@@ -75,35 +84,49 @@ dataset::proto::DataSpecification MakeSyntheticSpec(
   return spec;
 }
 
-// Generate synthetic dataset
+
+
 dataset::VerticalDataset MakeSyntheticDataset(
     const dataset::proto::DataSpecification& spec,
-    int64_t rows, int cols, int label_mod, uint32_t seed) {
+    int64_t rows, int cols, int label_mod,
+    uint32_t seed) {
+
+  int num_threads = 8;
   dataset::VerticalDataset ds;
   ds.set_data_spec(spec);
   CHECK_OK(ds.CreateColumnsFromDataspec());
   ds.Resize(rows);
 
-  std::mt19937 rng(seed);
-  std::normal_distribution<float> N(0.f, 1.f);
+  // -------------  NUMERICAL FEATURES  -------------
+  // One column is completely independent of another → easy to parallelise.
 
+  // Haven't managed to get this to work. It compiles, but still runs single-threaded
+  // #pragma omp parallel for schedule(static) num_threads(num_threads)
   for (int c = 0; c < cols; ++c) {
-    auto* col = ds.MutableColumnWithCast<
-        dataset::VerticalDataset::NumericalColumn>(c);
-    auto* v = col->mutable_values();
-    for (int64_t i = 0; i < rows; ++i) (*v)[i] = N(rng);
+    // ---- icx-friendly seeding --------------------------------------------
+    std::uint32_t s = seed + static_cast<std::uint32_t>(c);
+    std::seed_seq seq{ s };           // SeedSequence with one 32-bit word
+    absl::BitGen gen(seq);            // OK for every compiler
+    // -----------------------------------------------------------------------
+
+    auto* v = ds.MutableColumnWithCast<
+        dataset::VerticalDataset::NumericalColumn>(c)->mutable_values();
+    for (auto& x : *v) x = absl::Gaussian<float>(gen);
   }
 
-  // Categorical labels
+  // -------------  CATEGORICAL LABELS  -------------
   auto* ycol = ds.MutableColumnWithCast<
       dataset::VerticalDataset::CategoricalColumn>(cols);
   auto* yval = ycol->mutable_values();
+
+  // #pragma omp parallel for schedule(static) num_threads(num_threads)
   for (int64_t i = 0; i < rows; ++i) {
-    (*yval)[i] = static_cast<int>((i % label_mod) + 1);  // 1-based indexing
+    (*yval)[i] = static_cast<int>((i % label_mod) + 1);   // 1-based
   }
 
   return ds;
 }
+
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
@@ -181,9 +204,30 @@ int main(int argc, char** argv) {
   train_config.set_label(label_col);
 
   model::proto::DeploymentConfig deploy_config;
-  if (absl::GetFlag(FLAGS_num_threads) > 0) {
-    deploy_config.set_num_threads(absl::GetFlag(FLAGS_num_threads));
+
+  /* #region Handle num_threads */
+  int num_threads_flag = absl::GetFlag(FLAGS_num_threads);
+  if (num_threads_flag > 0) {
+    std::cout << "\nRunning with " << num_threads_flag << " threads, as requested.\n";
+    deploy_config.set_num_threads(num_threads_flag);
+
+  } else if (num_threads_flag == -1) {
+    // Automatically detect number of CPUs
+    unsigned int cpu_count = std::thread::hardware_concurrency();
+    if (cpu_count == 0) {
+      cpu_count = 1;  // fallback if detection fails
+    }
+    std::cout << "-1 (automatic) threads requested. "
+              << cpu_count << " threads set.\n";
+    deploy_config.set_num_threads(cpu_count);
+
+  } else {
+    std::cerr << "Invalid value for --num_threads: "
+              << num_threads_flag
+              << ". Must be >0 for fixed threads or -1 for automatic.\n";
+    return 1;
   }
+  /* #endregion */
 
   auto& rf = *train_config.MutableExtension(
       model::random_forest::proto::random_forest_config);
