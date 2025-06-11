@@ -614,15 +614,16 @@ void FillExampleBucketSet(
     ExampleBucketSet* example_bucket_set, PerThreadCacheV2* cache) {
   // IDK what the Cache does
 
-  bool time_this_function = false;
+  bool time_this_function = true;
   auto start = std::chrono::high_resolution_clock::now();
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> dur;
   
-  if (time_this_function) {
-    auto start = std::chrono::high_resolution_clock::now();
-  }
+  // if (time_this_function) {
+  //   auto start = std::chrono::high_resolution_clock::now();
+  // }
 
+  // Init. takes practically 0 time
   // Allocate the buckets.
   example_bucket_set->items.resize(feature_filler.NumBuckets());
 
@@ -635,15 +636,16 @@ void FillExampleBucketSet(
     bucket_idx++;
   }
 
-  if (time_this_function) {
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> dur = end - start;
-    std::cout << "\n - - Bucket Allocation & Initialization=0 took: " << dur.count() << "s\n";
-  }
+  // if (time_this_function) {
+  //   auto end = std::chrono::high_resolution_clock::now();
+  //   std::chrono::duration<double> dur = end - start;
+  //   std::cout << "\n - - Bucket Allocation & Initialization=0 took: " << dur.count() << "s\n";
+  // }
 
-  // // TODO Already sort data (by feature, paired w/ Label), then assign to Buckets
+  // TODO Already sort data (by feature, paired w/ Label), then assign to Buckets
   
   // Fill the buckets.
+  // Also takes practically 0 time
   for (size_t select_idx = 0; select_idx < selected_examples.size(); select_idx++) {
     // Get an example
     // Ariel: my for {} above suggests select_idx = i always
@@ -658,20 +660,21 @@ void FillExampleBucketSet(
     label_filler.ConsumeExample(example_idx, &bucket.label);
   }
 
-  if (time_this_function) {
-    start = std::chrono::high_resolution_clock::now();
-  }
+  // if (time_this_function) {
+  //   start = std::chrono::high_resolution_clock::now();
+  // }
 
   // Finalize the buckets.
+  // Takes essentially 0 time
   for (auto& bucket : example_bucket_set->items) {
     label_filler.Finalize(&bucket.label);
   }
 
-  if (time_this_function) {
-    end = std::chrono::high_resolution_clock::now();
-    dur = end - start;
-    std::cout << " - - Filling & Finalizing the Buckets took: " << dur.count() << "s\n";
-  }
+  // if (time_this_function) {
+  //   end = std::chrono::high_resolution_clock::now();
+  //   dur = end - start;
+  //   std::cout << " - - Filling & Finalizing the Buckets took: " << dur.count() << "s\n";
+  // }
 
   static_assert(!(ExampleBucketSet::FeatureBucketType::kRequireSorting &&
                   require_label_sorting),
@@ -693,7 +696,7 @@ void FillExampleBucketSet(
   if (time_this_function) {
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
-    std::cout << " - - SortFeature took: " << dur.count() << "s";
+    std::cout << " - - SortFeature took: " << dur.count() << "s\n";
   }
 
   if constexpr (require_label_sorting) {
@@ -1378,7 +1381,7 @@ SplitSearchResult FindBestSplit(
     proto::NodeCondition* condition, PerThreadCacheV2* cache) {
   DCHECK(condition != nullptr);
 
-  bool time_this_function = false;
+  bool time_this_function = true;
 
   // Create buckets. - takes practically 0 time
   ExampleBucketSet& example_set_accumulator =
@@ -1388,9 +1391,9 @@ SplitSearchResult FindBestSplit(
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> dur;
 
-  if (time_this_function) {
-    auto start = std::chrono::high_resolution_clock::now();
-  }
+  // if (time_this_function) {
+  //   auto start = std::chrono::high_resolution_clock::now();
+  // }
 
   // PRIORITY Ariel: This takes a bunch of time - 15-20% on its own
   // Sorting within takes 45%!
@@ -1398,11 +1401,11 @@ SplitSearchResult FindBestSplit(
       selected_examples, feature_filler, label_filler, &example_set_accumulator,
       cache);
 
-  if (time_this_function) {
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> dur = end - start;
-    std::cout << "\n - FillExampleBucketSet (calls 3 above) took: " << dur.count() << "s\n\n";
-  }
+  // if (time_this_function) {
+  //   auto end = std::chrono::high_resolution_clock::now();
+  //   std::chrono::duration<double> dur = end - start;
+  //   std::cout << "\n - FillExampleBucketSet (calls 3 above) took: " << dur.count() << "s\n\n";
+  // }
 
   if (time_this_function) {
     start = std::chrono::high_resolution_clock::now();
