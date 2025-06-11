@@ -665,13 +665,13 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
           yggdrasil_decision_forests::utils::concurrency::ThreadPool pool(deployment().num_threads(), {.name_prefix = std::string("TrainRF")});
 
 
-          std::cout << "\nnum_threads being used: " << deployment().num_threads() << "\n";
+          // std::cout << "\nnum_threads being used: " << deployment().num_threads() << "\n";
 
 
           pool.StartWorkers();
           for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++) {
 
-            std::cout << "\nStarting work for Tree " << tree_idx << ":\n";
+            // std::cout << "\nStarting work for Tree " << tree_idx << ":\n";
             
             pool.Schedule([&, tree_idx]() {
 
