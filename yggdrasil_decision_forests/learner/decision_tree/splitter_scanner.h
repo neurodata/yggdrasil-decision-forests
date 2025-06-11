@@ -614,6 +614,7 @@ void FillExampleBucketSet(
     ExampleBucketSet* example_bucket_set, PerThreadCacheV2* cache) {
   // IDK what the Cache does
 
+  // TODO make this a constexpr or use Abseil::log
   bool time_this_function = true;
   auto start = std::chrono::high_resolution_clock::now();
   auto end = std::chrono::high_resolution_clock::now();

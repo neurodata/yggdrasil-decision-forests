@@ -60,9 +60,10 @@ using Projection = internal::Projection;
 using ProjectionEvaluator = internal::ProjectionEvaluator;
 using LDACache = internal::LDACache;
 
-}  // namespace
+}
 
 
+// TODO make this a constexpr or use Abseil::log
 static bool ENABLE_PROJECTION_MATRIX_LOGGING;
 
 // TODO Ariel - important for access pattern
