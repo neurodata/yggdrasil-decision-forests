@@ -229,61 +229,65 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   // std::cout << "Hard coded 1000 projections! " << num_projections << "\n";
 
   /* #region ----------  MAIN LOOP  ------------------ */
+  // 1. Declare accumulators
+  std::chrono::duration<double> total_sample_proj_time{0};
+  std::chrono::duration<double> total_apply_proj_time{0};
+  std::chrono::duration<double> total_eval_proj_time{0};
+
   for (int proj_idx = 0; proj_idx < num_projections; ++proj_idx) {
-    int8_t monotonic = 0;
+      int8_t monotonic = 0;
 
-    auto start = std::chrono::high_resolution_clock::now();
+      // 2a. SampleProjection timing
+      auto start = std::chrono::high_resolution_clock::now();
+      SampleProjection(config_link.numerical_features(), dt_config,
+                      train_dataset.data_spec(), config_link, projection_density,
+                      &current_projection, &monotonic, random);
+      auto dur = std::chrono::high_resolution_clock::now() - start;
+      total_sample_proj_time += dur;
 
-    // Sample a projection.
-    SampleProjection(config_link.numerical_features(), dt_config,
-                     train_dataset.data_spec(), config_link, projection_density,
-                     &current_projection, &monotonic, random);
+      // (optional) your logging block…
 
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> dur = end - start;
-    std::cout << "\n\n - SampleProjection took: " << dur.count() << "s\n";
+      // 2b. ApplyProjection timing
+      start = std::chrono::high_resolution_clock::now();
+      RETURN_IF_ERROR(
+        projection_evaluator.Evaluate(current_projection, selected_examples, &projection_values)
+      );
+      dur = std::chrono::high_resolution_clock::now() - start;
+      total_apply_proj_time += dur;
 
+      // 2b. ApplyProjection timing
+      start = std::chrono::high_resolution_clock::now();
+      RETURN_IF_ERROR(
+        projection_evaluator.Evaluate(current_projection, selected_examples, &projection_values)
+      );
+      dur = std::chrono::high_resolution_clock::now() - start;
+      total_apply_proj_time += dur;
 
+      // 2c. EvaluateProjection timing
+      start = std::chrono::high_resolution_clock::now();
+      ASSIGN_OR_RETURN(
+          const auto split_result,
+          EvaluateProjection(dt_config, label_stats, dense_idxs, selected_weights,
+                            selected_labels, projection_values, internal_config,
+                            current_projection.front().attribute_idx,
+                            constraints, monotonic,
+                            best_condition, cache)
+      );
+      dur = std::chrono::high_resolution_clock::now() - start;
+      total_eval_proj_time += dur;
 
-    if (ENABLE_PROJECTION_MATRIX_LOGGING) {
-      for (const auto& item : current_projection) {
-        const auto begin = config_link.numerical_features().begin();
-        const int col = std::distance(
-            begin, std::find(begin, config_link.numerical_features().end(),
-                             item.attribute_idx));
-        matrix[proj_idx][col] = item.weight;
+      if (split_result == SplitSearchResult::kBetterSplitFound) {
+        best_projection = current_projection;
+        best_threshold =
+            best_condition->condition().higher_condition().threshold();
       }
-    }
-
-    start = std::chrono::high_resolution_clock::now();
-    
-    RETURN_IF_ERROR( // Applies the projection linear fn. to the data: x1+x3-x4 ... f: R^(bag x nnz) -> R^bag
-      projection_evaluator.Evaluate(current_projection, selected_examples, &projection_values));
-
-    end = std::chrono::high_resolution_clock::now();
-    dur = end - start;
-    std::cout << " - ApplyProjection took: " << dur.count() << "s\n";
-
-    start = std::chrono::high_resolution_clock::now();
-
-    ASSIGN_OR_RETURN( // Find a split along this hyperplane and Score it.
-        const auto result,
-        EvaluateProjection(dt_config, label_stats, dense_idxs, selected_weights,
-                           selected_labels, projection_values, internal_config,
-                           current_projection.front().attribute_idx,
-                           constraints, monotonic,
-                           best_condition, cache));
-                          
-    end = std::chrono::high_resolution_clock::now();
-    dur = end - start;
-    std::cout << " - EvaluateProjection took: " << dur.count() << "s\n\n\n";
-
-    if (result == SplitSearchResult::kBetterSplitFound) {
-      best_projection = current_projection;
-      best_threshold =
-          best_condition->condition().higher_condition().threshold();
-    }
   }
+
+// 3. Print the aggregated timing
+std::cout << "\n=== Timing summary for " << num_projections << " projections ===\n"
+          << "SampleProjection:  " << total_sample_proj_time.count() << "s\n"
+          << "ApplyProjection:   " << total_apply_proj_time.count()  << "s\n"
+          << "EvaluateProjection:" << total_eval_proj_time.count()  << "s\n";
 
   /* #endregion */
 

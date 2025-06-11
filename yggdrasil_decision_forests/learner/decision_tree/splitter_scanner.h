@@ -613,9 +613,16 @@ void FillExampleBucketSet(
     const typename ExampleBucketSet::LabelBucketType::Filler& label_filler,
     ExampleBucketSet* example_bucket_set, PerThreadCacheV2* cache) {
   // IDK what the Cache does
-  
+
+  bool time_this_function = false;
   auto start = std::chrono::high_resolution_clock::now();
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> dur;
   
+  if (time_this_function) {
+    auto start = std::chrono::high_resolution_clock::now();
+  }
+
   // Allocate the buckets.
   example_bucket_set->items.resize(feature_filler.NumBuckets());
 
@@ -628,9 +635,11 @@ void FillExampleBucketSet(
     bucket_idx++;
   }
 
-  auto end = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> dur = end - start;
-  std::cout << "\n - - Bucket Allocation & Initialization=0 took: " << dur.count() << "s\n";
+  if (time_this_function) {
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> dur = end - start;
+    std::cout << "\n - - Bucket Allocation & Initialization=0 took: " << dur.count() << "s\n";
+  }
 
   // // TODO Already sort data (by feature, paired w/ Label), then assign to Buckets
   
@@ -649,23 +658,28 @@ void FillExampleBucketSet(
     label_filler.ConsumeExample(example_idx, &bucket.label);
   }
 
-  start = std::chrono::high_resolution_clock::now();
+  if (time_this_function) {
+    start = std::chrono::high_resolution_clock::now();
+  }
 
   // Finalize the buckets.
   for (auto& bucket : example_bucket_set->items) {
     label_filler.Finalize(&bucket.label);
   }
 
-  end = std::chrono::high_resolution_clock::now();
-  dur = end - start;
-  std::cout << " - - Filling & Finalizing the Buckets took: " << dur.count() << "s\n";
+  if (time_this_function) {
+    end = std::chrono::high_resolution_clock::now();
+    dur = end - start;
+    std::cout << " - - Filling & Finalizing the Buckets took: " << dur.count() << "s\n";
+  }
 
   static_assert(!(ExampleBucketSet::FeatureBucketType::kRequireSorting &&
                   require_label_sorting),
                 "Bucket require sorting");
 
-
-  start = std::chrono::high_resolution_clock::now();
+  if (time_this_function) {
+    start = std::chrono::high_resolution_clock::now();
+  }
 
   //  Sort the buckets.
   if constexpr (ExampleBucketSet::FeatureBucketType::kRequireSorting) {
@@ -676,9 +690,11 @@ void FillExampleBucketSet(
               typename ExampleBucketSet::ExampleBucketType::SortFeature());
   }
 
-  end = std::chrono::high_resolution_clock::now();
-  dur = end - start;
-  std::cout << " - - SortFeature took: " << dur.count() << "s";
+  if (time_this_function) {
+    end = std::chrono::high_resolution_clock::now();
+    dur = end - start;
+    std::cout << " - - SortFeature took: " << dur.count() << "s";
+  }
 
   if constexpr (require_label_sorting) {
     std::sort(example_bucket_set->items.begin(),
@@ -1362,17 +1378,19 @@ SplitSearchResult FindBestSplit(
     proto::NodeCondition* condition, PerThreadCacheV2* cache) {
   DCHECK(condition != nullptr);
 
-  // auto start = std::chrono::high_resolution_clock::now();
+  bool time_this_function = false;
 
-  // Create buckets.
+  // Create buckets. - takes practically 0 time
   ExampleBucketSet& example_set_accumulator =
       *GetCachedExampleBucketSet<ExampleBucketSet>(cache);
 
-  // auto end = std::chrono::high_resolution_clock::now();
-  // std::chrono::duration<double> dur = end - start;
-  // std::cout << "GetCachedExampleBucketSet took: " << dur.count() << "s\n";
-
   auto start = std::chrono::high_resolution_clock::now();
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> dur;
+
+  if (time_this_function) {
+    auto start = std::chrono::high_resolution_clock::now();
+  }
 
   // PRIORITY Ariel: This takes a bunch of time - 15-20% on its own
   // Sorting within takes 45%!
@@ -1380,19 +1398,24 @@ SplitSearchResult FindBestSplit(
       selected_examples, feature_filler, label_filler, &example_set_accumulator,
       cache);
 
-  auto end = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> dur = end - start;
-  std::cout << "\n - FillExampleBucketSet (calls 3 above) took: " << dur.count() << "s\n\n";
+  if (time_this_function) {
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> dur = end - start;
+    std::cout << "\n - FillExampleBucketSet (calls 3 above) took: " << dur.count() << "s\n\n";
+  }
 
-  start = std::chrono::high_resolution_clock::now();
-
+  if (time_this_function) {
+    start = std::chrono::high_resolution_clock::now();
+  }
   auto scan_splits_result = ScanSplits<ExampleBucketSet, LabelBucketSet, bucket_interpolation>(
       feature_filler, initializer, example_set_accumulator,
       selected_examples.size(), min_num_obs, attribute_idx, condition, cache);
 
-  end = std::chrono::high_resolution_clock::now();
-  dur = end - start;
-  std::cout << " - ScanSplits took: " << dur.count() << "s\n\n";
+  if (time_this_function) {
+    end = std::chrono::high_resolution_clock::now();
+    dur = end - start;
+    std::cout << " - ScanSplits took: " << dur.count() << "s\n\n";
+  }
 
   return scan_splits_result;
 }
