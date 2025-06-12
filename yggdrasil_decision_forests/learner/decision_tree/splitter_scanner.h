@@ -76,6 +76,8 @@ namespace yggdrasil_decision_forests {
 namespace model {
 namespace decision_tree {
 
+static constexpr bool MEASURE_CHRONO_TIMES = true;
+
 // TODO: Explain the expected signature of FeatureBucket and LabelBucket.
 template <typename FeatureBucket, typename LabelBucket>
 struct ExampleBucket {
@@ -614,22 +616,16 @@ void FillExampleBucketSet(
     ExampleBucketSet* example_bucket_set, PerThreadCacheV2* cache) {
   // IDK what the Cache does
 
-  // TODO make this a constexpr or use Abseil::log
-  bool time_this_function = true;
-  auto start = std::chrono::high_resolution_clock::now();
-  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::high_resolution_clock::time_point start, end;
   std::chrono::duration<double> dur;
-  
-  // if (time_this_function) {
-  //   auto start = std::chrono::high_resolution_clock::now();
-  // }
 
-  // Init. takes practically 0 time
+  // Init. takes practically 0 time - time logic removed
   // Allocate the buckets.
   example_bucket_set->items.resize(feature_filler.NumBuckets());
 
   // Initialize and Zero the buckets.
   // Initially n_buckets = n. samples in bag
+  // Ariel: also practically takes 0 time. prints removed
   int bucket_idx = 0;
   for (auto& bucket : example_bucket_set->items) {
     feature_filler.InitializeAndZero(bucket_idx, &bucket.feature);
@@ -637,13 +633,7 @@ void FillExampleBucketSet(
     bucket_idx++;
   }
 
-  // if (time_this_function) {
-  //   auto end = std::chrono::high_resolution_clock::now();
-  //   std::chrono::duration<double> dur = end - start;
-  //   std::cout << "\n - - Bucket Allocation & Initialization=0 took: " << dur.count() << "s\n";
-  // }
-
-  // TODO Already sort data (by feature, paired w/ Label), then assign to Buckets
+  // TODO TRY Already sort data (by feature, paired w/ Label), then assign to Buckets
   
   // Fill the buckets.
   // Also takes practically 0 time
@@ -661,40 +651,29 @@ void FillExampleBucketSet(
     label_filler.ConsumeExample(example_idx, &bucket.label);
   }
 
-  // if (time_this_function) {
-  //   start = std::chrono::high_resolution_clock::now();
-  // }
-
   // Finalize the buckets.
   // Takes essentially 0 time
   for (auto& bucket : example_bucket_set->items) {
     label_filler.Finalize(&bucket.label);
   }
 
-  // if (time_this_function) {
-  //   end = std::chrono::high_resolution_clock::now();
-  //   dur = end - start;
-  //   std::cout << " - - Filling & Finalizing the Buckets took: " << dur.count() << "s\n";
-  // }
-
   static_assert(!(ExampleBucketSet::FeatureBucketType::kRequireSorting &&
                   require_label_sorting),
                 "Bucket require sorting");
 
-  if (time_this_function) {
+  if constexpr (MEASURE_CHRONO_TIMES) {
     start = std::chrono::high_resolution_clock::now();
   }
 
   //  Sort the buckets.
   if constexpr (ExampleBucketSet::FeatureBucketType::kRequireSorting) {
     // Ariel: Sorting done here!
-    // ariel = 1;
     std::sort(example_bucket_set->items.begin(),
               example_bucket_set->items.end(),
               typename ExampleBucketSet::ExampleBucketType::SortFeature());
   }
 
-  if (time_this_function) {
+  if constexpr (MEASURE_CHRONO_TIMES) {
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
     std::cout << " - - SortFeature took: " << dur.count() << "s\n";

@@ -63,8 +63,9 @@ using LDACache = internal::LDACache;
 }
 
 
-// TODO make this a constexpr or use Abseil::log
-static bool ENABLE_PROJECTION_MATRIX_LOGGING;
+static constexpr bool ENABLE_PROJECTION_MATRIX_LOGGING = false;
+// Already in splitter_scanner.h . Apparently it carries from all the way there
+// static constexpr bool MEASURE_CHRONO_TIMES = true;
 
 // TODO Ariel - important for access pattern
 /* #region Extract() - select out vector Indices at positions */
@@ -154,11 +155,13 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     utils::RandomEngine* random,
     SplitterPerThreadCache* cache) {
 
-  auto start = std::chrono::high_resolution_clock::now();
-
   /* #region Initializations */
-
-  ENABLE_PROJECTION_MATRIX_LOGGING = false;
+    
+  std::chrono::high_resolution_clock::time_point start, end;
+  std::chrono::duration<double> dur;
+  if constexpr (MEASURE_CHRONO_TIMES) {
+      start = std::chrono::high_resolution_clock::now();
+  }
 
   // ---------- basic sanity‑checks --------------------
   if (!weights.empty()) {
@@ -208,7 +211,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   std::ofstream log;
   std::vector<std::vector<float>> matrix;
 
-  if (ENABLE_PROJECTION_MATRIX_LOGGING) {
+  if constexpr (ENABLE_PROJECTION_MATRIX_LOGGING) {
     if (first_call) {
       log.open("ariel_results/projection_matrices.txt", std::ios::trunc);
       first_call = false;
@@ -220,9 +223,11 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
 
   /* #endregion */
 
-  auto end = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> dur = end - start;
-  std::cout << "\n - Initialization of FindBestCondOblique Took: " << dur.count() << "s\n";
+  if constexpr (MEASURE_CHRONO_TIMES) {
+    end = std::chrono::high_resolution_clock::now();
+    dur = end - start;
+    std::cout << "\n - Initialization of FindBestCondOblique Took: " << dur.count() << "s\n";
+  }
 
   // std::cout << "Num projections: " << num_projections << "\n";
   // remove this outside of profiling!!
@@ -239,33 +244,30 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
       int8_t monotonic = 0;
 
       // 2a. SampleProjection timing
-      auto start = std::chrono::high_resolution_clock::now();
+      if constexpr (MEASURE_CHRONO_TIMES) {
+        start = std::chrono::high_resolution_clock::now();
+      }
       SampleProjection(config_link.numerical_features(), dt_config,
                       train_dataset.data_spec(), config_link, projection_density,
                       &current_projection, &monotonic, random);
-      auto dur = std::chrono::high_resolution_clock::now() - start;
-      total_sample_proj_time += dur;
+      
+      if constexpr (MEASURE_CHRONO_TIMES) {
+        dur = std::chrono::high_resolution_clock::now() - start;
+        total_sample_proj_time += dur;
 
-      // (optional) your logging block…
-
-      // 2b. ApplyProjection timing
-      start = std::chrono::high_resolution_clock::now();
+        // 2b. ApplyProjection timing
+        start = std::chrono::high_resolution_clock::now();
+      }
       RETURN_IF_ERROR(
         projection_evaluator.Evaluate(current_projection, selected_examples, &projection_values)
       );
-      dur = std::chrono::high_resolution_clock::now() - start;
-      total_apply_proj_time += dur;
+      if constexpr (MEASURE_CHRONO_TIMES) {
+        dur = std::chrono::high_resolution_clock::now() - start;
+        total_apply_proj_time += dur;
 
-      // 2b. ApplyProjection timing
-      start = std::chrono::high_resolution_clock::now();
-      RETURN_IF_ERROR(
-        projection_evaluator.Evaluate(current_projection, selected_examples, &projection_values)
-      );
-      dur = std::chrono::high_resolution_clock::now() - start;
-      total_apply_proj_time += dur;
-
-      // 2c. EvaluateProjection timing
-      start = std::chrono::high_resolution_clock::now();
+        // 2c. EvaluateProjection timing
+        start = std::chrono::high_resolution_clock::now();
+      }
       ASSIGN_OR_RETURN(
           const auto split_result,
           EvaluateProjection(dt_config, label_stats, dense_idxs, selected_weights,
@@ -274,8 +276,10 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
                             constraints, monotonic,
                             best_condition, cache)
       );
-      dur = std::chrono::high_resolution_clock::now() - start;
-      total_eval_proj_time += dur;
+      if constexpr (MEASURE_CHRONO_TIMES) {
+        dur = std::chrono::high_resolution_clock::now() - start;
+        total_eval_proj_time += dur;
+      }
 
       if (split_result == SplitSearchResult::kBetterSplitFound) {
         best_projection = current_projection;
@@ -284,11 +288,10 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
       }
   }
 
-// 3. Print the aggregated timing
-std::cout << "\n=== Timing summary for " << num_projections << " projections ===\n"
-          << "SampleProjection:  " << total_sample_proj_time.count() << "s\n"
-          << "ApplyProjection:   " << total_apply_proj_time.count()  << "s\n"
-          << "EvaluateProjection:" << total_eval_proj_time.count()  << "s\n";
+  std::cout << "\n=== Timing summary for " << num_projections << " projections ===\n"
+            << "SampleProjection:  " << total_sample_proj_time.count() << "s\n"
+            << "ApplyProjection:   " << total_apply_proj_time.count()  << "s\n"
+            << "EvaluateProjection:" << total_eval_proj_time.count()  << "s\n";
 
   /* #endregion */
 
@@ -296,7 +299,7 @@ std::cout << "\n=== Timing summary for " << num_projections << " projections ===
   /* #region Post-Processing - unimportant for runtime */
 
   // Save projection matrix to file if desired
-  if (ENABLE_PROJECTION_MATRIX_LOGGING) {
+  if constexpr (ENABLE_PROJECTION_MATRIX_LOGGING) {
     log << "Node " << node_counter++ << " | "
         << num_projections << " projections × "
         << num_features << " features\n";
@@ -329,9 +332,11 @@ std::cout << "\n=== Timing summary for " << num_projections << " projections ===
     return true;
   }
 
-  end = std::chrono::high_resolution_clock::now();
-  dur = end - start;
-  std::cout << "\n FindBestCondOblique - non-SetCond Took: " << dur.count() << "s\n";
+  if constexpr (MEASURE_CHRONO_TIMES) {
+    end = std::chrono::high_resolution_clock::now();
+    dur = end - start;
+    std::cout << "\n FindBestCondOblique - non-SetCond Took: " << dur.count() << "s\n";
+  }
   
   return false;
 
