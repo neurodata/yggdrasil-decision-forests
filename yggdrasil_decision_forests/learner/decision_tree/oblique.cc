@@ -288,10 +288,12 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
       }
   }
 
+  if constexpr (MEASURE_CHRONO_TIMES) {
   std::cout << "\n=== Timing summary for " << num_projections << " projections ===\n"
             << "SampleProjection:  " << total_sample_proj_time.count() << "s\n"
             << "ApplyProjection:   " << total_apply_proj_time.count()  << "s\n"
             << "EvaluateProjection:" << total_eval_proj_time.count()  << "s\n";
+  }
 
   /* #endregion */
 
