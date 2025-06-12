@@ -23,12 +23,15 @@ def get_args():
                     help="Number of nonzeros per projection. Default: 3")
     parser.add_argument("--threads_list", type=int, nargs="+", default=None,
                         help="List of number of threads to test, e.g. --threads_list 1 2 4 8 16 32 64")
+    parser.add_argument("--repeats", type=int, default=7,
+                        help="Number of times to repeat & avg. experiments. Default: 7")
+
     return parser.parse_args()
 
 
 # Grid definitions
 global n_values, d_values
-n_values = [128, 256, 512,1024, 2048, 4096, 8192]
+n_values = [128, 256, 512,1024]#, 2048, 4096, 8192]
 d_values = [128,256,512,1024,2048,4096]
 
 
@@ -41,6 +44,20 @@ def save_matrix(matrix, filepath, title_row=None):
         for n in n_values:
             writer.writerow([n] + [matrix[n][d] for d in d_values])
 
+
+def get_cpu_model_proc():
+    """
+    Reads /proc/cpuinfo and returns the first 'model name' value.
+    """
+    try:
+        with open("/proc/cpuinfo", "r") as f:
+            for line in f:
+                if line.startswith("model name"):
+                    # split only on the first ':' → [key, value]
+                    return line.split(":", 1)[1].strip()
+    except FileNotFoundError:
+        return "Could not access /proc/cpuinfo to get CPU model name"
+    
 
 def main():
     args = get_args()
@@ -85,7 +102,7 @@ def main():
                 f"--num_threads={thread_count}"
             ]
             time_rx = re.compile(r"Training time: ([\d.]+) seconds")
-            header = ["YDF Built from Source", "d=1000", f"nnz={args.projection_density_factor}", "trees=50", "3 repeats", "-1 depth", "<CPU>"]
+            header = ["YDF Built from Source", "d=1000", f"nnz={args.projection_density_factor}", "trees=50", f"{args.repeats} repeats", "-1 depth", get_cpu_model_proc(), f"{str(t)} thread(s)"]
 
             data_dir = "ariel_test_data/random_csvs"
             for n in n_values:
@@ -134,7 +151,7 @@ def main():
                 "--num_projections_exponent=1"
             ]
             time_rx = re.compile(r"Training wall-time: ([\d.]+)s")
-            header = ["YDF RNG-generated", "d variable", f"nnz={args.projection_density_factor}", "trees=50", "7 repeats", "-1 depth", "<CPU>"]
+            header = ["YDF Fisher-Yates", f"per-proj. nnz={args.projection_density_factor}", "trees=50", "7 repeats", "-1 depth", get_cpu_model_proc(), f"{str(t)} thread(s)"]
 
             for n in n_values:
                 for d in d_values:
