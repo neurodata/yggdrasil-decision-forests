@@ -76,7 +76,7 @@ namespace yggdrasil_decision_forests {
 namespace model {
 namespace decision_tree {
 
-static constexpr bool MEASURE_CHRONO_TIMES = true;
+static constexpr bool MEASURE_CHRONO_TIMES = false;
 
 // TODO: Explain the expected signature of FeatureBucket and LabelBucket.
 template <typename FeatureBucket, typename LabelBucket>
@@ -1359,21 +1359,17 @@ SplitSearchResult FindBestSplit(
     const typename ExampleBucketSet::LabelBucketType::Initializer& initializer,
     const int min_num_obs, const int attribute_idx,
     proto::NodeCondition* condition, PerThreadCacheV2* cache) {
-  DCHECK(condition != nullptr);
-
-  bool time_this_function = true;
+  
+      DCHECK(condition != nullptr);
+  
+      std::chrono::high_resolution_clock::time_point start, end;
+  std::chrono::duration<double> dur;
 
   // Create buckets. - takes practically 0 time
   ExampleBucketSet& example_set_accumulator =
       *GetCachedExampleBucketSet<ExampleBucketSet>(cache);
 
-  auto start = std::chrono::high_resolution_clock::now();
-  auto end = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> dur;
-
-  // if (time_this_function) {
-  //   auto start = std::chrono::high_resolution_clock::now();
-  // }
+      // if constexpr (MEASURE_CHRONO_TIMES) { start = std::chrono::high_resolution_clock::now(); }
 
   // PRIORITY Ariel: This takes a bunch of time - 15-20% on its own
   // Sorting within takes 45%!
@@ -1381,20 +1377,19 @@ SplitSearchResult FindBestSplit(
       selected_examples, feature_filler, label_filler, &example_set_accumulator,
       cache);
 
-  // if (time_this_function) {
+  // if constexpr (MEASURE_CHRONO_TIMES) {
   //   auto end = std::chrono::high_resolution_clock::now();
   //   std::chrono::duration<double> dur = end - start;
   //   std::cout << "\n - FillExampleBucketSet (calls 3 above) took: " << dur.count() << "s\n\n";
   // }
 
-  if (time_this_function) {
-    start = std::chrono::high_resolution_clock::now();
-  }
+  if constexpr (MEASURE_CHRONO_TIMES) { start = std::chrono::high_resolution_clock::now(); }
+
   auto scan_splits_result = ScanSplits<ExampleBucketSet, LabelBucketSet, bucket_interpolation>(
       feature_filler, initializer, example_set_accumulator,
       selected_examples.size(), min_num_obs, attribute_idx, condition, cache);
 
-  if (time_this_function) {
+  if constexpr (MEASURE_CHRONO_TIMES) {
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
     std::cout << " - ScanSplits took: " << dur.count() << "s\n\n";

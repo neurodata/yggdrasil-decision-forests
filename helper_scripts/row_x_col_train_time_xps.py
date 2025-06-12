@@ -15,7 +15,7 @@ logging.basicConfig(
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["csv", "synthetic"], required=True,
+    parser.add_argument("--mode", choices=["csv", "synthetic"], default="synthetic",
                         help="Experiment mode: 'csv' to load data via train_forest, 'rng' to generate via train_forest synthetic")
     parser.add_argument("--threads", type=int, default=-1,
                         help="Number of threads to use. Use -1 for all logical CPUs.")
