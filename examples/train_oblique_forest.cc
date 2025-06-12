@@ -100,6 +100,7 @@ dataset::VerticalDataset MakeSyntheticDataset(
   // -------------  NUMERICAL FEATURES  -------------
   // One column is completely independent of another → easy to parallelise.
 
+  // RNG too fast now, this doesn't matter. ~1s for 50k x 2k, algo takes >1min on even AWS 96-thread
   // Haven't managed to get this to work. It compiles, but still runs single-threaded
   // #pragma omp parallel for schedule(static) num_threads(num_threads)
   for (int c = 0; c < cols; ++c) {
