@@ -396,6 +396,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
           std::optional<std::reference_wrapper<const dataset::VerticalDataset>> valid_dataset) const
       {
         const auto begin_training = absl::Now();
+        auto start = std::chrono::high_resolution_clock::now();
 
         // Timeout in the tree training.
         std::optional<absl::Time> timeout;
@@ -469,22 +470,18 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
         /* #endregion */
 
-
-
         std::vector<float> weights;
 
         // Ariel: I think this is what Jovo was referring to - bagging is done as weights
         // Determines if the training code supports `weights` to be empty if
         // all the examples have the same weight. This triggers special handling for
         // improved performance.
-        //
+        
         // This feature is not supported for uplifting.
         bool use_optimized_unit_weights = true;
         if (training_config().task() == model::proto::Task::CATEGORICAL_UPLIFT ||
             training_config().task() == model::proto::Task::NUMERICAL_UPLIFT)
-        {
-          use_optimized_unit_weights = false;
-        }
+            { use_optimized_unit_weights = false; }
  
         // TODO Ariel: Use this as mask to vectorize (?)
         RETURN_IF_ERROR(dataset::GetWeights(train_dataset, config_link, &weights, use_optimized_unit_weights));
@@ -494,6 +491,10 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                              train_dataset, config_with_default, config_link,
                              rf_config.decision_tree(), deployment_.num_threads()
                             ));
+
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> dur = end - start;
+        std::cout << "\n Preprocess training dataset Took: " << dur.count() << "s\n";
 
         std::vector<const dataset::VerticalDataset::NumericalVectorSequenceColumn *>
             vector_sequence_columns(train_dataset.ncol(), nullptr);
@@ -658,13 +659,20 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         // as to make sure it is not released before "pool".
         std::atomic<int> num_trained_trees{0};
         const absl::Time begin_tree_grow = absl::Now();
+
+        /****** #region FINALLY, START TRAINING ******/
         {
           yggdrasil_decision_forests::utils::concurrency::ThreadPool pool(deployment().num_threads(), {.name_prefix = std::string("TrainRF")});
 
+
+          // std::cout << "\nnum_threads being used: " << deployment().num_threads() << "\n";
+
+
           pool.StartWorkers();
-          for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++)
-          {
-            // ***** Finally, initiate training *****
+          for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++) {
+
+            // std::cout << "\nStarting work for Tree " << tree_idx << ":\n";
+            
             pool.Schedule([&, tree_idx]() {
 
                   /* #region Exit Conditions */
@@ -731,8 +739,11 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                   // TODO: Cache. - TODO Ariel this may be good for performance optimization
                   std::vector<UnsignedExampleIdx> selected_examples;
 
-                  // ******** Ariel - bootstrap sampling decided here ********
                   auto& decision_tree = (*mdl->mutable_decision_trees())[tree_idx];
+
+                  start = std::chrono::high_resolution_clock::now();
+
+                  // Ariel - bootstrap sampling decided here 
                   if (rf_config.bootstrap_training_dataset()) {
                     if (!rf_config.sampling_with_replacement() &&
                         rf_config.bootstrap_size_ratio() == 1.f) {
@@ -765,24 +776,35 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                     std::iota(selected_examples.begin(), selected_examples.end(), 0);
                   }
 
+                  end = std::chrono::high_resolution_clock::now();
+                  dur = end - start;
+                  std::cout << "\nSelecting Bootstrapped Samples Took: " << dur.count() << "s\n";
+
                   decision_tree::InternalTrainConfig internal_config;
                   internal_config.preprocessing = &preprocessing;
                   internal_config.timeout = timeout;
-                  if (vector_sequence_computer) {
-                    internal_config.vector_sequence_computer =
-                        vector_sequence_computer.get();
-                  }
+                  if (vector_sequence_computer)
+                    { internal_config.vector_sequence_computer = vector_sequence_computer.get(); }
 
-                  // Ariel: Decision Tree Training starts here
+                  start = std::chrono::high_resolution_clock::now();
+
+                  // Ariel: Training starts here
                   auto status_train = decision_tree::Train(
                       train_dataset, selected_examples, config_with_default, config_link,
                       rf_config.decision_tree(), deployment(), weights, &random,
                       decision_tree.get(), internal_config
                     );
 
-                  // TODO Ariel Interesting: Synchronization
+                  end = std::chrono::high_resolution_clock::now();
+                  dur = end - start;
+                  std::cout << "\nDecisionTree::Train() alone Took: " << dur.count() << "s\n\n";
+
+                  start = std::chrono::high_resolution_clock::now();
+
                   int current_num_trained_trees;
+                  /* #region Synchronization & progress measuring - # nodes trained */
                   {
+                    // Ariel: Synchronization
                     utils::concurrency::MutexLock lock(&concurrent_fields.mutex);
                     concurrent_fields.status.Update(status_train);
                     if (!concurrent_fields.status.ok()) {
@@ -790,6 +812,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                       return;
                     }
 
+                    // If a tree exceeds memory, reset
                     if (training_config().has_maximum_model_size_in_memory_in_bytes()) {
                       const auto tree_size_in_bytes =
                           decision_tree->EstimateModelSizeInBytes();
@@ -815,20 +838,21 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
                     current_num_trained_trees = ++num_trained_trees;
 
-                    if (rf_config.total_max_num_nodes() > 0) {
+                    // Ariel: Some sort of progress measuring
+                    if (rf_config.total_max_num_nodes() > 0) 
+                    {
                       concurrent_fields.num_nodes_completed_trees[tree_idx] =
                           decision_tree->NumNodes();
-                      while (concurrent_fields.next_tree_idx_to_account <
-                                concurrent_fields.num_nodes_completed_trees.size() &&
-                            concurrent_fields.num_nodes_completed_trees
-                                    [concurrent_fields.next_tree_idx_to_account] >= 0) {
-                        concurrent_fields.total_num_nodes_accounted +=
-                            concurrent_fields.num_nodes_completed_trees
-                                [concurrent_fields.next_tree_idx_to_account];
+                      while (concurrent_fields.next_tree_idx_to_account < concurrent_fields.num_nodes_completed_trees.size()
+                             &&
+                            concurrent_fields.num_nodes_completed_trees[concurrent_fields.next_tree_idx_to_account] >= 0)
+                      {
+                        concurrent_fields.total_num_nodes_accounted +=  concurrent_fields.num_nodes_completed_trees[concurrent_fields.next_tree_idx_to_account];
                         concurrent_fields.next_tree_idx_to_account++;
                       }
                     }
                   }
+                  /* #endregion */
 
                   // Note: Since the batch size is only impacting the training time (i.e.
                   // the oob computation), and since the adaptive work manager assumes a
@@ -844,7 +868,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                         absl::ToDoubleSeconds(absl::Now() - begin_single_tree));
                   }
 
-                  // General logging
+                  /* #region General logging */
                   const auto build_common_snippet = [&]() -> std::string {
                     std::string snippet =
                         absl::StrFormat("Train tree %d/%d", current_num_trained_trees,
@@ -872,8 +896,9 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                                           tree_idx, since_start, time_per_tree);
                     return snippet;
                   };
+                  /* #endregion */
 
-                  // OOB Metrics.
+                  /* #region OOB Metrics. */
                   if (compute_oob_performances) {
                     utils::concurrency::MutexLock lock(&oob_metrics_mutex);
                     // Update the prediction accumulator.
@@ -954,10 +979,16 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                   } else {
                     LOG_EVERY_N_SEC(INFO, 20)
                         << build_common_snippet() << build_common_snippet_extra();
-                  } }
+                  } 
+                  /* #endregion */
+                  }
       );
           }
         }
+
+        /* #endregion */
+
+        /* #region Check error end conditions */
 
         if (training_stopped_early)
         {
@@ -997,6 +1028,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                   concurrent_fields.num_nodes_completed_trees[num_trees_to_keep];
               num_trees_to_keep++;
             }
+
             if (num_trees_to_keep == 0)
             {
               return absl::InvalidArgumentError(absl::StrCat(
@@ -1037,6 +1069,8 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
               oob_predictions, rf_config.export_oob_prediction_path()));
         }
 
+        /* #endregion */
+
         // Cache the structural variable importance in the model data.
         RETURN_IF_ERROR(mdl->PrecomputeVariableImportances(
             mdl->AvailableStructuralVariableImportances()));
@@ -1044,10 +1078,23 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         decision_tree::SetLeafIndices(mdl->mutable_decision_trees());
 
         if (vector_sequence_computer)
-        {
-          RETURN_IF_ERROR(vector_sequence_computer->Release());
-        }
-        return std::move(mdl);
+            { RETURN_IF_ERROR(vector_sequence_computer->Release()); }
+
+        // start = std::chrono::high_resolution_clock::now();
+
+        auto return_val = std::move(mdl);
+
+        end = std::chrono::high_resolution_clock::now();
+        dur = end - start;
+        std::cout << "\nPost-processing after Train Took: " << dur.count() << "s\n\n";
+        
+        /* --- std::move(mdl) doesn't seem to take any time - Omitted ---
+        end = std::chrono::high_resolution_clock::now();
+        dur = end - start;
+        std::cout << "\nstd::move mdl Took: " << dur.count() << "s\n";
+        */
+        
+        return return_val;
       }
 
       namespace internal

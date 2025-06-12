@@ -13,7 +13,6 @@ logging.basicConfig(
 )
 
 
-# Argument parser
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["csv", "synthetic"], required=True,

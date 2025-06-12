@@ -76,6 +76,8 @@ namespace yggdrasil_decision_forests {
 namespace model {
 namespace decision_tree {
 
+static constexpr bool MEASURE_CHRONO_TIMES = true;
+
 // TODO: Explain the expected signature of FeatureBucket and LabelBucket.
 template <typename FeatureBucket, typename LabelBucket>
 struct ExampleBucket {
@@ -613,12 +615,17 @@ void FillExampleBucketSet(
     const typename ExampleBucketSet::LabelBucketType::Filler& label_filler,
     ExampleBucketSet* example_bucket_set, PerThreadCacheV2* cache) {
   // IDK what the Cache does
-  
+
+  std::chrono::high_resolution_clock::time_point start, end;
+  std::chrono::duration<double> dur;
+
+  // Init. takes practically 0 time - time logic removed
   // Allocate the buckets.
   example_bucket_set->items.resize(feature_filler.NumBuckets());
 
   // Initialize and Zero the buckets.
   // Initially n_buckets = n. samples in bag
+  // Ariel: also practically takes 0 time. prints removed
   int bucket_idx = 0;
   for (auto& bucket : example_bucket_set->items) {
     feature_filler.InitializeAndZero(bucket_idx, &bucket.feature);
@@ -626,9 +633,10 @@ void FillExampleBucketSet(
     bucket_idx++;
   }
 
-  // // TODO Already sort data (by feature, paired w/ Label), then assign to Buckets
+  // TODO TRY Already sort data (by feature, paired w/ Label), then assign to Buckets
   
   // Fill the buckets.
+  // Also takes practically 0 time
   for (size_t select_idx = 0; select_idx < selected_examples.size(); select_idx++) {
     // Get an example
     // Ariel: my for {} above suggests select_idx = i always
@@ -644,6 +652,7 @@ void FillExampleBucketSet(
   }
 
   // Finalize the buckets.
+  // Takes essentially 0 time
   for (auto& bucket : example_bucket_set->items) {
     label_filler.Finalize(&bucket.label);
   }
@@ -652,13 +661,22 @@ void FillExampleBucketSet(
                   require_label_sorting),
                 "Bucket require sorting");
 
+  if constexpr (MEASURE_CHRONO_TIMES) {
+    start = std::chrono::high_resolution_clock::now();
+  }
+
   //  Sort the buckets.
   if constexpr (ExampleBucketSet::FeatureBucketType::kRequireSorting) {
     // Ariel: Sorting done here!
-    // ariel = 1;
     std::sort(example_bucket_set->items.begin(),
               example_bucket_set->items.end(),
               typename ExampleBucketSet::ExampleBucketType::SortFeature());
+  }
+
+  if constexpr (MEASURE_CHRONO_TIMES) {
+    end = std::chrono::high_resolution_clock::now();
+    dur = end - start;
+    std::cout << " - - SortFeature took: " << dur.count() << "s\n";
   }
 
   if constexpr (require_label_sorting) {
@@ -1343,9 +1361,19 @@ SplitSearchResult FindBestSplit(
     proto::NodeCondition* condition, PerThreadCacheV2* cache) {
   DCHECK(condition != nullptr);
 
-  // Create buckets.
+  bool time_this_function = true;
+
+  // Create buckets. - takes practically 0 time
   ExampleBucketSet& example_set_accumulator =
       *GetCachedExampleBucketSet<ExampleBucketSet>(cache);
+
+  auto start = std::chrono::high_resolution_clock::now();
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> dur;
+
+  // if (time_this_function) {
+  //   auto start = std::chrono::high_resolution_clock::now();
+  // }
 
   // PRIORITY Ariel: This takes a bunch of time - 15-20% on its own
   // Sorting within takes 45%!
@@ -1353,10 +1381,26 @@ SplitSearchResult FindBestSplit(
       selected_examples, feature_filler, label_filler, &example_set_accumulator,
       cache);
 
-  // TODO Ariel - create ScanSplitsIndex to use sorted indices in example_set_accumulator, not literal
-  return ScanSplits<ExampleBucketSet, LabelBucketSet, bucket_interpolation>(
+  // if (time_this_function) {
+  //   auto end = std::chrono::high_resolution_clock::now();
+  //   std::chrono::duration<double> dur = end - start;
+  //   std::cout << "\n - FillExampleBucketSet (calls 3 above) took: " << dur.count() << "s\n\n";
+  // }
+
+  if (time_this_function) {
+    start = std::chrono::high_resolution_clock::now();
+  }
+  auto scan_splits_result = ScanSplits<ExampleBucketSet, LabelBucketSet, bucket_interpolation>(
       feature_filler, initializer, example_set_accumulator,
       selected_examples.size(), min_num_obs, attribute_idx, condition, cache);
+
+  if (time_this_function) {
+    end = std::chrono::high_resolution_clock::now();
+    dur = end - start;
+    std::cout << " - ScanSplits took: " << dur.count() << "s\n\n";
+  }
+
+  return scan_splits_result;
 }
 
 // Find the best possible split (and update the condition accordingly) using

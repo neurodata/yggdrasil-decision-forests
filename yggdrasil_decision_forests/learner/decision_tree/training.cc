@@ -5027,6 +5027,9 @@ namespace yggdrasil_decision_forests::model::decision_tree
       SelectedExamplesRollingBuffer selected_examples,
       std::optional<SelectedExamplesRollingBuffer> leaf_examples)
   {
+    bool enable_timing = false;
+    auto nodetrain_start = std::chrono::high_resolution_clock::now();
+
     /* #region Exit Conditions */
     if (selected_examples.empty())
       { return absl::InternalError("No examples fed to the node trainer"); }
@@ -5067,6 +5070,12 @@ namespace yggdrasil_decision_forests::model::decision_tree
     }
     /* #endregion */
 
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> dur = end - nodetrain_start;
+    if (enable_timing)
+      { std::cout << "\n NodeTrain Exit cond. eval Took: " << dur.count() << "s\n"; }
+
     // If not exit - Train
 
     // In-memory transactional dataset with heterogeneous column type, stored column
@@ -5082,6 +5091,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
     // "local_train_dataset" indexed by "selected_examples" are to be considered
     // for this node i.e. local_train_dataset[selected_examples[i]].
     bool splitter_dataset_is_compact;
+
+    auto start = std::chrono::high_resolution_clock::now();
 
     /* #region  deal w/ missing data: Extract the random local imputation. Ariel Don't Care */
     dataset::VerticalDataset random_local_imputation_train_dataset;
@@ -5116,6 +5127,14 @@ namespace yggdrasil_decision_forests::model::decision_tree
     { return absl::InternalError("No examples fed to the splitter"); }
     /* #endregion */
 
+
+    end = std::chrono::high_resolution_clock::now();
+    dur = end - start;
+    if (enable_timing)
+     { std::cout << "\n NodeTrain deal w/ Missing Data Took: " << dur.count() << "s\n"; }
+
+    start = std::chrono::high_resolution_clock::now();
+
     // Initialize the search - FindBestCondition is wrapper
     ASSIGN_OR_RETURN(
         const auto has_better_condition,
@@ -5126,6 +5145,13 @@ namespace yggdrasil_decision_forests::model::decision_tree
             node->node(), internal_config, constraints,
             node->mutable_node()->mutable_condition(), random, cache)
         );
+
+    end = std::chrono::high_resolution_clock::now();
+    dur = end - start;
+    if (enable_timing)
+    { std::cout << "\n Whole of FindBestCondition took: " << dur.count() << "s\n"; }
+
+    start = std::chrono::high_resolution_clock::now();
 
     // ***** POST-PROCESS *****
     // IF better_split: split & recurse    // else: finalize as leaf
@@ -5214,6 +5240,11 @@ namespace yggdrasil_decision_forests::model::decision_tree
     }
     /* #endregion */
 
+    end = std::chrono::high_resolution_clock::now();
+    dur = end - start;
+    if (enable_timing)
+    { std::cout << "\n NodeTrain Finalization took: " << dur.count() << "s\n"; }
+
     /**************** RECURSE LEFT & RIGHT ****************/
 
     // +
@@ -5237,6 +5268,12 @@ namespace yggdrasil_decision_forests::model::decision_tree
                       ? std::optional<SelectedExamplesRollingBuffer>(
                             node_only_example_split->negative_examples)
                       : std::nullopt));
+
+    end = std::chrono::high_resolution_clock::now();
+    dur = end - nodetrain_start;
+    if (enable_timing)
+     { std::cout << "\n Whole of NodeTrain took: " << dur.count() << "s\n";          }
+
     return absl::OkStatus();
   }
 
