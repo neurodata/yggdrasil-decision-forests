@@ -32,7 +32,6 @@ n_values = [128, 256, 512,1024, 2048, 4096, 8192]
 d_values = [128,256,512,1024,2048,4096]
 
 
-# Save helper
 def save_matrix(matrix, filepath, title_row=None):
     with open(filepath, "w", newline='') as f:
         writer = csv.writer(f)
