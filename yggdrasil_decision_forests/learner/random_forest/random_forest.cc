@@ -493,7 +493,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                              rf_config.decision_tree(), deployment_.num_threads()
                             ));
 
-        if constexpr (decision_tree::MEASURE_CHRONO_TIMES) {
+        if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL) {
           end = std::chrono::high_resolution_clock::now();
           dur = end - start;
           std::cout << "\n Preprocess training dataset Took: " << dur.count() << "s\n";
@@ -744,7 +744,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
                   auto& decision_tree = (*mdl->mutable_decision_trees())[tree_idx];
 
-                  if constexpr (decision_tree::MEASURE_CHRONO_TIMES) {
+                  if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL) {
                   start = std::chrono::high_resolution_clock::now();
                   }
 
@@ -781,7 +781,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                     std::iota(selected_examples.begin(), selected_examples.end(), 0);
                   }
 
-                  if constexpr (decision_tree::MEASURE_CHRONO_TIMES) {
+                  if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL) {
                     end = std::chrono::high_resolution_clock::now();
                     dur = end - start;
                     std::cout << "\nSelecting Bootstrapped Samples Took: " << dur.count() << "s\n";
@@ -793,7 +793,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                   if (vector_sequence_computer)
                     { internal_config.vector_sequence_computer = vector_sequence_computer.get(); }
 
-                    if constexpr (decision_tree::MEASURE_CHRONO_TIMES) { start = std::chrono::high_resolution_clock::now(); }
+                    if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL) { start = std::chrono::high_resolution_clock::now(); }
 
                   // Ariel: Training starts here
                   auto status_train = decision_tree::Train(
@@ -802,7 +802,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                       decision_tree.get(), internal_config
                     );
 
-                    if constexpr (decision_tree::MEASURE_CHRONO_TIMES) {
+                    if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL) {
                       end = std::chrono::high_resolution_clock::now();
                       dur = end - start;
                       std::cout << "\nDecisionTree::Train() alone Took: " << dur.count() << "s\n\n";
@@ -1093,7 +1093,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
         auto return_val = std::move(mdl);
 
-        if constexpr (decision_tree::MEASURE_CHRONO_TIMES) {
+        if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
           end = std::chrono::high_resolution_clock::now();
           dur = end - start;
           std::cout << "\nPost-processing after Train Took: " << dur.count() << "s\n\n";

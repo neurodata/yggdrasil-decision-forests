@@ -159,7 +159,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     
   std::chrono::high_resolution_clock::time_point start, end;
   std::chrono::duration<double> dur;
-  if constexpr (MEASURE_CHRONO_TIMES) {
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
       start = std::chrono::high_resolution_clock::now();
   }
 
@@ -223,7 +223,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
 
   /* #endregion */
 
-  if constexpr (MEASURE_CHRONO_TIMES) {
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
     std::cout << "\n - Initialization of FindBestCondOblique Took: " << dur.count() << "s\n";
@@ -244,14 +244,14 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
       int8_t monotonic = 0;
 
       // 2a. SampleProjection timing
-      if constexpr (MEASURE_CHRONO_TIMES) {
+      if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
         start = std::chrono::high_resolution_clock::now();
       }
       SampleProjection(config_link.numerical_features(), dt_config,
                       train_dataset.data_spec(), config_link, projection_density,
                       &current_projection, &monotonic, random);
       
-      if constexpr (MEASURE_CHRONO_TIMES) {
+      if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
         dur = std::chrono::high_resolution_clock::now() - start;
         total_sample_proj_time += dur;
 
@@ -261,7 +261,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
       RETURN_IF_ERROR(
         projection_evaluator.Evaluate(current_projection, selected_examples, &projection_values)
       );
-      if constexpr (MEASURE_CHRONO_TIMES) {
+      if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
         dur = std::chrono::high_resolution_clock::now() - start;
         total_apply_proj_time += dur;
 
@@ -276,7 +276,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
                             constraints, monotonic,
                             best_condition, cache)
       );
-      if constexpr (MEASURE_CHRONO_TIMES) {
+      if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
         dur = std::chrono::high_resolution_clock::now() - start;
         total_eval_proj_time += dur;
       }
@@ -288,11 +288,11 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
       }
   }
 
-  if constexpr (MEASURE_CHRONO_TIMES) {
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
   std::cout << "\n=== Timing summary for " << num_projections << " projections ===\n"
             << "SampleProjection took:  " << total_sample_proj_time.count() << "s\n"
             << "ApplyProjection took:   " << total_apply_proj_time.count()  << "s\n"
-            << "EvaluateProjection took:" << total_eval_proj_time.count()  << "s\n";
+            << "EvaluateProjection took:  " << total_eval_proj_time.count()  << "s\n";
   }
 
   /* #endregion */
@@ -334,7 +334,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     return true;
   }
 
-  if constexpr (MEASURE_CHRONO_TIMES) {
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
     std::cout << "\n FindBestCondOblique - non-SetCond Took: " << dur.count() << "s\n";

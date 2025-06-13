@@ -76,7 +76,10 @@ namespace yggdrasil_decision_forests {
 namespace model {
 namespace decision_tree {
 
-static constexpr bool MEASURE_CHRONO_TIMES = false;
+// choose from {2="verbose", 1="concise", 0="none"}
+// verbose also times fns. that take ~0 time
+// none is much faster, for end-to-end timing
+static constexpr int CHRONO_MEASUREMENTS_LOG_LEVEL = 2;
 
 // TODO: Explain the expected signature of FeatureBucket and LabelBucket.
 template <typename FeatureBucket, typename LabelBucket>
@@ -619,6 +622,10 @@ void FillExampleBucketSet(
   std::chrono::high_resolution_clock::time_point start, end;
   std::chrono::duration<double> dur;
 
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
+    start = std::chrono::high_resolution_clock::now();
+  }
+
   // Init. takes practically 0 time - time logic removed
   // Allocate the buckets.
   example_bucket_set->items.resize(feature_filler.NumBuckets());
@@ -633,7 +640,17 @@ void FillExampleBucketSet(
     bucket_idx++;
   }
 
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
+    end = std::chrono::high_resolution_clock::now();
+    dur = end - start;
+    std::cout << " - - Bucket Allocation & Initialization=0 took: " << dur.count() << "s\n";
+  }
+
   // TODO TRY Already sort data (by feature, paired w/ Label), then assign to Buckets
+
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
+    start = std::chrono::high_resolution_clock::now();
+  }
   
   // Fill the buckets.
   // Also takes practically 0 time
@@ -657,11 +674,17 @@ void FillExampleBucketSet(
     label_filler.Finalize(&bucket.label);
   }
 
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
+    end = std::chrono::high_resolution_clock::now();
+    dur = end - start;
+    std::cout << " - - Filling & Finalizing the Buckets took: " << dur.count() << "s\n";
+  }
+
   static_assert(!(ExampleBucketSet::FeatureBucketType::kRequireSorting &&
                   require_label_sorting),
                 "Bucket require sorting");
 
-  if constexpr (MEASURE_CHRONO_TIMES) {
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
     start = std::chrono::high_resolution_clock::now();
   }
 
@@ -673,7 +696,7 @@ void FillExampleBucketSet(
               typename ExampleBucketSet::ExampleBucketType::SortFeature());
   }
 
-  if constexpr (MEASURE_CHRONO_TIMES) {
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
     std::cout << " - - SortFeature took: " << dur.count() << "s\n";
@@ -1369,7 +1392,7 @@ SplitSearchResult FindBestSplit(
   ExampleBucketSet& example_set_accumulator =
       *GetCachedExampleBucketSet<ExampleBucketSet>(cache);
 
-      // if constexpr (MEASURE_CHRONO_TIMES) { start = std::chrono::high_resolution_clock::now(); }
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) { start = std::chrono::high_resolution_clock::now(); }
 
   // PRIORITY Ariel: This takes a bunch of time - 15-20% on its own
   // Sorting within takes 45%!
@@ -1377,19 +1400,19 @@ SplitSearchResult FindBestSplit(
       selected_examples, feature_filler, label_filler, &example_set_accumulator,
       cache);
 
-  // if constexpr (MEASURE_CHRONO_TIMES) {
-  //   auto end = std::chrono::high_resolution_clock::now();
-  //   std::chrono::duration<double> dur = end - start;
-  //   std::cout << "\n - FillExampleBucketSet (calls 3 above) took: " << dur.count() << "s\n\n";
-  // }
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> dur = end - start;
+    std::cout << "\n - FillExampleBucketSet (calls 3 above) took: " << dur.count() << "s\n\n";
+  }
 
-  if constexpr (MEASURE_CHRONO_TIMES) { start = std::chrono::high_resolution_clock::now(); }
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
 
   auto scan_splits_result = ScanSplits<ExampleBucketSet, LabelBucketSet, bucket_interpolation>(
       feature_filler, initializer, example_set_accumulator,
       selected_examples.size(), min_num_obs, attribute_idx, condition, cache);
 
-  if constexpr (MEASURE_CHRONO_TIMES) {
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
     std::cout << " - ScanSplits took: " << dur.count() << "s\n\n";
