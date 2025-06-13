@@ -15,24 +15,31 @@ logging.basicConfig(
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["csv", "synthetic"], default="synthetic",
+    parser.add_argument("--input_mode", choices=["csv", "synthetic"], default="synthetic",
                         help="Experiment mode: 'csv' to load data via train_forest, 'rng' to generate via train_forest synthetic")
+    # Runtime params.
     parser.add_argument("--threads", type=int, default=-1,
                         help="Number of threads to use. Use -1 for all logical CPUs.")
-    parser.add_argument("--projection_density_factor", type=int, default=3,
-                    help="Number of nonzeros per projection. Default: 3")
     parser.add_argument("--threads_list", type=int, nargs="+", default=None,
                         help="List of number of threads to test, e.g. --threads_list 1 2 4 8 16 32 64")
+    parser.add_argument("--rows_list", type=int, nargs="+", default=[128, 256, 512,1024],
+                        help="List of number of rows of the input matrix to test, e.g. --rows_list 128 256 512. Default: [128, 256, 512,1024]")
+    parser.add_argument("--cols_list", type=int, nargs="+", default=[128,256,512,1024,2048,4096],
+                        help="List of number of cols of the input matrix to test, e.g. --cols_list 128 256 512. Default: [128,256,512,1024,2048,4096]")
     parser.add_argument("--repeats", type=int, default=7,
                         help="Number of times to repeat & avg. experiments. Default: 7")
+    
+    # Model params
+    parser.add_argument("--num_trees", type=int, default=50,
+                        help="Number of trees in the Random Forest. Default: 50")
+    parser.add_argument("--tree_depth", type=int, default=-1,
+                        help="Limit depth of trees in Random Forest. Default: -1 (Unlimited)")
+    parser.add_argument("--projection_density_factor", type=int, default=3,
+                    help="Number of nonzeros per projection. Default: 3")
+    parser.add_argument("--max_num_projections", type=int, default=1000,
+                    help="Maximum number of projections. WARNING: YDF doesn't always obey this! Default: 1000")
 
     return parser.parse_args()
-
-
-# Grid definitions
-global n_values, d_values
-n_values = [128, 256, 512,1024]#, 2048, 4096, 8192]
-d_values = [128,256,512,1024,2048,4096]
 
 
 def save_matrix(matrix, filepath, title_row=None):
@@ -61,6 +68,10 @@ def get_cpu_model_proc():
 
 def main():
     args = get_args()
+    # Grid definitions
+    global n_values, d_values
+    n_values = args.rows_list
+    d_values = args.cols_list
 
     # Build the list of thread configurations to run
     if args.threads_list is not None:
@@ -94,7 +105,7 @@ def main():
         with open(std_csv, "w", newline='') as f:
             csv.writer(f).writerow(["n"] + d_values)
 
-        if args.mode == "csv":
+        if args.input_mode == "csv":
             # CSV mode static args
             static_args = [
                 "--label_col=Target",
@@ -144,11 +155,10 @@ def main():
             static_args = [
                 "--label_mod=2",
                 f"--projection_density_factor={args.projection_density_factor}.0",
-                "--num_trees=50",
-                "--tree_depth=-1",
+                f"--num_trees={args.num_trees}",
+                f"--tree_depth={args.tree_depth}",
                 f"--num_threads={thread_count}",
-                "--max_num_projections=1000",
-                "--num_projections_exponent=1"
+                f"--max_num_projections={args.max_num_projections}",
             ]
             time_rx = re.compile(r"Training wall-time: ([\d.]+)s")
             header = ["YDF Fisher-Yates", f"per-proj. nnz={args.projection_density_factor}", "trees=50", "7 repeats", "-1 depth", get_cpu_model_proc(), f"{str(t)} thread(s)"]
