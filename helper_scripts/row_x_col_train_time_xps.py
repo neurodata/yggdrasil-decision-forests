@@ -125,7 +125,7 @@ def main():
                         continue
                     print(f"\nRunning on: {filename}")
                     times = []
-                    for i in range(3):
+                    for i in range(args.repeats):
                         cmd = [binary, "--input_mode=csv", f"--train_csv={path}"] + static_args
                         try:
                             out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
@@ -167,7 +167,7 @@ def main():
                 for d in d_values:
                     print(f"\nRunning: rows={n}, cols={d}")
                     times = []
-                    for i in range(7):
+                    for i in range(args.repeats):
                         cmd = [binary, "--input_mode=synthetic", f"--rows={n}", f"--cols={d}"] + static_args
                         try:
                             out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
