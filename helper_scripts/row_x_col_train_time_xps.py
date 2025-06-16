@@ -105,6 +105,8 @@ def main():
         with open(std_csv, "w", newline='') as f:
             csv.writer(f).writerow(["n"] + d_values)
 
+        header = ["YDF Fisher-Yates", f"per-proj. nnz={args.projection_density_factor}", f"trees={args.num_trees}", f"{args.num_repeats} repeats", f"{args.tree_depth} depth", get_cpu_model_proc(), f"{str(t)} thread(s)"]
+
         if args.input_mode == "csv":
             # CSV mode static args
             static_args = [
@@ -113,7 +115,7 @@ def main():
                 f"--num_threads={thread_count}"
             ]
             time_rx = re.compile(r"Training time: ([\d.]+) seconds")
-            header = ["YDF Built from Source", "d=1000", f"nnz={args.projection_density_factor}", "trees=50", f"{args.repeats} repeats", "-1 depth", get_cpu_model_proc(), f"{str(t)} thread(s)"]
+            
 
             data_dir = "ariel_test_data/random_csvs"
             for n in n_values:
@@ -161,7 +163,6 @@ def main():
                 f"--max_num_projections={args.max_num_projections}",
             ]
             time_rx = re.compile(r"Training wall-time: ([\d.]+)s")
-            header = ["YDF Fisher-Yates", f"per-proj. nnz={args.projection_density_factor}", "trees=50", "7 repeats", "-1 depth", get_cpu_model_proc(), f"{str(t)} thread(s)"]
 
             for n in n_values:
                 for d in d_values:
