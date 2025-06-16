@@ -658,11 +658,20 @@ void FillExampleBucketSet(
     std::vector<UnsignedExampleIdx> indices(selected_examples.begin(),
                                             selected_examples.end());
 
+    if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) { start = std::chrono::high_resolution_clock::now(); }
+
     std::sort(indices.begin(), indices.end(),
               [&](UnsignedExampleIdx a, UnsignedExampleIdx b) {
                 // Direct attribute access avoids constructing temp buckets.
                 return feature_filler.GetValue(a) < feature_filler.GetValue(b);
               });
+
+    if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
+      end = std::chrono::high_resolution_clock::now();
+      dur = end - start;
+      std::cout << " - - SortFeature took: "
+                << dur.count() << "s\n";
+    }
 
     if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
       start = std::chrono::high_resolution_clock::now();
