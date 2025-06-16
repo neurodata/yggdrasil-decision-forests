@@ -79,7 +79,7 @@ namespace decision_tree {
 // choose from {2="verbose", 1="concise", 0="none"}
 // verbose also times fns. that take ~0 time
 // none is much faster, for end-to-end timing
-static constexpr int CHRONO_MEASUREMENTS_LOG_LEVEL = 2;
+static constexpr int CHRONO_MEASUREMENTS_LOG_LEVEL = 0;
 
 // TODO: Explain the expected signature of FeatureBucket and LabelBucket.
 template <typename FeatureBucket, typename LabelBucket>
