@@ -105,7 +105,7 @@ def main():
         with open(std_csv, "w", newline='') as f:
             csv.writer(f).writerow(["n"] + d_values)
 
-        header = ["YDF Fisher-Yates", f"per-proj. nnz={args.projection_density_factor}", f"trees={args.num_trees}", f"{args.num_repeats} repeats", f"{args.tree_depth} depth", get_cpu_model_proc(), f"{str(t)} thread(s)"]
+        header = ["YDF Fisher-Yates", f"per-proj. nnz={args.projection_density_factor}", f"trees={args.num_trees}", f"{args.repeats} repeats", f"{args.tree_depth} depth", get_cpu_model_proc(), f"{str(t)} thread(s)"]
 
         if args.input_mode == "csv":
             # CSV mode static args
@@ -127,7 +127,7 @@ def main():
                         continue
                     print(f"\nRunning on: {filename}")
                     times = []
-                    for i in range(3):
+                    for i in range(args.repeats):
                         cmd = [binary, "--input_mode=csv", f"--train_csv={path}"] + static_args
                         try:
                             out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
@@ -168,7 +168,7 @@ def main():
                 for d in d_values:
                     print(f"\nRunning: rows={n}, cols={d}")
                     times = []
-                    for i in range(7):
+                    for i in range(args.repeats):
                         cmd = [binary, "--input_mode=synthetic", f"--rows={n}", f"--cols={d}"] + static_args
                         try:
                             out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
