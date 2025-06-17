@@ -19,8 +19,6 @@ from typing import Callable
 import pandas as pd
 import logging
 
-# ── CPU model helper (transplanted) ─────────────────────────────────────────────
-
 def get_cpu_model_proc() -> str:
     """
     Reads /proc/cpuinfo and returns the first 'model name' value, sanitized for file paths.
@@ -57,7 +55,6 @@ RENAMES = {
     "FillExampleBucketSet (calls 3 above)": "FillExampleBucketSet (next 3 calls)",
 }
 
-# ── CLI ─────────────────────────────────────────────────────────────────────────
 
 def get_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Run YDF synthetic benchmark & parse timing logs")
