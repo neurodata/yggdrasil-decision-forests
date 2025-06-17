@@ -17,6 +17,8 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_mode", choices=["csv", "synthetic"], default="synthetic",
                         help="Experiment mode: 'csv' to load data via train_forest, 'rng' to generate via train_forest synthetic")
+    parser.add_argument("--sort_method", choices=["SortFeature", "SortIndex"], default="SortFeature",
+                        help="Use SortIndex to save the results to sort_index dir instead of regular 'SortFeature'. Has no effect on C++ binary")
     # Runtime params.
     parser.add_argument("--threads", type=int, default=-1,
                         help="Number of threads to use. Use -1 for all logical CPUs.")
@@ -68,18 +70,17 @@ def get_cpu_model_proc():
 
 def main():
     args = get_args()
-    # Grid definitions
+    
     global n_values, d_values
     n_values = args.rows_list
     d_values = args.cols_list
 
-    # Build the list of thread configurations to run
     if args.threads_list is not None:
         threads_to_test = args.threads_list
     else:
         threads_to_test = [args.threads]
 
-    base_results_dir = os.path.join("ariel_results", get_cpu_model_proc())
+    base_results_dir = os.path.join("ariel_results", get_cpu_model_proc(), args.sort_method)
     os.makedirs(base_results_dir, exist_ok=True)
     binary = "./bazel-bin/examples/train_oblique_forest"
 
