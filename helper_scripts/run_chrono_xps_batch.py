@@ -61,6 +61,8 @@ def get_args() -> argparse.Namespace:
     p.add_argument("--rows", type=int, required=True, help="Rows of the synthetic input matrix")
     p.add_argument("--cols", type=int, required=True, help="Columns of the synthetic input matrix")
     p.add_argument("--repeats", type=int, default=7, help="How many experiments to run. Default: 7")
+    p.add_argument("--sort_method", choices=["SortFeature", "SortIndex"], default="SortFeature",
+                        help="Use SortIndex to save the results to sort_index dir instead of regular 'SortFeature'. Has no effect on C++ binary")
     p.add_argument(
         "--verbose",
         action="store_true",
@@ -139,7 +141,6 @@ PARSER_MAP: dict[bool, Callable[[str], pd.DataFrame]] = {
     True: parse_log_verbose,
 }
 
-# ── XLSX writer ─────────────────────────────────────────────────────────────────
 
 def save_tbl_to_xlsx(
     tbl: pd.DataFrame,
@@ -159,7 +160,7 @@ if __name__ == "__main__":
 
     # dynamic base directory based on CPU model
     base_dir = os.path.join(
-        "..", "ariel_results", "per_function_timing", get_cpu_model_proc()
+        "..", "ariel_results", "per_function_timing", get_cpu_model_proc(), args.sort_method
     )
     os.makedirs(base_dir, exist_ok=True)
 
