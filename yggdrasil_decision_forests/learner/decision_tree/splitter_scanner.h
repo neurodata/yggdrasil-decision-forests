@@ -103,6 +103,8 @@ struct ExampleBucket {
   };
 };
 
+
+// Just a std::vector<Buckets>
 template <typename ExampleBucket>
 struct ExampleBucketSet {
   std::vector<ExampleBucket> items;
@@ -394,8 +396,6 @@ struct PerThreadCacheV2 {
   std::vector<int> categorical_attribute;
 };
 
-/* #endregion */
-
 // Get the example bucket set from the thread cache.
 template <typename ExampleBucketSet>
 auto* GetCachedExampleBucketSet(PerThreadCacheV2* cache) {
@@ -610,6 +610,8 @@ auto* GetCachedLabelScoreAccumulator(const bool side, PerThreadCacheV2* cache) {
                   "Not implemented.");
   }
 }
+
+/* #endregion */
 
 
 template <typename ExampleBucketSet, bool require_label_sorting>

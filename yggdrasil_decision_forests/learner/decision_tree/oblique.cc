@@ -643,12 +643,12 @@ absl::Status EvaluateMHLDCandidates(
 
 /* #endregion */
 
-// TODO what does this do? Is this the Bootstrapped data per-feature access? Or MHLD specific?
 absl::StatusOr<std::vector<int>> SampleAttributes(
     const model::proto::TrainingConfigLinking& config_link,
     const model::proto::TrainingConfig& config,
     const proto::DecisionTreeTrainingConfig& dt_config,
     utils::RandomEngine* random) {
+      // Is this the Bootstrapped data per-feature access? Or MHLD specific?
   std::vector<int> candidate_attributes{
       config_link.numerical_features().begin(),
       config_link.numerical_features().end()};
@@ -975,7 +975,6 @@ void SampleProjection(const absl::Span<const int>& features,
 }
 
 
-// TODO interesting! Loops over items in projection
 absl::Status SetCondition(const Projection& projection, const float threshold,
                           const dataset::proto::DataSpecification& dataspec,
                           proto::NodeCondition* condition) {
@@ -1160,24 +1159,23 @@ absl::Status LDACache::GetSW(const std::vector<int>& selected_features,
 /* #endregion */
 
 
-// TODO Important - Loop over p - numerical features - selects out columns? 
 ProjectionEvaluator::ProjectionEvaluator(
     const dataset::VerticalDataset& train_dataset,
     const google::protobuf::RepeatedField<int32_t>& numerical_features) {
   DCHECK(!numerical_features.empty());
+
   const int max_feature_idx =
       *std::max_element(numerical_features.begin(), numerical_features.end());
 
   numerical_attributes_.assign(max_feature_idx + 1, nullptr);
   na_replacement_value_.assign(max_feature_idx + 1, 0.f);
 
+  // Loop over numerical features - select out columns
   for (const auto attribute_idx : numerical_features) {
     const auto column_or = train_dataset.ColumnWithCastWithStatus<
         dataset::VerticalDataset::NumericalColumn>(attribute_idx);
     constructor_status_.Update(column_or.status());
-    if (!constructor_status_.ok()) {
-      break;
-    }
+    if (!constructor_status_.ok()) { break; }
 
     numerical_attributes_[attribute_idx] = &column_or.value()->values();
     na_replacement_value_[attribute_idx] =
