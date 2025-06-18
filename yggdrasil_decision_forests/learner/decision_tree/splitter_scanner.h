@@ -81,7 +81,7 @@ namespace decision_tree {
 // none is much faster, for end-to-end timing
 static constexpr int CHRONO_MEASUREMENTS_LOG_LEVEL = 0;
 
-// TODO: Explain the expected signature of FeatureBucket and LabelBucket.
+
 template <typename FeatureBucket, typename LabelBucket>
 struct ExampleBucket {
   FeatureBucket feature;
@@ -655,11 +655,9 @@ void FillExampleBucketSet(
     start = std::chrono::high_resolution_clock::now();
   }
   
-  // Fill the buckets.
-  // Also takes practically 0 time
+  // Fill the buckets. Also takes practically 0 time
   for (size_t select_idx = 0; select_idx < selected_examples.size(); select_idx++) {
-    // Get an example
-    // Ariel: my for {} above suggests select_idx = i always
+    // Ariel TODO is example_idx always = select_idx?
     const UnsignedExampleIdx example_idx = selected_examples[select_idx];
 
     const size_t item_idx =
@@ -667,6 +665,7 @@ void FillExampleBucketSet(
 
     auto& bucket = example_bucket_set->items[item_idx];
     
+    // ConsumeExample == isnan(attributes_[example_idx])
     feature_filler.ConsumeExample(example_idx, &bucket.feature);
     label_filler.ConsumeExample(example_idx, &bucket.label);
   }
@@ -912,6 +911,9 @@ SplitSearchResult ScanSplits(
                            : SplitSearchResult::kInvalidAttribute;
   }
 }
+
+
+/* #region Custom ScanSplits functions */
 
 // Scans the buckets (similarly to "ScanSplits"), but in the order specified by
 // "bucket_order[i].second" (instead of the bucket order).
@@ -1374,6 +1376,10 @@ SplitSearchResult ScanSplitsRandomBuckets(
                            : SplitSearchResult::kInvalidAttribute;
   }
 }
+
+
+/* #endregion */
+
 
 // Find the best possible split (and update the condition accordingly) using
 // a simple "scan" of the buckets.  See "ScanSplits".
