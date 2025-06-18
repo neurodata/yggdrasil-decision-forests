@@ -196,8 +196,8 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     selected_weights = Extract(weights, selected_examples);
   }
 
-  std::vector<UnsignedExampleIdx> dense_idxs(selected_examples.size());
-  std::iota(dense_idxs.begin(), dense_idxs.end(), 0);
+  std::vector<UnsignedExampleIdx> dense_example_idxs(selected_examples.size());
+  std::iota(dense_example_idxs.begin(), dense_example_idxs.end(), 0);
 
   auto& projection_values = cache->projection_values;
 
@@ -270,7 +270,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
       }
       ASSIGN_OR_RETURN(
           const auto split_result,
-          EvaluateProjection(dt_config, label_stats, dense_idxs, selected_weights,
+          EvaluateProjection(dt_config, label_stats, dense_example_idxs, selected_weights,
                             selected_labels, projection_values, internal_config,
                             current_projection.front().attribute_idx,
                             constraints, monotonic,
