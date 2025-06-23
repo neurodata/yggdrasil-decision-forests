@@ -142,9 +142,17 @@ def parse_log_tree_depth(log: str) -> pd.DataFrame:
     rows, cur_tree, cur_depth = [], -1, None
 
     for line in log.splitlines():
-        if BOOT_RE.search(line):              # new tree begins
-            cur_tree += 1
-            cur_depth = None
+        if BOOT_RE.search(line):
+            cur_tree += 1                       # tree 0, 1, 2, …
+            m = FUNC_RE.match(line)
+            if m:
+                rows.append({
+                    "tree":     cur_tree,
+                    "depth":    0,              # put it in a pseudo-depth 0
+                    "function": m.group("name").strip(),
+                    "time_s":   float(m.group("secs")),
+                })
+            cur_depth = None                    # reset depth banner search
             continue
 
         m = DEPTH_RE.match(line.strip())      # depth banner
