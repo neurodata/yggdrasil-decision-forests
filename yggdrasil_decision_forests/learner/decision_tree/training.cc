@@ -5022,7 +5022,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
       const proto::DecisionTreeTrainingConfig &dt_config,
       const model::proto::DeploymentConfig &deployment,
       const SplitterConcurrencySetup &splitter_concurrency_setup,
-      const std::vector<float> &weights, const int32_t depth,
+      const std::vector<float> &weights,
+      const int32_t depth, // Ariel: There's already a depth parameter!
       const InternalTrainConfig &internal_config,
       const NodeConstraints &constraints, bool set_leaf_already_set,
       NodeWithChildren *node, utils::RandomEngine *random, PerThreadCache *cache,
@@ -5031,6 +5032,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
   {
     bool enable_timing = false;
     auto nodetrain_start = std::chrono::high_resolution_clock::now();
+
+    if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL > 0) { std::cout << "\n\nDepth " << depth << "\n\n"; }
 
     /* #region Exit Conditions */
     if (selected_examples.empty())
