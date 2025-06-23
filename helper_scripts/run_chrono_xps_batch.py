@@ -40,8 +40,8 @@ ORDER = [
     "Initialization of FindBestCondOblique",
     "SampleProjection",
     "ApplyProjection",
-    "ApplyProjection w/o Sort",
-    "Sort inside ApplyProjection",
+    # "ApplyProjection w/o Sort",
+    # "Sort inside ApplyProjection",
     "Bucket Allocation & Initialization=0",
     "Filling & Finalizing the Buckets",
     "SortFeature",
@@ -107,40 +107,69 @@ FUNCTION_RE   = re.compile(
     re.IGNORECASE,
 )
 
-def parse_log_with_depth(log: str) -> pd.DataFrame:
-    rows, cur_depth = [], None
+# ── helpers ────────────────────────────────────────────────────────────────────
+def _finalise(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Produce a wide table with one row per (tree, depth) pair.
+    The first two columns are 'tree' and 'depth'.
+    """
+    long = (df.groupby(["tree", "depth", "function"], as_index=False)["time_s"]
+              .sum())
+
+    wide = (long
+            .pivot(index=["tree", "depth"],   # ← note the 2-level index
+                   columns="function",
+                   values="time_s")
+            .rename(columns=RENAMES)
+            .reindex(columns=ORDER, fill_value=0.0)
+            .reset_index())                   # ← makes tree & depth real columns
+
+    # put 'tree' first, 'depth' second, then the rest in the original order
+    col_order = ["tree", "depth"] + [c for c in wide.columns if c not in {"tree", "depth"}]
+    return wide[col_order]
+
+
+# ── parsers ────────────────────────────────────────────────────────────────────
+DEPTH_RE  = re.compile(r"^Depth\s+(\d+)")
+BOOT_RE   = re.compile(r"Selecting Bootstrapped Samples")
+FUNC_RE   = re.compile(
+    r"^\s*(?:-\s*)*(?P<name>[^:]+?)\s*(?:took|Took):?\s*(?P<secs>[0-9.eE+-]+)s",
+    re.IGNORECASE,
+)
+
+def parse_log_tree_depth(log: str) -> pd.DataFrame:
+    """Handle many trees + depth banners (“Depth X”)."""
+    rows, cur_tree, cur_depth = [], -1, None
+
     for line in log.splitlines():
-        m_depth = DEPTH_RE.match(line.strip())
-        if m_depth:
-            cur_depth = int(m_depth.group(1))          # update section state
+        if BOOT_RE.search(line):              # new tree begins
+            cur_tree += 1
+            cur_depth = None
             continue
 
-        m_fun = FUNCTION_RE.match(line)
-        if m_fun and cur_depth is not None:
+        m = DEPTH_RE.match(line.strip())      # depth banner
+        if m:
+            cur_depth = int(m.group(1))
+            continue
+
+        m = FUNC_RE.match(line)               # ordinary timing entry
+        if m and cur_depth is not None and cur_tree >= 0:
             rows.append({
+                "tree":     cur_tree,
                 "depth":    cur_depth,
-                "function": m_fun.group("name").strip(),
-                "time_s":   float(m_fun.group("secs")),
+                "function": m.group("name").strip(),
+                "time_s":   float(m.group("secs")),
             })
 
     if not rows:
-        raise ValueError("No depth-annotated timing found.")
-
-    # aggregate identical function calls that happen multiple times
-    long  = pd.DataFrame(rows).groupby(["depth", "function"], as_index=False)["time_s"].sum()
-    wide  = long.pivot(index="depth", columns="function", values="time_s")       \
-                .rename(columns=RENAMES)                                         \
-                .reindex(columns=ORDER, fill_value=0.0)                          \
-                .sort_index()                                                    \
-                .reset_index()
-
-    return wide
+        raise ValueError("No tree/depth timing found – check regexes.")
+    return _finalise(pd.DataFrame(rows))
 
 
-PARSER_MAP = {
-    False: parse_log_with_depth,    # simple build prints your banners
-    True:  parse_log_with_depth,    # verbose build also prints banners
-}
+# choose the same parser for simple & verbose modes
+PARSER_MAP = {False: parse_log_tree_depth,
+              True:  parse_log_tree_depth}
+
 
 
 

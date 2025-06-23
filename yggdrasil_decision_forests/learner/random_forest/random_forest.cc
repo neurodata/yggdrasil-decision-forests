@@ -673,10 +673,10 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
           pool.StartWorkers();
           for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++) {
-
-            // std::cout << "\nStarting work for Tree " << tree_idx << ":\n";
             
             pool.Schedule([&, tree_idx]() {
+
+                  if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL > 0) { std::cout << "\nStarting work for Tree " << tree_idx << ":\n"; }
 
                   /* #region Exit Conditions */
                       // The user interrupted training.
