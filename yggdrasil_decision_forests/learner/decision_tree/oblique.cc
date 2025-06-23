@@ -59,7 +59,6 @@ using std::is_same;
 using Projection = internal::Projection;
 using ProjectionEvaluator = internal::ProjectionEvaluator;
 using LDACache = internal::LDACache;
-
 }
 
 
@@ -136,8 +135,7 @@ int GetNumProjections(const proto::DecisionTreeTrainingConfig& dt_config,
                   min_num_projections);
 }
 
-
-// Ariel - actual work, not wrapper. Loop over Projections
+// Ariel - Main Loop over Projections
 template <typename LabelStats>
 absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     const dataset::VerticalDataset& train_dataset,
@@ -183,7 +181,6 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   // This is a class object
   ProjectionEvaluator projection_evaluator(train_dataset,
                                            config_link.numerical_features());
-  /* #endregion */                                         
 
   // TODO Understand Memory Access Pattern. Is this heavy enough to be important?
   // Bunch of memory accesses here - how long do they take?
@@ -195,6 +192,8 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   if (!weights.empty()) {
     selected_weights = Extract(weights, selected_examples);
   }
+
+  /* #endregion */
 
   std::vector<UnsignedExampleIdx> dense_example_idxs(selected_examples.size());
   std::iota(dense_example_idxs.begin(), dense_example_idxs.end(), 0);
@@ -221,18 +220,17 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     matrix.resize(num_projections, std::vector<float>(num_features, 0.f));
   }
 
-  /* #endregion */
-
   if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
     std::cout << "\n - Initialization of FindBestCondOblique Took: " << dur.count() << "s\n";
   }
 
+  /* #endregion */
+
   // std::cout << "Num projections: " << num_projections << "\n";
   // remove this outside of profiling!!
-  // num_projections = 1000;
-  // std::cout << "Hard coded 1000 projections! " << num_projections << "\n";
+  if constexpr (HARD_CODE_1000_PROJECTIONS) { num_projections = 1000; }
 
   /* #region ----------  MAIN LOOP  ------------------ */
   // 1. Declare accumulators
@@ -244,9 +242,8 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
       int8_t monotonic = 0;
 
       // 2a. SampleProjection timing
-      if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
-        start = std::chrono::high_resolution_clock::now();
-      }
+      if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
+
       SampleProjection(config_link.numerical_features(), dt_config,
                       train_dataset.data_spec(), config_link, projection_density,
                       &current_projection, &monotonic, random);
@@ -258,9 +255,11 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
         // 2b. ApplyProjection timing
         start = std::chrono::high_resolution_clock::now();
       }
+
       RETURN_IF_ERROR(
         projection_evaluator.Evaluate(current_projection, selected_examples, &projection_values)
       );
+
       if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
         dur = std::chrono::high_resolution_clock::now() - start;
         total_apply_proj_time += dur;
@@ -268,6 +267,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
         // 2c. EvaluateProjection timing
         start = std::chrono::high_resolution_clock::now();
       }
+
       ASSIGN_OR_RETURN(
           const auto split_result,
           EvaluateProjection(dt_config, label_stats, dense_example_idxs, selected_weights,
@@ -276,6 +276,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
                             constraints, monotonic,
                             best_condition, cache)
       );
+
       if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
         dur = std::chrono::high_resolution_clock::now() - start;
         total_eval_proj_time += dur;
@@ -345,79 +346,12 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   /* #endregion */
 }
 
-
-absl::Status SolveLDA(const proto::DecisionTreeTrainingConfig& dt_config,
-                      const ProjectionEvaluator& projection_evaluator,
-                      const std::vector<int>& selected_features,
-                      const int num_classes, const std::vector<int32_t>& labels,
-                      const std::vector<float>& weights, Projection* projection,
-                      utils::RandomEngine* random) {
-  // TODO: Cache.
-  LDACache lda_cache;
-  RETURN_IF_ERROR(lda_cache.ComputeClassification(
-      dt_config, projection_evaluator, selected_features, num_classes, labels,
-      weights));
-  const auto& sb = lda_cache.FullSB();
-  const auto& sw = lda_cache.FullSW();
-  const int num_features = selected_features.size();
-  const Eigen::Map<const Eigen::MatrixXd> eg_sw(sw.data(), num_features,
-                                                num_features);
-  const Eigen::Map<const Eigen::MatrixXd> eg_sb(sb.data(), num_features,
-                                                num_features);
-
-  // Inverse the SW matrice.
-  Eigen::PartialPivLU<Eigen::MatrixXd> invert_solver(eg_sw);
-  if (invert_solver.determinant() == 0) {
-    // The matrix is not invertible.
-    return absl::OkStatus();
-  }
-  const auto eg_w = invert_solver.inverse() * eg_sb;
-
-  // Get the eigenvalues / vectors.
-  Eigen::EigenSolver<Eigen::MatrixXd> eigen_solver(eg_w, true);
-
-  if (eigen_solver.info() != Eigen::Success) {
-    return absl::OkStatus();
-  }
-
-  const auto& eigenvalues = eigen_solver.eigenvalues();
-  const auto& eigenvectors = eigen_solver.eigenvectors();
-
-  // Get the largest eigenvalue / vector.
-  int arg_abs_max = -1;
-  double abs_max = 0;
-  for (int i = 0; i < num_features; i++) {
-    const auto value = std::abs(eigenvalues(i).real());
-    if (value > abs_max) {
-      arg_abs_max = i;
-      abs_max = value;
-    }
-  }
-  if (arg_abs_max == -1) {
-    return absl::OkStatus();
-  }
-
-  // Convert the top eigen vector into a projection.
-  projection->clear();
-  for (int i = 0; i < num_features; i++) {
-    const float vector = eigenvectors(i, arg_abs_max).real();
-    if (vector == 0) {
-      continue;
-    }
-    projection->push_back({selected_features[i], vector});
-  }
-
-  return absl::OkStatus();
-}
-
 struct ScoreAndThreshold {
   float score;
   float threhsold;
 };
 
-/* #region EvaluateProjection() and Templates */
 
-// TODO ariel understand projection eval
 template <typename LabelStats, typename Labels>
 absl::StatusOr<SplitSearchResult> EvaluateProjection(
     const proto::DecisionTreeTrainingConfig& dt_config,
@@ -453,12 +387,17 @@ absl::StatusOr<SplitSearchResult> EvaluateProjection(
     ASSIGN_OR_RETURN(
         result,
         FindSplitLabelClassificationFeatureNumericalCart(
-            dense_example_idxs, selected_weights, projection_values,
+            dense_example_idxs, selected_weights,
+            projection_values, // Ariel: vector?
             selected_labels, label_stats.num_label_classes, na_replacement,
             min_num_obs, dt_config, label_stats.label_distribution,
             first_attribute_idx, effective_internal_config, condition, cache));
-  } else if constexpr (is_same<LabelStats,
-                               RegressionHessianLabelStats>::value) {
+  }
+
+  /* #region Non-Numerical Methods */
+  else if constexpr (is_same<LabelStats,
+                               RegressionHessianLabelStats>::value)
+    {
     if (!selected_weights.empty()) {
       ASSIGN_OR_RETURN(
           result,
@@ -501,12 +440,17 @@ absl::StatusOr<SplitSearchResult> EvaluateProjection(
               label_stats.label_distribution, first_attribute_idx,
               effective_internal_config, condition, cache));
     }
+
+    /* #endregion */
   } else {
     static_assert(!is_same<LabelStats, LabelStats>::value, "Not implemented.");
   }
 
   return result;
 }
+
+
+/* #region EvaluateProjection Irrelevant Alternatives */
 
 template absl::StatusOr<SplitSearchResult>
 EvaluateProjection<ClassificationLabelStats, std::vector<int32_t>>(
@@ -569,6 +513,70 @@ absl::Status EvaluateProjectionAndSetCondition(
         projection, condition->condition().higher_condition().threshold(),
         dataspec, condition));
   }
+  return absl::OkStatus();
+}
+
+absl::Status SolveLDA(const proto::DecisionTreeTrainingConfig& dt_config,
+                      const ProjectionEvaluator& projection_evaluator,
+                      const std::vector<int>& selected_features,
+                      const int num_classes, const std::vector<int32_t>& labels,
+                      const std::vector<float>& weights, Projection* projection,
+                      utils::RandomEngine* random) {
+  // TODO: Cache.
+  LDACache lda_cache;
+  RETURN_IF_ERROR(lda_cache.ComputeClassification(
+      dt_config, projection_evaluator, selected_features, num_classes, labels,
+      weights));
+  const auto& sb = lda_cache.FullSB();
+  const auto& sw = lda_cache.FullSW();
+  const int num_features = selected_features.size();
+  const Eigen::Map<const Eigen::MatrixXd> eg_sw(sw.data(), num_features,
+                                                num_features);
+  const Eigen::Map<const Eigen::MatrixXd> eg_sb(sb.data(), num_features,
+                                                num_features);
+
+  // Inverse the SW matrice.
+  Eigen::PartialPivLU<Eigen::MatrixXd> invert_solver(eg_sw);
+  if (invert_solver.determinant() == 0) {
+    // The matrix is not invertible.
+    return absl::OkStatus();
+  }
+  const auto eg_w = invert_solver.inverse() * eg_sb;
+
+  // Get the eigenvalues / vectors.
+  Eigen::EigenSolver<Eigen::MatrixXd> eigen_solver(eg_w, true);
+
+  if (eigen_solver.info() != Eigen::Success) {
+    return absl::OkStatus();
+  }
+
+  const auto& eigenvalues = eigen_solver.eigenvalues();
+  const auto& eigenvectors = eigen_solver.eigenvectors();
+
+  // Get the largest eigenvalue / vector.
+  int arg_abs_max = -1;
+  double abs_max = 0;
+  for (int i = 0; i < num_features; i++) {
+    const auto value = std::abs(eigenvalues(i).real());
+    if (value > abs_max) {
+      arg_abs_max = i;
+      abs_max = value;
+    }
+  }
+  if (arg_abs_max == -1) {
+    return absl::OkStatus();
+  }
+
+  // Convert the top eigen vector into a projection.
+  projection->clear();
+  for (int i = 0; i < num_features; i++) {
+    const float vector = eigenvectors(i, arg_abs_max).real();
+    if (vector == 0) {
+      continue;
+    }
+    projection->push_back({selected_features[i], vector});
+  }
+
   return absl::OkStatus();
 }
 
@@ -642,6 +650,8 @@ absl::Status EvaluateMHLDCandidates(
 
 
 /* #endregion */
+
+/* #region NonInteresting semaphore functions for choosing MHLD or Regular Oblique, based on user call */
 
 absl::StatusOr<std::vector<int>> SampleAttributes(
     const model::proto::TrainingConfigLinking& config_link,
@@ -772,7 +782,7 @@ absl::StatusOr<bool> FindBestConditionMHLDObliqueTemplate(
 }
 
 
-/* #region NonInteresting semaphore functions for choosing MHLD or Regular Oblique, based on user call */
+
 absl::StatusOr<bool> FindBestConditionOblique(
     const dataset::VerticalDataset& train_dataset,
     const absl::Span<const UnsignedExampleIdx> selected_examples,

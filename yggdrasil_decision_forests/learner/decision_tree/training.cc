@@ -2341,7 +2341,8 @@ namespace yggdrasil_decision_forests::model::decision_tree
   // ~13% of multicore runtime
   absl::StatusOr<SplitSearchResult> FindSplitLabelClassificationFeatureNumericalCart(
       const absl::Span<const UnsignedExampleIdx> selected_examples,
-      const std::vector<float> &weights, const absl::Span<const float> attributes,
+      const std::vector<float> &weights,
+      const absl::Span<const float> attributes, // This is called projection_values in oblique.cc
       const std::vector<int32_t> &labels, const int32_t num_label_classes,
       float na_replacement, const UnsignedExampleIdx min_num_obs,
       const proto::DecisionTreeTrainingConfig &dt_config,
@@ -2357,7 +2358,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
                                            &na_replacement); }
     /* #endregion */
 
-    // TODO Ariel Optimize - I think this is why this fn. takes ~13% of runtime
+    // TODO Ariel Optimize - possibly why this fn. takes ~13% of runtime
     FeatureNumericalBucket::Filler feature_filler(selected_examples.size(), na_replacement, attributes);
 
     const auto sorting_strategy = EffectiveStrategy(dt_config, selected_examples.size(), internal_config);
@@ -2372,12 +2373,13 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
       if (weights.empty()) // Ariel: This is our case. Idk what weights mean
       {
-        // TODO Ariel Memory access here?
+        // No significant Memory access here.
         LabelBinaryCategoricalOneValueBucket</*weighted=*/false>::Filler
             label_filler(labels, weights);
         LabelBinaryCategoricalOneValueBucket</*weighted=*/false>::Initializer
             initializer(label_distribution);
 
+        // Irrelevant
         if (sorting_strategy == proto::DecisionTreeTrainingConfig::Internal::FORCE_PRESORTED)
         {
           const auto &sorted_attributes = internal_config.preprocessing->presorted_numerical_features()[attribute_idx];
@@ -2400,7 +2402,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
         }
         else { return absl::InvalidArgumentError("Non supported strategy."); }
       }
-      else // Weights not empty
+      else // Weights not empty - Irrelevant to Ariel
       {
         LabelBinaryCategoricalOneValueBucket</*weighted=*/true>::Filler
             label_filler(labels, weights);

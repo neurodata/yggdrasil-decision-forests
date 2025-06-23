@@ -40,6 +40,8 @@ ORDER = [
     "Initialization of FindBestCondOblique",
     "SampleProjection",
     "ApplyProjection",
+    "ApplyProjection w/o Sort",
+    "Sort inside ApplyProjection",
     "Bucket Allocation & Initialization=0",
     "Filling & Finalizing the Buckets",
     "SortFeature",
@@ -58,8 +60,8 @@ RENAMES = {
 
 def get_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Run YDF synthetic benchmark & parse timing logs")
-    p.add_argument("--rows", type=int, required=True, help="Rows of the synthetic input matrix")
-    p.add_argument("--cols", type=int, required=True, help="Columns of the synthetic input matrix")
+    p.add_argument("--rows", type=int, default=524288, help="Rows of the synthetic input matrix")
+    p.add_argument("--cols", type=int, default=1024, help="Columns of the synthetic input matrix")
     p.add_argument("--repeats", type=int, default=7, help="How many experiments to run. Default: 7")
     p.add_argument("--sort_method", choices=["SortFeature", "SortIndex"], default="SortFeature",
                         help="Use SortIndex to save the results to sort_index dir instead of regular 'SortFeature'. Has no effect on C++ binary")
