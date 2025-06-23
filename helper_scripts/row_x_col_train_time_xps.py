@@ -20,7 +20,7 @@ def get_args():
     parser.add_argument("--sort_method", choices=["SortFeature", "SortIndex"], default="SortFeature",
                         help="Use SortIndex to save the results to sort_index dir instead of regular 'SortFeature'. Has no effect on C++ binary")
     # Runtime params.
-    parser.add_argument("--threads", type=int, default=-1,
+    parser.add_argument("--num_threads", type=int, default=-1,
                         help="Number of threads to use. Use -1 for all logical CPUs.")
     parser.add_argument("--threads_list", type=int, nargs="+", default=None,
                         help="List of number of threads to test, e.g. --threads_list 1 2 4 8 16 32 64")
@@ -78,7 +78,7 @@ def main():
     if args.threads_list is not None:
         threads_to_test = args.threads_list
     else:
-        threads_to_test = [args.threads]
+        threads_to_test = [args.num_threads]
 
     base_results_dir = os.path.join("ariel_results", "runtime_heatmap", get_cpu_model_proc(), args.sort_method)
     os.makedirs(base_results_dir, exist_ok=True)

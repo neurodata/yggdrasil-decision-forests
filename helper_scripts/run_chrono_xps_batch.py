@@ -58,20 +58,39 @@ RENAMES = {
 }
 
 
-def get_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Run YDF synthetic benchmark & parse timing logs")
-    p.add_argument("--rows", type=int, default=524288, help="Rows of the synthetic input matrix")
-    p.add_argument("--cols", type=int, default=1024, help="Columns of the synthetic input matrix")
-    p.add_argument("--repeats", type=int, default=7, help="How many experiments to run. Default: 7")
-    p.add_argument("--sort_method", choices=["SortFeature", "SortIndex"], default="SortFeature",
+def get_args():
+    parser = argparse.ArgumentParser()
+    # parser.add_argument("--input_mode", choices=["csv", "synthetic"], default="synthetic",
+                        # help="Experiment mode: 'csv' to load data via train_forest, 'rng' to generate via train_forest synthetic")
+    parser.add_argument("--sort_method", choices=["SortFeature", "SortIndex"], default="SortFeature",
                         help="Use SortIndex to save the results to sort_index dir instead of regular 'SortFeature'. Has no effect on C++ binary")
-    p.add_argument(
+    # Runtime params.
+    parser.add_argument("--num_threads", type=int, default=1,
+                        help="Number of threads to use. Use -1 for all logical CPUs.")
+    parser.add_argument("--threads_list", type=int, nargs="+", default=None,
+                        help="List of number of threads to test, e.g. --threads_list 1 2 4 8 16 32 64")
+    parser.add_argument("--rows", type=int, default=524288, help="Rows of the synthetic input matrix")
+    parser.add_argument("--cols", type=int, default=1024, help="Columns of the synthetic input matrix")
+    parser.add_argument("--repeats", type=int, default=7,
+                        help="Number of times to repeat & avg. experiments. Default: 7")
+    
+    # Model params
+    parser.add_argument("--num_trees", type=int, default=1,
+                        help="Number of trees in the Random Forest. Default: 1")
+    parser.add_argument("--tree_depth", type=int, default=2,
+                        help="Limit depth of trees in Random Forest. -1 = Unlimited. Default: 2")
+    parser.add_argument("--projection_density_factor", type=int, default=3,
+                    help="Number of nonzeros per projection. Default: 3")
+    parser.add_argument("--max_num_projections", type=int, default=1,
+                    help="Maximum number of projections. WARNING: YDF doesn't always obey this! Default: 1000")
+
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Parse the newer, more verbose per-tree timing output.  "
              "Omit for legacy/simple format.",
     )
-    return p.parse_args()
+    return parser.parse_args()
 
 # ── helpers ─────────────────────────────────────────────────────────────────────
 
@@ -82,66 +101,47 @@ def parse_train_time(log: str) -> str:
     return m.group(1)
 
 
-def _finalise(df: pd.DataFrame) -> pd.DataFrame:
-    """Group + pivot so every tree becomes a row and columns are functions."""
-    long = df.groupby(["tree", "function"], as_index=False)["time_s"].sum()
-    wide = (
-        long
-        .pivot(index="tree", columns="function", values="time_s")
-        .rename(columns=RENAMES)
-        .fillna(0.0)
-    )
-    wide = wide.reindex(columns=ORDER, fill_value=0.0)
-    return wide.reset_index()
+DEPTH_RE      = re.compile(r"^Depth\s+(\d+)")
+FUNCTION_RE   = re.compile(
+    r"^\s*(?:-\s*)*(?P<name>[^:]+?)\s*(?:took|Took):?\s*(?P<secs>[0-9.eE+-]+)s",
+    re.IGNORECASE,
+)
 
-# ── parsers ─────────────────────────────────────────────────────────────────────
-
-def parse_log_simple(log: str) -> pd.DataFrame:
-    TIMING_RE = re.compile(
-        r"^\s*(?:-\s*)*(?P<name>[^:]+?)\s+(?:Took|took):\s+(?P<secs>[0-9.eE+-]+)s",
-        re.IGNORECASE,
-    )
-    rows, cur_tree = [], -1
+def parse_log_with_depth(log: str) -> pd.DataFrame:
+    rows, cur_depth = [], None
     for line in log.splitlines():
-        if "Selecting Bootstrapped Samples Took" in line:
-            cur_tree += 1
-        m = TIMING_RE.match(line)
-        if m and cur_tree >= 0:
-            rows.append({
-                "tree": cur_tree + 1,
-                "function": m.group("name").strip(),
-                "time_s": float(m.group("secs")),
-            })
-    return _finalise(pd.DataFrame(rows))
-
-
-def parse_log_verbose(log: str) -> pd.DataFrame:
-    TIMING_RE = re.compile(
-        r"^\s*(?:-\s*)*(?P<name>[^:]+?)\s*(?:took|Took)?\s*:?\s*(?P<secs>[0-9.eE+-]+)s",
-        re.IGNORECASE,
-    )
-    rows, cur_tree = [], -1
-    for line in log.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("=== Timing summary"):
+        m_depth = DEPTH_RE.match(line.strip())
+        if m_depth:
+            cur_depth = int(m_depth.group(1))          # update section state
             continue
-        if "Selecting Bootstrapped Samples" in stripped and "Took" in stripped:
-            cur_tree += 1
-        m = TIMING_RE.match(line)
-        if m and cur_tree >= 0:
-            rows.append({
-                "tree": cur_tree + 1,
-                "function": m.group("name").strip(),
-                "time_s": float(m.group("secs")),
-            })
-    if not rows:
-        raise ValueError("No timing information found – did you forget --verbose?")
-    return _finalise(pd.DataFrame(rows))
 
-PARSER_MAP: dict[bool, Callable[[str], pd.DataFrame]] = {
-    False: parse_log_simple,
-    True: parse_log_verbose,
+        m_fun = FUNCTION_RE.match(line)
+        if m_fun and cur_depth is not None:
+            rows.append({
+                "depth":    cur_depth,
+                "function": m_fun.group("name").strip(),
+                "time_s":   float(m_fun.group("secs")),
+            })
+
+    if not rows:
+        raise ValueError("No depth-annotated timing found.")
+
+    # aggregate identical function calls that happen multiple times
+    long  = pd.DataFrame(rows).groupby(["depth", "function"], as_index=False)["time_s"].sum()
+    wide  = long.pivot(index="depth", columns="function", values="time_s")       \
+                .rename(columns=RENAMES)                                         \
+                .reindex(columns=ORDER, fill_value=0.0)                          \
+                .sort_index()                                                    \
+                .reset_index()
+
+    return wide
+
+
+PARSER_MAP = {
+    False: parse_log_with_depth,    # simple build prints your banners
+    True:  parse_log_with_depth,    # verbose build also prints banners
 }
+
 
 
 def save_tbl_to_xlsx(
@@ -170,10 +170,10 @@ if __name__ == "__main__":
         cmd = [
             "../bazel-bin/examples/train_oblique_forest",
             "--input_mode=synthetic",
-            "--max_num_projections=1",
-            "--num_trees=20",
-            "--num_threads=1",
-            "--tree_depth=2",
+            f"--max_num_projections={args.max_num_projections}",
+            f"--num_trees={args.num_trees}",
+            f"--num_threads={args.num_threads}",
+            f"--tree_depth={args.tree_depth}",
             f"--rows={args.rows}",
             f"--cols={args.cols}",
         ]
