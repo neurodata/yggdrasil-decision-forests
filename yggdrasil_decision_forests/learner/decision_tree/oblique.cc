@@ -223,7 +223,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
-    std::cout << "\n - Initialization of FindBestCondOblique Took: " << dur.count() << "s\n";
+    std::cout << "\n - Initialization of FindBestCondOblique took: " << dur.count() << "s\n";
   }
 
   /* #endregion */
@@ -331,14 +331,14 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     // e-06 for 512k x 1k
     // end = std::chrono::high_resolution_clock::now();
     // dur = end - start;
-    // std::cout << "\nFindBestCondOblique::SetCond() Took: " << dur.count() << "s\n";
+    // std::cout << "\nFindBestCondOblique::SetCond() took: " << dur.count() << "s\n";
     return true;
   }
 
   if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
-    std::cout << "\n FindBestCondOblique - non-SetCond Took: " << dur.count() << "s\n";
+    std::cout << "\n FindBestCondOblique - non-SetCond took: " << dur.count() << "s\n";
   }
   
   return false;

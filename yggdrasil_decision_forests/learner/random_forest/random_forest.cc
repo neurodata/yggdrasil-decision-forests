@@ -496,7 +496,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL) {
           end = std::chrono::high_resolution_clock::now();
           dur = end - start;
-          std::cout << "\n Preprocess training dataset Took: " << dur.count() << "s\n";
+          std::cout << "\n Preprocess training dataset took: " << dur.count() << "s\n";
         }
 
         std::vector<const dataset::VerticalDataset::NumericalVectorSequenceColumn *>
@@ -784,7 +784,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                   if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL) {
                     end = std::chrono::high_resolution_clock::now();
                     dur = end - start;
-                    std::cout << "\nSelecting Bootstrapped Samples Took: " << dur.count() << "s\n";
+                    std::cout << "\nSelecting Bootstrapped Samples took: " << dur.count() << "s\n";
                   }
 
                   decision_tree::InternalTrainConfig internal_config;
@@ -805,7 +805,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                     if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL) {
                       end = std::chrono::high_resolution_clock::now();
                       dur = end - start;
-                      std::cout << "\nDecisionTree::Train() alone Took: " << dur.count() << "s\n\n";
+                      std::cout << "\nDecisionTree::Train() alone took: " << dur.count() << "s\n\n";
                     }
 
                   start = std::chrono::high_resolution_clock::now();
@@ -1096,13 +1096,13 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
           end = std::chrono::high_resolution_clock::now();
           dur = end - start;
-          std::cout << "\nPost-processing after Train Took: " << dur.count() << "s\n\n";
+          std::cout << "\nPost-processing after Train took: " << dur.count() << "s\n\n";
         }
         
         /* --- std::move(mdl) doesn't seem to take any time - Omitted ---
         end = std::chrono::high_resolution_clock::now();
         dur = end - start;
-        std::cout << "\nstd::move mdl Took: " << dur.count() << "s\n";
+        std::cout << "\nstd::move mdl took: " << dur.count() << "s\n";
         */
         
         return return_val;

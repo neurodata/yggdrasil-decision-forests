@@ -104,8 +104,62 @@ def parse_tree_depth(log: str) -> pd.DataFrame:
         raise ValueError("No timing lines parsed.")
     return _finalise(pd.DataFrame(rows))
 
-PARSER: dict[bool, Callable[[str], pd.DataFrame]] = {False: parse_tree_depth,
-                                                     True:  parse_tree_depth}
+
+import pandas as pd
+
+BOOT_TAG   = "Selecting Bootstrapped Samples"
+DEPTH_TAG  = "Depth "
+TOOK_TAG   = " took:"        # exactly one leading space — leave as-is
+STRIP_SET  = " \t-"          # what we strip from the *left* of the name
+
+def fast_parse_tree_depth(log: str) -> pd.DataFrame:
+    rows, cur_tree, cur_depth = [], -1, None
+
+    for line in log.splitlines():
+        # ── new tree ──────────────────────────────────────────────
+        if BOOT_TAG in line:
+            cur_tree += 1
+            rows.append((cur_tree, 0, ORDER[0],
+                         float(line.rsplit(maxsplit=1)[-1][:-1])))
+            cur_depth = None
+            continue
+
+        # ── depth header (allow leading spaces) ──────────────────
+        if line.lstrip().startswith(DEPTH_TAG):
+            cur_depth = int(line.lstrip()[len(DEPTH_TAG):].split()[0])
+            continue
+
+        # ── skip lines until we’ve seen the first tree ───────────
+        if cur_tree < 0 or TOOK_TAG not in line:
+            continue
+
+        # ── timing line ─────────────────────────────────────────
+        name_part, _, rest = line.partition(TOOK_TAG)
+        time_s = float(rest.split()[0][:-1])          # "<num>s" → float
+
+        # kill any leading spaces / tabs / dashes
+        clean = name_part.lstrip(STRIP_SET).rstrip()
+        clean = RENAMES.get(clean, clean)             # apply 2 renames
+
+        rows.append((cur_tree, cur_depth, clean, time_s))
+
+    if not rows:
+        raise ValueError("No timing lines parsed")
+
+    df = pd.DataFrame(rows, columns=["tree", "depth", "function", "time_s"])
+    return (df.pivot_table(index=["tree", "depth"],
+                           columns="function",
+                           values="time_s",
+                           aggfunc="sum",
+                           fill_value=0.0)
+              .reindex(columns=ORDER, fill_value=0.0)
+              .reset_index())
+
+
+
+
+PARSER: dict[bool, Callable[[str], pd.DataFrame]] = {False: fast_parse_tree_depth,
+                                                     True:  fast_parse_tree_depth}
 
 # ─────────────────────────── writers ───────────────────────────────
 def write_csv(table: pd.DataFrame, params: dict[str, object], path: str):
@@ -124,7 +178,7 @@ def write_csv(table: pd.DataFrame, params: dict[str, object], path: str):
     out = pd.concat([tbl, gap, p_df], axis=1)
     out.to_csv(path, index=False, quoting=csv.QUOTE_MINIMAL)
 
-# ─────────────────────────── main ──────────────────────────────────
+
 if __name__ == "__main__":
     a = get_args()
     out_dir = os.path.join("..", "ariel_results", "per_function_timing",
@@ -152,6 +206,8 @@ if __name__ == "__main__":
 
         print(f"\n▶ binary ran in {t1-t0:.3f}s")
 
+        log = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', log)
+        
         table = PARSER[a.verbose](log)
         t2 = time.perf_counter()
 

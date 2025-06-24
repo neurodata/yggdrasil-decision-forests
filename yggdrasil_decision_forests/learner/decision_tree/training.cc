@@ -5079,7 +5079,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> dur = end - nodetrain_start;
     if (enable_timing)
-      { std::cout << "\n NodeTrain Exit cond. eval Took: " << dur.count() << "s\n"; }
+      { std::cout << "\n NodeTrain Exit cond. eval took: " << dur.count() << "s\n"; }
 
     // If not exit - Train
 
@@ -5136,7 +5136,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
     if (enable_timing)
-     { std::cout << "\n NodeTrain deal w/ Missing Data Took: " << dur.count() << "s\n"; }
+     { std::cout << "\n NodeTrain deal w/ Missing Data took: " << dur.count() << "s\n"; }
 
     start = std::chrono::high_resolution_clock::now();
 
