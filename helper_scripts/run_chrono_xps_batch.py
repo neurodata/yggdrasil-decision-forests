@@ -105,7 +105,12 @@ def parse_tree_depth(log: str) -> pd.DataFrame:
     return _finalise(pd.DataFrame(rows))
 
 
-import pandas as pd
+def _num_from_token(tok: str) -> float:
+    tok = tok.rstrip()                  # strip CR, spaces
+    if tok.endswith('s'):
+        tok = tok.removesuffix('s')     # safe, even if no trailing 's'
+    return float(tok)
+
 
 BOOT_TAG   = "Selecting Bootstrapped Samples"
 DEPTH_TAG  = "Depth "
@@ -119,8 +124,7 @@ def fast_parse_tree_depth(log: str) -> pd.DataFrame:
         # ── new tree ──────────────────────────────────────────────
         if BOOT_TAG in line:
             cur_tree += 1
-            rows.append((cur_tree, 0, ORDER[0],
-                         float(line.rsplit(maxsplit=1)[-1][:-1])))
+            rows.append((cur_tree, 0, ORDER[0], _num_from_token(line.rsplit(maxsplit=1)[-1])))
             cur_depth = None
             continue
 
@@ -135,7 +139,7 @@ def fast_parse_tree_depth(log: str) -> pd.DataFrame:
 
         # ── timing line ─────────────────────────────────────────
         name_part, _, rest = line.partition(TOOK_TAG)
-        time_s = float(rest.split()[0][:-1])          # "<num>s" → float
+        time_s = _num_from_token(rest.split()[0])
 
         # kill any leading spaces / tabs / dashes
         clean = name_part.lstrip(STRIP_SET).rstrip()
