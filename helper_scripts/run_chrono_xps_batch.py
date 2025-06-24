@@ -84,6 +84,8 @@ def get_args():
     parser.add_argument("--max_num_projections", type=int, default=1,
                     help="Maximum number of projections. WARNING: YDF doesn't always obey this! Default: 1000")
 
+    parser.add_argument("--save_log", type=bool, default=False,
+                        help="Whether to save log plaintext. Useful for cross-checking parser correctness")
     parser.add_argument(
         "--verbose",
         action="store_true",
@@ -179,6 +181,23 @@ PARSER_MAP = {False: parse_log_tree_depth,
               True:  parse_log_tree_depth}
 
 
+def save_log_to_file(
+    log_text: str,
+    rows: int,
+    cols: int,
+    file_dir: str,
+    training_time: str,
+) -> None:
+    """
+    Dump the raw timing output so you can eyeball what the parser ingested.
+    """
+    dir_path = os.path.join(file_dir, f"{rows}_x_{cols}")
+    os.makedirs(dir_path, exist_ok=True)
+    full_path = os.path.join(dir_path, f"{training_time}.log")
+    print(f"▪ Saving raw log to {full_path}")
+    with open(full_path, "w") as f:
+        f.write(log_text)
+
 
 
 def save_tbl_to_xlsx(
@@ -225,3 +244,7 @@ if __name__ == "__main__":
         training_time = parse_train_time(log_output)
         tbl = PARSER_MAP[args.verbose](log_output)
         save_tbl_to_xlsx(tbl, args.rows, args.cols, base_dir, training_time)
+        
+        if args.save_log:
+            save_log_to_file(log_output, args.rows, args.cols, base_dir, training_time)
+
