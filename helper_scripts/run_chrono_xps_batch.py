@@ -1,9 +1,10 @@
 """Run YDF synthetic-data benchmarks and parse timing output.
 
 Produces one CSV per run:
-  • rows 1-2   – key-value “Run-Parameters” block
-  • blank row
-  • timing table (tree × depth)
+
+    • columns   A…?   – timing table (tree × depth × functions)
+    • columns  +2 gap – two empty spacer columns
+    • columns   …Z    – key-value “Run-Parameters” block
 
 Console prints a per-run timing breakdown:
     ▶ run binary: … s | parse: … s | write csv: … s
@@ -108,13 +109,20 @@ PARSER: dict[bool, Callable[[str], pd.DataFrame]] = {False: parse_tree_depth,
 
 # ─────────────────────────── writers ───────────────────────────────
 def write_csv(table: pd.DataFrame, params: dict[str, object], path: str):
-    with open(path, "w", newline="") as f:
-        wr = csv.writer(f)
-        wr.writerow(["Parameter", "Value"])
-        for k, v in params.items():
-            wr.writerow([k, v])
-        wr.writerow([])
-        table.to_csv(f, index=False)
+    """Write timing table left-aligned, params block to the right (after 2 blanks)."""
+    # build parameter frame
+    p_df = pd.DataFrame(list(params.items()), columns=["Parameter", "Value"])
+
+    # row-count so both blocks fit side-by-side
+    n_rows = max(len(table), len(p_df))
+
+    tbl = table.reindex(range(n_rows)).fillna("")
+    p_df = p_df.reindex(range(n_rows)).fillna("")
+
+    gap = pd.DataFrame({"": [""] * n_rows, "  ": [""] * n_rows})  # two blank cols
+
+    out = pd.concat([tbl, gap, p_df], axis=1)
+    out.to_csv(path, index=False, quoting=csv.QUOTE_MINIMAL)
 
 # ─────────────────────────── main ──────────────────────────────────
 if __name__ == "__main__":
