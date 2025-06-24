@@ -1,250 +1,171 @@
 """Run YDF synthetic-data benchmarks and parse timing output.
 
-Supports two log formats:
-  • default (simple)       – the original, less verbose timing lines
-  • --verbose (per-tree)   – the newer, more verbose per-tree & projection summary
+Produces one CSV per run:
+  • rows 1-2   – key-value “Run-Parameters” block
+  • blank row
+  • timing table (tree × depth)
 
-The resulting per-tree timing table is written to
-    ../ariel_results/per_function_timing/<CPU_MODEL>/<rows>_x_<cols>/<walltime>.xlsx
+Console prints a per-run timing breakdown:
+    ▶ run binary: … s | parse: … s | write csv: … s
 """
 
 from __future__ import annotations
-
-import argparse
-import os
-import re
-import subprocess
+import argparse, csv, os, re, subprocess, time
 from typing import Callable
-
 import pandas as pd
-import logging
 
-def get_cpu_model_proc() -> str:
-    """
-    Reads /proc/cpuinfo and returns the first 'model name' value, sanitized for file paths.
-    """
+# ─────────────────────────── misc helpers ───────────────────────────
+def cpu_model() -> str:
     try:
-        with open("/proc/cpuinfo", "r") as f:
-            for line in f:
-                if line.startswith("model name"):
-                    model = line.split(":", 1)[1].strip()
-                    # sanitize for filesystem (replace spaces/slashes)
-                    return model.replace(" ", "_").replace("/", "-")
+        with open("/proc/cpuinfo") as f:
+            for l in f:
+                if l.startswith("model name"):
+                    return (l.split(":", 1)[1]
+                              .strip().replace(" ", "_").replace("/", "-"))
     except FileNotFoundError:
-        return "unknown_cpu"
+        pass
     return "unknown_cpu"
 
-# ── columns we keep in the XLSX, in the order we want ───────────────────────────
 ORDER = [
     "Selecting Bootstrapped Samples",
     "Initialization of FindBestCondOblique",
-    "SampleProjection",
-    "ApplyProjection",
-    # "ApplyProjection w/o Sort",
-    # "Sort inside ApplyProjection",
+    "SampleProjection", "ApplyProjection",
     "Bucket Allocation & Initialization=0",
-    "Filling & Finalizing the Buckets",
-    "SortFeature",
-    "ScanSplits",
+    "Filling & Finalizing the Buckets", "SortFeature", "ScanSplits",
     "Post-processing after Training all Trees",
     "EvaluateProjection",
     "FillExampleBucketSet (next 3 calls)",
 ]
-
-# log contains slightly different spellings – normalise them here
 RENAMES = {
     "Post-processing after Train": "Post-processing after Training all Trees",
     "FillExampleBucketSet (calls 3 above)": "FillExampleBucketSet (next 3 calls)",
 }
 
-
+# ─────────────────────────── CLI ────────────────────────────────────
 def get_args():
-    parser = argparse.ArgumentParser()
-    # parser.add_argument("--input_mode", choices=["csv", "synthetic"], default="synthetic",
-                        # help="Experiment mode: 'csv' to load data via train_forest, 'rng' to generate via train_forest synthetic")
-    parser.add_argument("--sort_method", choices=["SortFeature", "SortIndex"], default="SortFeature",
-                        help="Use SortIndex to save the results to sort_index dir instead of regular 'SortFeature'. Has no effect on C++ binary")
-    # Runtime params.
-    parser.add_argument("--num_threads", type=int, default=1,
-                        help="Number of threads to use. Use -1 for all logical CPUs.")
-    parser.add_argument("--threads_list", type=int, nargs="+", default=None,
-                        help="List of number of threads to test, e.g. --threads_list 1 2 4 8 16 32 64")
-    parser.add_argument("--rows", type=int, default=524288, help="Rows of the synthetic input matrix")
-    parser.add_argument("--cols", type=int, default=1024, help="Columns of the synthetic input matrix")
-    parser.add_argument("--repeats", type=int, default=1,
-                        help="Number of times to repeat & avg. experiments. Default: 7")
-    
-    # Model params
-    parser.add_argument("--num_trees", type=int, default=1,
-                        help="Number of trees in the Random Forest. Default: 1")
-    parser.add_argument("--tree_depth", type=int, default=2,
-                        help="Limit depth of trees in Random Forest. -1 = Unlimited. Default: 2")
-    parser.add_argument("--projection_density_factor", type=int, default=3,
-                    help="Number of nonzeros per projection. Default: 3")
-    parser.add_argument("--max_num_projections", type=int, default=1,
-                    help="Maximum number of projections. WARNING: YDF doesn't always obey this! Default: 1000")
+    p = argparse.ArgumentParser()
+    p.add_argument("--sort_method", choices=["SortFeature", "SortIndex"],
+                   default="SortFeature")
+    p.add_argument("--num_threads", type=int, default=1)
+    p.add_argument("--rows", type=int, default=524288)
+    p.add_argument("--cols", type=int, default=1024)
+    p.add_argument("--repeats", type=int, default=1)
+    p.add_argument("--num_trees", type=int, default=1)
+    p.add_argument("--tree_depth", type=int, default=2)
+    p.add_argument("--projection_density_factor", type=int, default=3)
+    p.add_argument("--max_num_projections", type=int, default=1)
+    p.add_argument("--save_log", action="store_true")
+    p.add_argument("--verbose", action="store_true")
+    return p.parse_args()
 
-    parser.add_argument("--save_log", action="store_true",
-                        help="Whether to save log plaintext. Useful for cross-checking parser correctness")
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Parse the newer, more verbose per-tree timing output.  "
-             "Omit for legacy/simple format.",
-    )
-    return parser.parse_args()
+# ─────────────────────────── regexes ───────────────────────────────
+TRAIN_RX = re.compile(r"Training wall-time:\s*([0-9.eE+-]+)s")
+DEPTH_RX = re.compile(r"^Depth\s+(\d+)")
+BOOT_RX  = re.compile(r"Selecting Bootstrapped Samples")
+FUNC_RX  = re.compile(r"^\s*(?:-\s*)*(?P<name>[^:]+?)\s*"
+                      r"(?:took|Took):?\s*([0-9.eE+-]+)s",
+                      re.IGNORECASE)
 
-# ── helpers ─────────────────────────────────────────────────────────────────────
-
-def parse_train_time(log: str) -> str:
-    m = re.search(r"Training wall-time:\s*([\d\.]+s)", log)
-    if not m:
-        raise LookupError("Training time string couldn't be found in log output")
-    return m.group(1)
-
-
-DEPTH_RE      = re.compile(r"^Depth\s+(\d+)")
-FUNCTION_RE   = re.compile(
-    r"^\s*(?:-\s*)*(?P<name>[^:]+?)\s*(?:took|Took):?\s*(?P<secs>[0-9.eE+-]+)s",
-    re.IGNORECASE,
-)
-
-# ── helpers ────────────────────────────────────────────────────────────────────
+# ─────────────────────────── parsing ───────────────────────────────
 def _finalise(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Produce a wide table with one row per (tree, depth) pair.
-    The first two columns are 'tree' and 'depth'.
-    """
     long = (df.groupby(["tree", "depth", "function"], as_index=False)["time_s"]
               .sum())
+    wide = (long.pivot(index=["tree", "depth"],
+                       columns="function",
+                       values="time_s")
+                .rename(columns=RENAMES)
+                .reindex(columns=ORDER, fill_value=0.0)
+                .reset_index())
+    return wide[["tree", "depth"] +
+                [c for c in wide.columns if c not in {"tree", "depth"}]]
 
-    wide = (long
-            .pivot(index=["tree", "depth"],   # ← note the 2-level index
-                   columns="function",
-                   values="time_s")
-            .rename(columns=RENAMES)
-            .reindex(columns=ORDER, fill_value=0.0)
-            .reset_index())                   # ← makes tree & depth real columns
-
-    # put 'tree' first, 'depth' second, then the rest in the original order
-    col_order = ["tree", "depth"] + [c for c in wide.columns if c not in {"tree", "depth"}]
-    return wide[col_order]
-
-
-# ── parsers ────────────────────────────────────────────────────────────────────
-DEPTH_RE  = re.compile(r"^Depth\s+(\d+)")
-BOOT_RE   = re.compile(r"Selecting Bootstrapped Samples")
-FUNC_RE   = re.compile(
-    r"^\s*(?:-\s*)*(?P<name>[^:]+?)\s*(?:took|Took):?\s*(?P<secs>[0-9.eE+-]+)s",
-    re.IGNORECASE,
-)
-
-def parse_log_tree_depth(log: str) -> pd.DataFrame:
-    """Handle many trees + depth banners (“Depth X”)."""
+def parse_tree_depth(log: str) -> pd.DataFrame:
     rows, cur_tree, cur_depth = [], -1, None
-
     for line in log.splitlines():
-        if BOOT_RE.search(line):
-            cur_tree += 1                       # tree 0, 1, 2, …
-            m = FUNC_RE.match(line)
+        if BOOT_RX.search(line):
+            cur_tree += 1
+            m = FUNC_RX.match(line)
             if m:
-                rows.append({
-                    "tree":     cur_tree,
-                    "depth":    0,              # put it in a pseudo-depth 0
-                    "function": m.group("name").strip(),
-                    "time_s":   float(m.group("secs")),
-                })
-            cur_depth = None                    # reset depth banner search
+                rows.append(dict(tree=cur_tree, depth=0,
+                                 function=m.group("name").strip(),
+                                 time_s=float(m.group(2))))
+            cur_depth = None
             continue
-
-        m = DEPTH_RE.match(line.strip())      # depth banner
+        m = DEPTH_RX.match(line.strip())
         if m:
-            cur_depth = int(m.group(1))
-            continue
-
-        m = FUNC_RE.match(line)               # ordinary timing entry
+            cur_depth = int(m.group(1)); continue
+        m = FUNC_RX.match(line)
         if m and cur_depth is not None and cur_tree >= 0:
-            rows.append({
-                "tree":     cur_tree,
-                "depth":    cur_depth,
-                "function": m.group("name").strip(),
-                "time_s":   float(m.group("secs")),
-            })
-
+            rows.append(dict(tree=cur_tree, depth=cur_depth,
+                             function=m.group("name").strip(),
+                             time_s=float(m.group(2))))
     if not rows:
-        raise ValueError("No tree/depth timing found – check regexes.")
+        raise ValueError("No timing lines parsed.")
     return _finalise(pd.DataFrame(rows))
 
+PARSER: dict[bool, Callable[[str], pd.DataFrame]] = {False: parse_tree_depth,
+                                                     True:  parse_tree_depth}
 
-# choose the same parser for simple & verbose modes
-PARSER_MAP = {False: parse_log_tree_depth,
-              True:  parse_log_tree_depth}
+# ─────────────────────────── writers ───────────────────────────────
+def write_csv(table: pd.DataFrame, params: dict[str, object], path: str):
+    with open(path, "w", newline="") as f:
+        wr = csv.writer(f)
+        wr.writerow(["Parameter", "Value"])
+        for k, v in params.items():
+            wr.writerow([k, v])
+        wr.writerow([])
+        table.to_csv(f, index=False)
 
-
-def save_log_to_file(
-    log_text: str,
-    rows: int,
-    cols: int,
-    file_dir: str,
-    training_time: str,
-) -> None:
-    """
-    Dump the raw timing output so you can eyeball what the parser ingested.
-    """
-    dir_path = os.path.join(file_dir, f"{rows}_x_{cols}")
-    os.makedirs(dir_path, exist_ok=True)
-    full_path = os.path.join(dir_path, f"{training_time}.log")
-    print(f"▪ Saving raw log to {full_path}")
-    with open(full_path, "w") as f:
-        f.write(log_text)
-
-
-
-def save_tbl_to_xlsx(
-    tbl: pd.DataFrame,
-    rows: int,
-    cols: int,
-    file_dir: str,
-    training_time: str,
-) -> None:
-    dir_path = os.path.join(file_dir, f"{rows}_x_{cols}")
-    os.makedirs(dir_path, exist_ok=True)
-    full_path = os.path.join(dir_path, f"{training_time}.xlsx")
-    print(f"▪ Saving to {full_path}")
-    tbl.to_excel(full_path, index=False)
-
+# ─────────────────────────── main ──────────────────────────────────
 if __name__ == "__main__":
-    args = get_args()
+    a = get_args()
+    out_dir = os.path.join("..", "ariel_results", "per_function_timing",
+                           cpu_model(), a.sort_method,
+                           f"{a.rows}_x_{a.cols}")
+    os.makedirs(out_dir, exist_ok=True)
 
-    # dynamic base directory based on CPU model
-    base_dir = os.path.join(
-        "..", "ariel_results", "per_function_timing", get_cpu_model_proc(), args.sort_method
-    )
-    os.makedirs(base_dir, exist_ok=True)
-
-    for i in range(args.repeats):
+    for rep in range(a.repeats):
         cmd = [
             "../bazel-bin/examples/train_oblique_forest",
             "--input_mode=synthetic",
-            f"--max_num_projections={args.max_num_projections}",
-            f"--num_trees={args.num_trees}",
-            f"--num_threads={args.num_threads}",
-            f"--tree_depth={args.tree_depth}",
-            f"--rows={args.rows}",
-            f"--cols={args.cols}",
+            f"--rows={a.rows}", f"--cols={a.cols}",
+            f"--num_trees={a.num_trees}",
+            f"--tree_depth={a.tree_depth}",
+            f"--num_threads={a.num_threads}",
+            f"--projection_density_factor={a.projection_density_factor}",
+            f"--max_num_projections={a.max_num_projections}",
         ]
-        log_output = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            check=True,
-        ).stdout
 
-        training_time = parse_train_time(log_output)
-        tbl = PARSER_MAP[args.verbose](log_output)
-        save_tbl_to_xlsx(tbl, args.rows, args.cols, base_dir, training_time)
-        
-        if args.save_log:
-            save_log_to_file(log_output, args.rows, args.cols, base_dir, training_time)
+        t0 = time.perf_counter()
+        log = subprocess.run(cmd, stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT,
+                             text=True, check=True).stdout
+        t1 = time.perf_counter()
 
+        print(f"\n▶ binary ran in {t1-t0:.3f}s")
+
+        table = PARSER[a.verbose](log)
+        t2 = time.perf_counter()
+
+        wall = TRAIN_RX.search(log).group(1)   # e.g. "2.28s"
+
+        print(f"parsing output took {t2-t1:.3f}s")
+
+        csv_path = os.path.join(out_dir, f"{wall}.csv")
+        params = dict(rows=a.rows, cols=a.cols,
+                      num_trees=a.num_trees, tree_depth=a.tree_depth,
+                      proj_density_factor=a.projection_density_factor,
+                      max_projections=a.max_num_projections,
+                      num_threads=a.num_threads,
+                      sort_method=a.sort_method,
+                      cpu_model=cpu_model(),
+                      repeat_index=rep + 1)
+        write_csv(table, params, csv_path)
+        t3 = time.perf_counter()
+
+        print(f"writing csv took: {t3-t2:.3f}s\n")
+        print("CSV written to ",  csv_path)
+
+        if a.save_log:
+            with open(os.path.join(out_dir, f"{wall}.log"), "w") as f:
+                f.write(log)
