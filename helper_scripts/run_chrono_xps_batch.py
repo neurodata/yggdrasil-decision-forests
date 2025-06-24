@@ -71,7 +71,7 @@ def get_args():
                         help="List of number of threads to test, e.g. --threads_list 1 2 4 8 16 32 64")
     parser.add_argument("--rows", type=int, default=524288, help="Rows of the synthetic input matrix")
     parser.add_argument("--cols", type=int, default=1024, help="Columns of the synthetic input matrix")
-    parser.add_argument("--repeats", type=int, default=7,
+    parser.add_argument("--repeats", type=int, default=1,
                         help="Number of times to repeat & avg. experiments. Default: 7")
     
     # Model params
@@ -84,7 +84,7 @@ def get_args():
     parser.add_argument("--max_num_projections", type=int, default=1,
                     help="Maximum number of projections. WARNING: YDF doesn't always obey this! Default: 1000")
 
-    parser.add_argument("--save_log", type=bool, default=False,
+    parser.add_argument("--save_log", action="store_true",
                         help="Whether to save log plaintext. Useful for cross-checking parser correctness")
     parser.add_argument(
         "--verbose",
