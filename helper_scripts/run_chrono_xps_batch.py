@@ -45,6 +45,10 @@ RENAMES = {
 # ─────────────────────────── CLI ────────────────────────────────────
 def get_args():
     p = argparse.ArgumentParser()
+    p.add_argument("--input_mode", choices=["synthetic", "csv"],
+                   default="synthetic")
+    p.add_argument("--train_csv", default="../ariel_test_data/processed_wise1_data.csv")
+    p.add_argument("--label_col", default="Cancer Status"),
     p.add_argument("--sort_method", choices=["SortFeature", "SortIndex"],
                    default="SortFeature")
     p.add_argument("--num_threads", type=int, default=1)
@@ -191,16 +195,28 @@ if __name__ == "__main__":
     os.makedirs(out_dir, exist_ok=True)
 
     for rep in range(a.repeats):
-        cmd = [
-            "../bazel-bin/examples/train_oblique_forest",
-            "--input_mode=synthetic",
-            f"--rows={a.rows}", f"--cols={a.cols}",
-            f"--num_trees={a.num_trees}",
-            f"--tree_depth={a.tree_depth}",
-            f"--num_threads={a.num_threads}",
-            f"--projection_density_factor={a.projection_density_factor}",
-            f"--max_num_projections={a.max_num_projections}",
-        ]
+        if a.input_mode == "synthetic":
+            cmd = [
+                "../bazel-bin/examples/train_oblique_forest",
+                "--input_mode=synthetic",
+                f"--rows={a.rows}", f"--cols={a.cols}",
+                f"--num_trees={a.num_trees}",
+                f"--tree_depth={a.tree_depth}",
+                f"--num_threads={a.num_threads}",
+                f"--projection_density_factor={a.projection_density_factor}",
+                f"--max_num_projections={a.max_num_projections}",
+            ]
+        elif a.input_mode == "csv":
+            cmd = [
+                "../bazel-bin/examples/train_oblique_forest",
+                f"--train_csv={a.train_csv}",
+                f"--label_col={a.label_col}",
+                f"--num_trees={a.num_trees}",
+                f"--tree_depth={a.tree_depth}",
+                f"--num_threads={a.num_threads}",
+                f"--projection_density_factor={a.projection_density_factor}",
+                f"--max_num_projections={a.max_num_projections}",
+            ]
 
         t0 = time.perf_counter()
         log = subprocess.run(cmd, stdout=subprocess.PIPE,
