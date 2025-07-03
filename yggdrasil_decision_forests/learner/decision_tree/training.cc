@@ -4877,24 +4877,16 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
       auto *effective_random = random;
       utils::RandomEngine fixed_random(12345678);
-      if (dt_config.honest().fixed_separation())
-      {
-        effective_random = &fixed_random;
-      }
+      
+      if (dt_config.honest().fixed_separation()) { effective_random = &fixed_random; }
 
       for (const auto &example : selected_examples)
       {
-        if (dist_01(*effective_random) < leaf_rate)
-        {
-          leaf_examples_value.push_back(example);
-        }
-        else
-        {
-          working_selected_examples.push_back(example);
-        }
+        if (dist_01(*effective_random) < leaf_rate) { leaf_examples_value.push_back(example); }
+        else { working_selected_examples.push_back(example); }
       }
     }
-    else
+    else // non-Honest
     {
       working_selected_examples.assign(selected_examples.begin(),
                                        selected_examples.end());
