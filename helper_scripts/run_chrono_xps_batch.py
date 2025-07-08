@@ -48,7 +48,7 @@ def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--input_mode", choices=["synthetic", "csv"], default="synthetic")
     p.add_argument("--train_csv",
-                   default="../ariel_test_data/processed_wise1_data.csv")
+                   default="ariel_test_data/processed_wise1_data.csv")
     p.add_argument("--label_col", default="Cancer Status")
     p.add_argument("--experiment_name", type=str, default="untitled_experiment",
                    help="Name for the experiment, used in the output directory path")
@@ -173,7 +173,7 @@ def write_csv(table: pd.DataFrame, params: dict[str, object], path: str):
 if __name__ == "__main__":
     a = get_args()
     out_dir = os.path.join(
-        "..", "ariel_results", "per_function_timing",
+        "ariel_results", "per_function_timing",
         cpu_model(), a.experiment_name, f"{a.rows}_x_{a.cols}"
     )
     os.makedirs(out_dir, exist_ok=True)
@@ -181,7 +181,7 @@ if __name__ == "__main__":
     for rep in range(a.repeats):
 
         cmd = [
-            "../bazel-bin/examples/train_oblique_forest",
+            "./bazel-bin/examples/train_oblique_forest",
             f"--num_trees={a.num_trees}",
             f"--tree_depth={a.tree_depth}",
             f"--num_threads={a.num_threads}",
