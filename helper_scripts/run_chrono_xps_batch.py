@@ -4,7 +4,7 @@ Produces one CSV per run:
 
     • columns   A…?   – timing table (tree × depth × functions)
     • columns  +2 gap – two empty spacer columns
-    • columns   …Z    – key-value “Run-Parameters” block
+    • columns   …Z    – key-value "Run-Parameters" block
 """
 
 from __future__ import annotations
@@ -50,8 +50,8 @@ def get_args():
     p.add_argument("--train_csv",
                    default="../ariel_test_data/processed_wise1_data.csv")
     p.add_argument("--label_col", default="Cancer Status")
-    p.add_argument("--sort_method", choices=["SortFeature", "SortIndex"],
-                   default="SortFeature")
+    p.add_argument("--experiment_name", type=str, default="untitled_experiment",
+                   help="Name for the experiment, used in the output directory path")
     p.add_argument("--num_threads", type=int, default=1)
     p.add_argument("--rows", type=int, default=524288)
     p.add_argument("--cols", type=int, default=1024)
@@ -174,7 +174,7 @@ if __name__ == "__main__":
     a = get_args()
     out_dir = os.path.join(
         "..", "ariel_results", "per_function_timing",
-        cpu_model(), a.sort_method, f"{a.rows}_x_{a.cols}"
+        cpu_model(), a.experiment_name, f"{a.rows}_x_{a.cols}"
     )
     os.makedirs(out_dir, exist_ok=True)
 
@@ -221,7 +221,7 @@ if __name__ == "__main__":
             num_trees=a.num_trees, tree_depth=a.tree_depth,
             proj_density_factor=a.projection_density_factor,
             max_projections=a.max_num_projections,
-            num_threads=a.num_threads, sort_method=a.sort_method,
+            num_threads=a.num_threads, experiment_name=a.experiment_name,
             cpu_model=cpu_model(), repeat_index=rep + 1,
         )
         write_csv(table, params, csv_path)

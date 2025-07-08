@@ -17,8 +17,8 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_mode", choices=["csv", "synthetic"], default="synthetic",
                         help="Experiment mode: 'csv' to load data via train_forest, 'rng' to generate via train_forest synthetic")
-    parser.add_argument("--sort_method", choices=["SortFeature", "SortIndex"], default="SortFeature",
-                        help="Use SortIndex to save the results to sort_index dir instead of regular 'SortFeature'. Has no effect on C++ binary")
+    parser.add_argument("--experiment_name", type=str, default="untitled_experiment",
+                        help="Name for the experiment, used in the output CSV filename")
     # Runtime params.
     parser.add_argument("--num_threads", type=int, default=-1,
                         help="Number of threads to use. Use -1 for all logical CPUs.")
@@ -44,14 +44,26 @@ def get_args():
     return parser.parse_args()
 
 
-def save_matrix(matrix, filepath, title_row=None):
+def save_combined_matrix(avg_matrix, std_matrix, filepath, title_row=None):
     with open(filepath, "w", newline='') as f:
         writer = csv.writer(f)
         if title_row:
             writer.writerow(title_row)
-        writer.writerow(["n"] + d_values)
+        
+        # Create header row with averages and std columns (5 columns apart)
+        header = ["n"] + d_values + [""] * 5 + [f"{d}_std" for d in d_values]
+        writer.writerow(header)
+        
+        # Write data rows
         for n in n_values:
-            writer.writerow([n] + [matrix[n][d] for d in d_values])
+            row = [n]
+            # Add average values
+            row.extend([avg_matrix[n][d] for d in d_values])
+            # Add 5 empty columns
+            row.extend([""] * 5)
+            # Add std values
+            row.extend([std_matrix[n][d] for d in d_values])
+            writer.writerow(row)
 
 
 def get_cpu_model_proc():
@@ -80,7 +92,7 @@ def main():
     else:
         threads_to_test = [args.num_threads]
 
-    base_results_dir = os.path.join("ariel_results", "runtime_heatmap", get_cpu_model_proc(), args.sort_method)
+    base_results_dir = os.path.join("ariel_results", "runtime_heatmap", get_cpu_model_proc())
     os.makedirs(base_results_dir, exist_ok=True)
     binary = "./bazel-bin/examples/train_oblique_forest"
 
@@ -93,18 +105,11 @@ def main():
         else:
             thread_count = t
 
-        avg_csv = os.path.join(base_results_dir, f"matrix_avg_results_{thread_count}.csv")
-        std_csv = os.path.join(base_results_dir, f"matrix_std_results_{thread_count}.csv")
+        combined_csv = os.path.join(base_results_dir, f"{args.experiment_name}_{thread_count}.csv")
 
         # Initialize matrices
         avg_matrix = {n: {d: "" for d in d_values} for n in n_values}
         std_matrix = {n: {d: "" for d in d_values} for n in n_values}
-
-        # Pre-create result files with headers
-        with open(avg_csv, "w", newline='') as f:
-            csv.writer(f).writerow(["n"] + d_values)
-        with open(std_csv, "w", newline='') as f:
-            csv.writer(f).writerow(["n"] + d_values)
 
         header = ["YDF Fisher-Yates", f"per-proj. nnz={args.projection_density_factor}", f"trees={args.num_trees}", f"{args.repeats} repeats", f"{args.tree_depth} depth", get_cpu_model_proc(), f"{str(t)} thread(s)"]
 
@@ -151,8 +156,7 @@ def main():
                         logging.critical("  ➤ All runs failed.")
 
                     # Save after each cell
-                    save_matrix(avg_matrix, avg_csv, header)
-                    save_matrix(std_matrix, std_csv, header)
+                    save_combined_matrix(avg_matrix, std_matrix, combined_csv, header)
 
         else:  # rng mode
             static_args = [
@@ -192,8 +196,7 @@ def main():
                         logging.critical("  ➤ All runs failed.")
 
                     # Save after each cell
-                    save_matrix(avg_matrix, avg_csv, header)
-                    save_matrix(std_matrix, std_csv, header)
+                    save_combined_matrix(avg_matrix, std_matrix, combined_csv, header)
 
 
 if __name__ == "__main__":
