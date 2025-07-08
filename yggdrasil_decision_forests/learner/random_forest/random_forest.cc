@@ -496,7 +496,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL) {
           end = std::chrono::high_resolution_clock::now();
           dur = end - start;
-          std::cout << "\n Preprocess training dataset took: " << dur.count() << "s\n";
+          std::cout << "\n Preprocess training dataset took: " << dur.count() << "s" << std::endl;
         }
 
         std::vector<const dataset::VerticalDataset::NumericalVectorSequenceColumn *>
@@ -784,7 +784,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                   if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL) {
                     end = std::chrono::high_resolution_clock::now();
                     dur = end - start;
-                    std::cout << "\nSelecting Bootstrapped Samples took: " << dur.count() << "s\n";
+                    std::cout << "\nSelecting Bootstrapped Samples took: " << dur.count() << "s" << std::endl;
                   }
 
                   decision_tree::InternalTrainConfig internal_config;
@@ -1102,7 +1102,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         /* --- std::move(mdl) doesn't seem to take any time - Omitted ---
         end = std::chrono::high_resolution_clock::now();
         dur = end - start;
-        std::cout << "\nstd::move mdl took: " << dur.count() << "s\n";
+        std::cout << "\nstd::move mdl took: " << dur.count() << "s" << std::endl;
         */
         
         return return_val;

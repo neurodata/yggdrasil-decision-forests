@@ -81,7 +81,7 @@ namespace decision_tree {
 // none is much faster, for end-to-end timing
 static constexpr int CHRONO_MEASUREMENTS_LOG_LEVEL = 0;
 // Normally, n_projections bounded by n_features. Override it to time cache hits w.r.t n_features
-static constexpr bool HARD_CODE_1000_PROJECTIONS = true;
+static constexpr bool HARD_CODE_1000_PROJECTIONS = false;
 
 // TODO: Explain the expected signature of FeatureBucket and LabelBucket.
 template <typename FeatureBucket, typename LabelBucket>
@@ -651,7 +651,7 @@ void FillExampleBucketSet(
   if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
-    std::cout << " - - Bucket Allocation & Initialization=0 took: " << dur.count() << "s\n";
+    std::cout << " - - Bucket Allocation & Initialization=0 took: " << dur.count() << "s" << std::endl;
   }
 
   // TODO TRY Already sort data (by feature, paired w/ Label), then assign to Buckets
@@ -682,7 +682,7 @@ void FillExampleBucketSet(
   if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
-    std::cout << " - - Filling & Finalizing the Buckets took: " << dur.count() << "s\n";
+    std::cout << " - - Filling & Finalizing the Buckets took: " << dur.count() << "s" << std::endl;
   }
 
   static_assert(!(ExampleBucketSet::FeatureBucketType::kRequireSorting &&
@@ -702,7 +702,7 @@ void FillExampleBucketSet(
   if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
-    std::cout << " - - SortFeature took: " << dur.count() << "s\n";
+    std::cout << " - - SortFeature took: " << dur.count() << "s" << std::endl;
   }
 
   if constexpr (require_label_sorting) {

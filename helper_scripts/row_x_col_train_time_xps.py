@@ -28,7 +28,7 @@ def get_args():
                         help="List of number of rows of the input matrix to test, e.g. --rows_list 128 256 512. Default: [128, 256, 512,1024]")
     parser.add_argument("--cols_list", type=int, nargs="+", default=[128,256,512,1024,2048,4096],
                         help="List of number of cols of the input matrix to test, e.g. --cols_list 128 256 512. Default: [128,256,512,1024,2048,4096]")
-    parser.add_argument("--repeats", type=int, default=7,
+    parser.add_argument("--repeats", type=int, default=5,
                         help="Number of times to repeat & avg. experiments. Default: 7")
     
     # Model params
