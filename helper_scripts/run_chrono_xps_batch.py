@@ -28,6 +28,31 @@ def cpu_model() -> str:
         pass
     return "unknown_cpu"
 
+def disable_e_cores():
+    """Disable E-cores (cores 6 to nproc-1)"""
+    try:
+        nproc = int(subprocess.run(['nproc'], capture_output=True, text=True).stdout.strip())
+        if nproc > 6:
+            result = subprocess.run(['sudo', 'chcpu', '-d', f'6-{nproc-1}'], 
+                                  capture_output=True, text=True, check=True)
+            print(f"Disabled E-cores 6-{nproc-1}")
+            if result.stdout: print(result.stdout.strip())
+            if result.stderr: print(result.stderr.strip())
+    except Exception as e:
+        print(f"Warning: Could not disable E-cores: {e}")
+
+def enable_e_cores():
+    """Re-enable E-cores (cores 6-15)"""
+    try:
+        result = subprocess.run(['sudo', 'chcpu', '-e', '6-15'], 
+                              capture_output=True, text=True, check=True)
+        print("Re-enabled E-cores 6-15")
+        if result.stdout: print(result.stdout.strip())
+        if result.stderr: print(result.stderr.strip())
+    except Exception as e:
+        print(f"Warning: Could not re-enable E-cores: {e}")
+
+
 ORDER = [
     "Selecting Bootstrapped Samples",
     "Initialization of FindBestCondOblique",
@@ -178,6 +203,9 @@ if __name__ == "__main__":
     )
     os.makedirs(out_dir, exist_ok=True)
 
+    # print(f"Running with input dims {a.rows}x{a.cols}" )
+    print(f"Running with args {a}")
+
     for rep in range(a.repeats):
 
         cmd = [
@@ -200,6 +228,9 @@ if __name__ == "__main__":
                 f"--label_col={a.label_col}",
             ]
 
+        # Disable E-cores before running the binary
+        disable_e_cores()
+        
         t0 = time.perf_counter()
         log = subprocess.run(
             cmd, stdout=subprocess.PIPE,
@@ -207,6 +238,9 @@ if __name__ == "__main__":
         ).stdout
         t1 = time.perf_counter()
         print(f"\n▶ binary ran in {t1 - t0:.3f}s")
+
+        # Re-enable E-cores after the binary is done
+        enable_e_cores()
 
         log = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', log)  # strip ANSI
         table = PARSER[a.verbose](log)

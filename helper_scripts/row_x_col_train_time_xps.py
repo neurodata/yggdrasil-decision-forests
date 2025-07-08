@@ -13,6 +13,32 @@ logging.basicConfig(
 )
 
 
+def disable_e_cores():
+    """Disable E-cores (cores 6 to nproc-1)"""
+    try:
+        nproc = int(subprocess.run(['nproc'], capture_output=True, text=True).stdout.strip())
+        if nproc > 6:
+            result = subprocess.run(['sudo', 'chcpu', '-d', f'6-{nproc-1}'], 
+                                  capture_output=True, text=True, check=True)
+            print(f"Disabled E-cores 6-{nproc-1}")
+            if result.stdout: print(result.stdout.strip())
+            if result.stderr: print(result.stderr.strip())
+    except Exception as e:
+        print(f"Warning: Could not disable E-cores: {e}")
+
+
+def enable_e_cores():
+    """Re-enable E-cores (cores 6-15)"""
+    try:
+        result = subprocess.run(['sudo', 'chcpu', '-e', '6-15'], 
+                              capture_output=True, text=True, check=True)
+        print("Re-enabled E-cores 6-15")
+        if result.stdout: print(result.stdout.strip())
+        if result.stderr: print(result.stderr.strip())
+    except Exception as e:
+        print(f"Warning: Could not re-enable E-cores: {e}")
+
+
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_mode", choices=["csv", "synthetic"], default="synthetic",
@@ -136,7 +162,14 @@ def main():
                     for i in range(args.repeats):
                         cmd = [binary, "--input_mode=csv", f"--train_csv={path}"] + static_args
                         try:
+                            # Disable E-cores before running the binary
+                            disable_e_cores()
+                            
                             out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
+                            
+                            # Re-enable E-cores after the binary is done
+                            enable_e_cores()
+                            
                             m = time_rx.search(out)
                             if m:
                                 t_measured = float(m.group(1))
@@ -145,6 +178,8 @@ def main():
                             else:
                                 logging.error(f"  Run {i+1}: parse fail")
                         except subprocess.CalledProcessError as e:
+                            # Make sure to re-enable E-cores even if binary fails
+                            enable_e_cores()
                             logging.error(f"  Run {i+1}: error\n{e.output}")
                     if times:
                         avg = statistics.mean(times)
@@ -176,7 +211,14 @@ def main():
                     for i in range(args.repeats):
                         cmd = [binary, "--input_mode=synthetic", f"--rows={n}", f"--cols={d}"] + static_args
                         try:
+                            # Disable E-cores before running the binary
+                            disable_e_cores()
+                            
                             out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
+                            
+                            # Re-enable E-cores after the binary is done
+                            enable_e_cores()
+                            
                             m = time_rx.search(out)
                             if m:
                                 t_measured = float(m.group(1))
@@ -185,6 +227,8 @@ def main():
                             else:
                                 logging.error(f"  Run {i+1}: parse fail")
                         except subprocess.CalledProcessError as e:
+                            # Make sure to re-enable E-cores even if binary fails
+                            enable_e_cores()
                             logging.error(f"  Run {i+1}: error\n{e.output}")
                     if times:
                         avg = statistics.mean(times)
