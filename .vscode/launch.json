@@ -34,6 +34,39 @@
       ]
     },
     {
+      "name": "Oblique Histogram Haberman",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
+      "args": [
+        "--input_mode=csv",
+        "--train_csv=${workspaceFolder}/ariel_test_data/haberman.csv",
+        "--label_col=survival_status",
+        "--projection_density_factor=3.0",
+        "--numerical_split_type=Random"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      // "sourceFileMap": {
+      //   "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
+      // },
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
       "name": "Oblique Forest on MIGHT",
       "type": "cppdbg",
       "request": "launch",
@@ -42,6 +75,38 @@
   "--train_csv", "${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
   "--label_col", "Cancer Status",
   "--projection_density_factor", "3",
+],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      // "sourceFileMap": {
+      //   "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
+      // },
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
+      "name": "Oblique Histogram on MIGHT",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
+"args": [
+  "--train_csv", "${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
+  "--label_col", "Cancer Status",
+  "--projection_density_factor", "3",
+  "--numerical_split_type", "Equal Width",
 ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

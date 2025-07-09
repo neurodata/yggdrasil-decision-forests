@@ -492,7 +492,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
       const auto na_replacement = attribute_column_spec.numerical().mean();
 
-      // TODO Ariel - parameter for exact (CART) vs. approx. (Histogram) splits
+      // Ariel - parameter for exact (CART) vs. approx. (Histogram) splits
       if (dt_config.numerical_split().type() == proto::NumericalSplit::EXACT)
       {
         ASSIGN_OR_RETURN(
@@ -2210,6 +2210,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
       const int32_t attribute_idx, utils::RandomEngine *random,
       proto::NodeCondition *condition)
   {
+    /* #region Checks */
     DCHECK(condition != nullptr);
     if (!weights.empty())
     {
@@ -2222,19 +2223,21 @@ namespace yggdrasil_decision_forests::model::decision_tree
       LocalImputationForNumericalAttribute(selected_examples, weights, attributes,
                                            &na_replacement);
     }
+    /* #endregion */
+
     // Determine the minimum and maximum values of the attribute.
+    // Ariel which attribute? Each feature?
     float min_value, max_value;
+
+    /* #region Basic Validity Checks */
     if (!MinMaxNumericalAttribute(selected_examples, attributes, &min_value,
                                   &max_value))
-    {
-      return SplitSearchResult::kInvalidAttribute;
-    }
+    { return SplitSearchResult::kInvalidAttribute; }
     // There should be at least two different unique values.
     if (min_value == max_value)
-    {
-      return SplitSearchResult::kInvalidAttribute;
-    }
-    // Randomly select some threshold values.
+    { return SplitSearchResult::kInvalidAttribute; }
+    /* #endregion */
+
     struct CandidateSplit
     {
       float threshold;
@@ -2246,6 +2249,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
       }
     };
 
+    // Randomly select some threshold values.
     ASSIGN_OR_RETURN(
         const auto bins,
         internal::GenHistogramBins(dt_config.numerical_split().type(),
