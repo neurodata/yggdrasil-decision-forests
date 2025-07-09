@@ -62,9 +62,18 @@ ABSL_FLAG(int, label_mod, 2,
 ABSL_FLAG(uint32_t, seed, 1234,
           "PRNG seed (for synthetic mode).");
 
+// Histogram-based splits - Updated to match Yggdrasil implementation
+ABSL_FLAG(std::string, numerical_split_type, "Exact",
+          "Type of histogram splitting: 'Exact (no histogramming)', 'Random', or 'Equal Width'.");
+ABSL_FLAG(int, histogram_num_bins, 256,
+          "Number of bins for histogram splitting.");
+
 using namespace yggdrasil_decision_forests;
 
 /* #endregion */
+
+
+/* #region Synthetic Dataset Generation */
 
 // Build a DataSpecification for synthetic data
 dataset::proto::DataSpecification MakeSyntheticSpec(
@@ -83,8 +92,6 @@ dataset::proto::DataSpecification MakeSyntheticSpec(
   spec.set_created_num_rows(rows);
   return spec;
 }
-
-
 
 dataset::VerticalDataset MakeSyntheticDataset(
     const dataset::proto::DataSpecification& spec,
@@ -128,6 +135,7 @@ dataset::VerticalDataset MakeSyntheticDataset(
   return ds;
 }
 
+/* #endregion */
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
@@ -246,6 +254,32 @@ int main(int argc, char** argv) {
       absl::GetFlag(FLAGS_num_projections_exponent));
   rf.set_compute_oob_performances(
       absl::GetFlag(FLAGS_compute_oob_performances));
+
+  // Configure histogram splitting - Updated to match Yggdrasil implementation
+  auto* numerical_split = rf.mutable_decision_tree()->mutable_numerical_split();
+  
+  const std::string hist_type = absl::GetFlag(FLAGS_numerical_split_type);
+  if (hist_type == "Exact") {
+    numerical_split->set_type(
+        model::decision_tree::proto::NumericalSplit::EXACT);
+    std::cout << "Using exact splitting\n";
+  } else if (hist_type == "Random") {
+    numerical_split->set_type(
+        model::decision_tree::proto::NumericalSplit::HISTOGRAM_RANDOM);
+    numerical_split->set_num_candidates(absl::GetFlag(FLAGS_histogram_num_bins));
+    std::cout << "Using histogram splitting: Random with " 
+              << absl::GetFlag(FLAGS_histogram_num_bins) << " bins\n";
+  } else if (hist_type == "Equal Width") {
+    numerical_split->set_type(
+        model::decision_tree::proto::NumericalSplit::HISTOGRAM_EQUAL_WIDTH);
+    numerical_split->set_num_candidates(absl::GetFlag(FLAGS_histogram_num_bins));
+    std::cout << "Using histogram splitting: Equal Width with " 
+              << absl::GetFlag(FLAGS_histogram_num_bins) << " bins\n";
+  } else {
+    std::cerr << "Unknown histogram type: " << hist_type 
+              << ". Use 'Exact', 'Random', or 'Equal Width'.\n";
+    return 1;
+  }
 
   std::unique_ptr<model::AbstractLearner> learner;
   CHECK_OK(model::GetLearner(train_config, &learner, deploy_config));
