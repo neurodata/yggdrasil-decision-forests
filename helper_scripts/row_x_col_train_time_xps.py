@@ -46,13 +46,15 @@ def get_args():
     parser.add_argument("--experiment_name", type=str, default="untitled_experiment",
                         help="Name for the experiment, used in the output CSV filename")
     # Runtime params.
+    parser.add_argument("--numerical_split_type", type=str, choices=["Exact", "Random", "Equal Width"], required=True,
+                        help="Whether to use Exact or Histogram splits")
     parser.add_argument("--num_threads", type=int, default=-1,
                         help="Number of threads to use. Use -1 for all logical CPUs.")
     parser.add_argument("--threads_list", type=int, nargs="+", default=None,
                         help="List of number of threads to test, e.g. --threads_list 1 2 4 8 16 32 64")
     parser.add_argument("--rows_list", type=int, nargs="+", default=[128, 256, 512,1024],
                         help="List of number of rows of the input matrix to test, e.g. --rows_list 128 256 512. Default: [128, 256, 512,1024]")
-    parser.add_argument("--cols_list", type=int, nargs="+", default=[128,256,512,1024,2048,4096],
+    parser.add_argument("--cols_list", type=int, nargs="+", default=[128,256,512,1024],
                         help="List of number of cols of the input matrix to test, e.g. --cols_list 128 256 512. Default: [128,256,512,1024,2048,4096]")
     parser.add_argument("--repeats", type=int, default=5,
                         help="Number of times to repeat & avg. experiments. Default: 7")
@@ -144,7 +146,8 @@ def main():
             static_args = [
                 "--label_col=Target",
                 f"--projection_density_factor={args.projection_density_factor}.0",
-                f"--num_threads={thread_count}"
+                f"--num_threads={thread_count}",
+                f"--numerical_split_type={args.numerical_split_type}"
             ]
             time_rx = re.compile(r"Training time: ([\d.]+) seconds")
             
@@ -201,6 +204,7 @@ def main():
                 f"--tree_depth={args.tree_depth}",
                 f"--num_threads={thread_count}",
                 f"--max_num_projections={args.max_num_projections}",
+                f"--numerical_split_type={args.numerical_split_type}"
             ]
             time_rx = re.compile(r"Training wall-time: ([\d.]+)s")
 
@@ -211,13 +215,7 @@ def main():
                     for i in range(args.repeats):
                         cmd = [binary, "--input_mode=synthetic", f"--rows={n}", f"--cols={d}"] + static_args
                         try:
-                            # Disable E-cores before running the binary
-                            disable_e_cores()
-                            
                             out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
-                            
-                            # Re-enable E-cores after the binary is done
-                            enable_e_cores()
                             
                             m = time_rx.search(out)
                             if m:
@@ -244,4 +242,8 @@ def main():
 
 
 if __name__ == "__main__":
+    # Disable E-cores before running the binary
+    disable_e_cores()
     main()
+    # Re-enable E-cores after the binary is done
+    enable_e_cores()
