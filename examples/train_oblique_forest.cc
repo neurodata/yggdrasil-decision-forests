@@ -27,16 +27,16 @@
 
 /* #region ABSL Flags */
 // Input mode flag: "csv", "synthetic", or "tfrecord"
-ABSL_FLAG(std::string, input_mode, "csv",
+ABSL_FLAG(std::string, input_mode, "",
           "Data input mode: csv, synthetic, or tfrecord.");
 // CSV mode flags
-ABSL_FLAG(std::string, train_csv, "",
+ABSL_FLAG(std::string, train_csv, "/home/ariel/prog/yggdrasil-decision-forests/ariel_test_data/processed_wise1_data.csv",
           "Path to training CSV file (for csv mode). Must include --label_col.");
 // TFRecord mode flags
 ABSL_FLAG(std::string, ds_path, "",
           "Path (without extension) to TF-Record file (for tfrecord mode).");
 // Common flags
-ABSL_FLAG(std::string, label_col, "y",
+ABSL_FLAG(std::string, label_col, "Cancer Status",
           "Name of label column (used in all modes).");
 ABSL_FLAG(std::string, model_out_dir, "",
           "Path to output trained model directory (optional)."
@@ -140,21 +140,36 @@ dataset::VerticalDataset MakeSyntheticDataset(
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   const auto mode = absl::GetFlag(FLAGS_input_mode);
-  const std::string label_col = absl::GetFlag(FLAGS_label_col);
+
+  // Validate required input_mode flag
+  if (mode.empty()) {
+    std::cerr << "Error: --input_mode is required. Use csv, synthetic, or tfrecord.\n";
+    return 1;
+  }
 
   // Placeholders for DataSpec and dataset
   dataset::proto::DataSpecification data_spec;
   std::unique_ptr<dataset::VerticalDataset> tf_ds;
   dataset::VerticalDataset* ds_ptr = nullptr;
   std::string csv_path;
+  std::string label_col;
 
   // 1) Prepare data source based on mode
   if (mode == "csv") {
     csv_path = absl::GetFlag(FLAGS_train_csv);
+    label_col = absl::GetFlag(FLAGS_label_col);
+
+    // Validate required CSV parameters
     if (csv_path.empty()) {
-      std::cerr << "--train_csv required in csv mode\n";
+      std::cerr << "Error: --train_csv is required in csv mode.\n";
       return 1;
     }
+    if (label_col.empty()) {
+      std::cerr << "Error: --label_col is required in csv mode.\n";
+      return 1;
+    }
+
+    
     std::cout << "\n\nInferring DataSpec from CSV: " << csv_path << "\n\n" << std::endl;
     dataset::proto::DataSpecificationGuide guide;
     auto* col_guide = guide.add_column_guides();
@@ -175,7 +190,7 @@ int main(int argc, char** argv) {
         absl::GetFlag(FLAGS_cols),
         absl::GetFlag(FLAGS_rows),
         absl::GetFlag(FLAGS_label_mod),
-        label_col);
+        "y"); // label_col
     auto ds = MakeSyntheticDataset(
         data_spec,
         absl::GetFlag(FLAGS_rows),
