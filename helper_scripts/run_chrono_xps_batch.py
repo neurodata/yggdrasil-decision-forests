@@ -77,6 +77,10 @@ def get_args():
     p.add_argument("--label_col", default="Cancer Status")
     p.add_argument("--experiment_name", type=str, default="untitled_experiment",
                    help="Name for the experiment, used in the output directory path")
+    p.add_argument("--numerical_split_type", type=str, 
+                   choices=["Exact", "Random", "Equal Width"], 
+                   default="Exact",
+                   help="Numerical split type for the random forest")
     p.add_argument("--num_threads", type=int, default=1)
     p.add_argument("--rows", type=int, default=524288)
     p.add_argument("--cols", type=int, default=1024)
@@ -215,6 +219,7 @@ if __name__ == "__main__":
             f"--num_threads={a.num_threads}",
             f"--projection_density_factor={a.projection_density_factor}",
             f"--max_num_projections={a.max_num_projections}",
+            f"--numerical_split_type={a.numerical_split_type}",
         ]
 
         if a.input_mode == "synthetic":
@@ -256,6 +261,7 @@ if __name__ == "__main__":
             proj_density_factor=a.projection_density_factor,
             max_projections=a.max_num_projections,
             num_threads=a.num_threads, experiment_name=a.experiment_name,
+            numerical_split_type=a.numerical_split_type,
             cpu_model=cpu_model(), repeat_index=rep + 1,
         )
         write_csv(table, params, csv_path)
