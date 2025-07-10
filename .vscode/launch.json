@@ -75,6 +75,7 @@
   "--train_csv", "${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
   "--label_col", "Cancer Status",
   "--projection_density_factor", "3",
+  "--input_mode", "csv"
 ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
