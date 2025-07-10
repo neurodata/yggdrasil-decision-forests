@@ -36,6 +36,7 @@ build:intel_profiler --cxxopt=-gno-split-dwarf
 # 3. Timing / benchmark binary (small, fast)
 #   bazel build -c opt --config=intel_release //foo:bar
 build:intel_release --config=intel_base
+build:intel_release --cxxopt=-g0  # Explicitly set no debug info to avoid icx warning
 build:intel_release --strip=always   # strip everything
 # Optional: crank it to O3 or LTO if you care
 # build:intel_release --cxxopt=-O3 --linkopt=-O3
