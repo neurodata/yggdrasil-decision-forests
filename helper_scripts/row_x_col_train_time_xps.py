@@ -48,7 +48,7 @@ def get_args():
     # Runtime params.
     parser.add_argument("--numerical_split_type", type=str, choices=["Exact", "Random", "Equal Width"], required=True,
                         help="Whether to use Exact or Histogram splits")
-    parser.add_argument("--num_threads", type=int, default=-1,
+    parser.add_argument("--num_threads", type=int, default=1,
                         help="Number of threads to use. Use -1 for all logical CPUs.")
     parser.add_argument("--threads_list", type=int, nargs="+", default=None,
                         help="List of number of threads to test, e.g. --threads_list 1 2 4 8 16 32 64")
