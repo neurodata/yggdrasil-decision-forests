@@ -186,11 +186,14 @@ int main(int argc, char** argv) {
               << absl::GetFlag(FLAGS_rows)
               << ", cols=" << absl::GetFlag(FLAGS_cols)
               << "\n" << std::endl;
+    
+    label_col = "y"; // I create the synthetic dataset w/ this label col name
+
     data_spec = MakeSyntheticSpec(
         absl::GetFlag(FLAGS_cols),
         absl::GetFlag(FLAGS_rows),
         absl::GetFlag(FLAGS_label_mod),
-        "y"); // label_col
+        label_col); // label_col
     auto ds = MakeSyntheticDataset(
         data_spec,
         absl::GetFlag(FLAGS_rows),
