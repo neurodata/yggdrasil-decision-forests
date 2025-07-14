@@ -229,6 +229,7 @@ if __name__ == "__main__":
             ]
         else:  # csv
             cmd += [
+                "--input_mode=csv",
                 f"--train_csv={a.train_csv}",
                 f"--label_col={a.label_col}",
             ]
