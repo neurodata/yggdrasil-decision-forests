@@ -1,0 +1,491 @@
+=== MIGHT Benchmark Output ===
+
+(n=128, d=128):
+  train_time mean=4.7628s, std=0.0000
+  inference_time mean=0.2352s, std=0.0000
+  accuracy mean=0.487, std=0.000
+
+(n=128, d=256):
+  train_time mean=5.0229s, std=0.0000
+  inference_time mean=0.2446s, std=0.0000
+  accuracy mean=0.513, std=0.000
+
+(n=128, d=512):
+  train_time mean=4.9533s, std=0.0000
+  inference_time mean=0.2449s, std=0.0000
+  accuracy mean=0.538, std=0.000
+
+(n=128, d=1024):
+  train_time mean=5.1591s, std=0.0000
+  inference_time mean=0.2560s, std=0.0000
+  accuracy mean=0.538, std=0.000
+
+(n=128, d=2048):
+  train_time mean=5.2330s, std=0.0000
+  inference_time mean=0.2625s, std=0.0000
+  accuracy mean=0.487, std=0.000
+
+(n=128, d=4096):
+  train_time mean=5.5596s, std=0.0000
+  inference_time mean=0.2884s, std=0.0000
+  accuracy mean=0.590, std=0.000
+
+(n=128, d=8192):
+  train_time mean=6.9077s, std=0.0000
+  inference_time mean=0.3130s, std=0.0000
+  accuracy mean=0.513, std=0.000
+
+(n=128, d=16384):
+  train_time mean=9.7897s, std=0.0000
+  inference_time mean=0.3526s, std=0.0000
+  accuracy mean=0.564, std=0.000
+
+(n=128, d=32768):
+  train_time mean=17.8407s, std=0.0000
+  inference_time mean=0.4233s, std=0.0000
+  accuracy mean=0.538, std=0.000
+
+(n=128, d=65536):
+  train_time mean=35.2641s, std=0.0000
+  inference_time mean=0.5895s, std=0.0000
+  accuracy mean=0.564, std=0.000
+
+(n=128, d=131072):
+  train_time mean=73.6465s, std=0.0000
+  inference_time mean=0.8958s, std=0.0000
+  accuracy mean=0.718, std=0.000
+
+(n=256, d=128):
+  train_time mean=5.7594s, std=0.0000
+  inference_time mean=0.2530s, std=0.0000
+  accuracy mean=0.442, std=0.000
+
+(n=256, d=256):
+  train_time mean=5.8087s, std=0.0000
+  inference_time mean=0.3489s, std=0.0000
+  accuracy mean=0.519, std=0.000
+
+(n=256, d=512):
+  train_time mean=5.8783s, std=0.0000
+  inference_time mean=0.2569s, std=0.0000
+  accuracy mean=0.545, std=0.000
+
+(n=256, d=1024):
+  train_time mean=6.1743s, std=0.0000
+  inference_time mean=0.2670s, std=0.0000
+  accuracy mean=0.481, std=0.000
+
+(n=256, d=2048):
+  train_time mean=6.2941s, std=0.0000
+  inference_time mean=0.2803s, std=0.0000
+  accuracy mean=0.519, std=0.000
+
+(n=256, d=4096):
+  train_time mean=6.9958s, std=0.0000
+  inference_time mean=0.2989s, std=0.0000
+  accuracy mean=0.442, std=0.000
+
+(n=256, d=8192):
+  train_time mean=11.2314s, std=0.0000
+  inference_time mean=0.3353s, std=0.0000
+  accuracy mean=0.584, std=0.000
+
+(n=256, d=16384):
+  train_time mean=24.3093s, std=0.0000
+  inference_time mean=0.3749s, std=0.0000
+  accuracy mean=0.532, std=0.000
+
+(n=256, d=32768):
+  train_time mean=33.2675s, std=0.0000
+  inference_time mean=0.4543s, std=0.0000
+  accuracy mean=0.519, std=0.000
+
+(n=256, d=65536):
+  train_time mean=69.0071s, std=0.0000
+  inference_time mean=0.6766s, std=0.0000
+  accuracy mean=0.545, std=0.000
+
+(n=256, d=131072):
+  train_time mean=141.8530s, std=0.0000
+  inference_time mean=1.5989s, std=0.0000
+  accuracy mean=0.558, std=0.000
+
+(n=512, d=128):
+  train_time mean=7.1766s, std=0.0000
+  inference_time mean=0.2620s, std=0.0000
+  accuracy mean=0.539, std=0.000
+
+(n=512, d=256):
+  train_time mean=7.2900s, std=0.0000
+  inference_time mean=0.2625s, std=0.0000
+  accuracy mean=0.526, std=0.000
+
+(n=512, d=512):
+  train_time mean=7.4220s, std=0.0000
+  inference_time mean=0.2831s, std=0.0000
+  accuracy mean=0.526, std=0.000
+
+(n=512, d=1024):
+  train_time mean=7.7104s, std=0.0000
+  inference_time mean=0.2865s, std=0.0000
+  accuracy mean=0.526, std=0.000
+
+(n=512, d=2048):
+  train_time mean=7.9489s, std=0.0000
+  inference_time mean=0.3002s, std=0.0000
+  accuracy mean=0.519, std=0.000
+
+(n=512, d=4096):
+  train_time mean=9.3503s, std=0.0000
+  inference_time mean=0.3284s, std=0.0000
+  accuracy mean=0.545, std=0.000
+
+(n=512, d=8192):
+  train_time mean=21.5524s, std=0.0000
+  inference_time mean=0.3474s, std=0.0000
+  accuracy mean=0.500, std=0.000
+
+(n=512, d=16384):
+  train_time mean=46.6784s, std=0.0000
+  inference_time mean=0.4078s, std=0.0000
+  accuracy mean=0.481, std=0.000
+
+(n=512, d=32768):
+  train_time mean=64.3027s, std=0.0000
+  inference_time mean=0.5659s, std=0.0000
+  accuracy mean=0.519, std=0.000
+
+(n=512, d=65536):
+  train_time mean=135.7486s, std=0.0000
+  inference_time mean=1.3936s, std=0.0000
+  accuracy mean=0.552, std=0.000
+
+(n=512, d=131072):
+  train_time mean=281.6059s, std=0.0000
+  inference_time mean=2.5883s, std=0.0000
+  accuracy mean=0.500, std=0.000
+
+(n=1024, d=128):
+  train_time mean=10.3546s, std=0.0000
+  inference_time mean=0.2938s, std=0.0000
+  accuracy mean=0.487, std=0.000
+
+(n=1024, d=256):
+  train_time mean=10.5142s, std=0.0000
+  inference_time mean=0.3039s, std=0.0000
+  accuracy mean=0.494, std=0.000
+
+(n=1024, d=512):
+  train_time mean=10.7041s, std=0.0000
+  inference_time mean=0.3152s, std=0.0000
+  accuracy mean=0.487, std=0.000
+
+(n=1024, d=1024):
+  train_time mean=10.8468s, std=0.0000
+  inference_time mean=0.3286s, std=0.0000
+  accuracy mean=0.536, std=0.000
+
+(n=1024, d=2048):
+  train_time mean=11.5724s, std=0.0000
+  inference_time mean=0.3331s, std=0.0000
+  accuracy mean=0.526, std=0.000
+
+(n=1024, d=4096):
+  train_time mean=14.4179s, std=0.0000
+  inference_time mean=0.3723s, std=0.0000
+  accuracy mean=0.490, std=0.000
+
+(n=1024, d=8192):
+  train_time mean=34.4029s, std=0.0000
+  inference_time mean=0.4600s, std=0.0000
+  accuracy mean=0.494, std=0.000
+
+(n=1024, d=16384):
+  train_time mean=79.8225s, std=0.0000
+  inference_time mean=0.6583s, std=0.0000
+  accuracy mean=0.494, std=0.000
+
+(n=1024, d=32768):
+  train_time mean=127.6918s, std=0.0000
+  inference_time mean=1.2827s, std=0.0000
+  accuracy mean=0.526, std=0.000
+
+(n=1024, d=65536):
+  train_time mean=271.8848s, std=0.0000
+  inference_time mean=2.3877s, std=0.0000
+  accuracy mean=0.526, std=0.000
+
+(n=1024, d=131072):
+  train_time mean=567.5148s, std=0.0000
+  inference_time mean=4.3324s, std=0.0000
+  accuracy mean=0.497, std=0.000
+
+(n=2048, d=128):
+  train_time mean=15.9248s, std=0.0000
+  inference_time mean=0.3241s, std=0.0000
+  accuracy mean=0.522, std=0.000
+
+(n=2048, d=256):
+  train_time mean=16.0205s, std=0.0000
+  inference_time mean=0.3449s, std=0.0000
+  accuracy mean=0.473, std=0.000
+
+(n=2048, d=512):
+  train_time mean=16.3710s, std=0.0000
+  inference_time mean=0.3571s, std=0.0000
+  accuracy mean=0.527, std=0.000
+
+(n=2048, d=1024):
+  train_time mean=16.5837s, std=0.0000
+  inference_time mean=0.3594s, std=0.0000
+  accuracy mean=0.491, std=0.000
+
+(n=2048, d=2048):
+  train_time mean=18.0534s, std=0.0000
+  inference_time mean=0.3847s, std=0.0000
+  accuracy mean=0.525, std=0.000
+
+(n=2048, d=4096):
+  train_time mean=25.6015s, std=0.0000
+  inference_time mean=0.4479s, std=0.0000
+  accuracy mean=0.491, std=0.000
+
+(n=2048, d=8192):
+  train_time mean=62.0356s, std=0.0000
+  inference_time mean=0.5810s, std=0.0000
+  accuracy mean=0.491, std=0.000
+
+(n=2048, d=16384):
+  train_time mean=144.4705s, std=0.0000
+  inference_time mean=1.2333s, std=0.0000
+  accuracy mean=0.496, std=0.000
+
+(n=2048, d=32768):
+  train_time mean=265.7433s, std=0.0000
+  inference_time mean=2.3156s, std=0.0000
+  accuracy mean=0.512, std=0.000
+
+(n=2048, d=65536):
+  train_time mean=547.9634s, std=0.0000
+  inference_time mean=4.2266s, std=0.0000
+  accuracy mean=0.535, std=0.000
+
+(n=2048, d=131072):
+  train_time mean=1131.4022s, std=0.0000
+  inference_time mean=7.8740s, std=0.0000
+  accuracy mean=0.514, std=0.000
+
+(n=4096, d=128):
+  train_time mean=26.3325s, std=0.0000
+  inference_time mean=0.5000s, std=0.0000
+  accuracy mean=0.500, std=0.000
+
+(n=4096, d=256):
+  train_time mean=26.6946s, std=0.0000
+  inference_time mean=0.3763s, std=0.0000
+  accuracy mean=0.517, std=0.000
+
+(n=4096, d=512):
+  train_time mean=27.1604s, std=0.0000
+  inference_time mean=0.3869s, std=0.0000
+  accuracy mean=0.517, std=0.000
+
+(n=4096, d=1024):
+  train_time mean=27.9401s, std=0.0000
+  inference_time mean=0.5446s, std=0.0000
+  accuracy mean=0.514, std=0.000
+
+(n=4096, d=2048):
+  train_time mean=30.8973s, std=0.0000
+  inference_time mean=0.4261s, std=0.0000
+  accuracy mean=0.507, std=0.000
+
+(n=4096, d=4096):
+  train_time mean=50.0962s, std=0.0000
+  inference_time mean=0.6031s, std=0.0000
+  accuracy mean=0.489, std=0.000
+
+(n=4096, d=8192):
+  train_time mean=123.7960s, std=0.0000
+  inference_time mean=1.3145s, std=0.0000
+  accuracy mean=0.505, std=0.000
+
+(n=4096, d=16384):
+  train_time mean=277.8045s, std=0.0000
+  inference_time mean=2.2810s, std=0.0000
+  accuracy mean=0.510, std=0.000
+
+(n=4096, d=32768):
+  train_time mean=542.6808s, std=0.0000
+  inference_time mean=4.0838s, std=0.0000
+  accuracy mean=0.491, std=0.000
+
+(n=4096, d=65536):
+  train_time mean=1091.7369s, std=0.0000
+  inference_time mean=7.6993s, std=0.0000
+  accuracy mean=0.516, std=0.000
+
+(n=4096, d=131072):
+  train_time mean=2285.4908s, std=0.0000
+  inference_time mean=14.4142s, std=0.0000
+  accuracy mean=0.491, std=0.000
+
+(n=8192, d=128):
+  train_time mean=47.0410s, std=0.0000
+  inference_time mean=0.4370s, std=0.0000
+  accuracy mean=0.511, std=0.000
+
+(n=8192, d=256):
+  train_time mean=47.6658s, std=0.0000
+  inference_time mean=0.4385s, std=0.0000
+  accuracy mean=0.516, std=0.000
+
+(n=8192, d=512):
+  train_time mean=48.3485s, std=0.0000
+  inference_time mean=0.4647s, std=0.0000
+  accuracy mean=0.508, std=0.000
+
+(n=8192, d=1024):
+  train_time mean=50.7764s, std=0.0000
+  inference_time mean=0.4891s, std=0.0000
+  accuracy mean=0.504, std=0.000
+
+(n=8192, d=2048):
+  train_time mean=56.5542s, std=0.0000
+  inference_time mean=0.6142s, std=0.0000
+  accuracy mean=0.487, std=0.000
+
+(n=8192, d=4096):
+  train_time mean=108.0295s, std=0.0000
+  inference_time mean=1.4701s, std=0.0000
+  accuracy mean=0.485, std=0.000
+
+(n=8192, d=8192):
+  train_time mean=262.3340s, std=0.0000
+  inference_time mean=2.1780s, std=0.0000
+  accuracy mean=0.515, std=0.000
+
+(n=8192, d=16384):
+  train_time mean=579.3289s, std=0.0000
+  inference_time mean=4.2042s, std=0.0000
+  accuracy mean=0.510, std=0.000
+
+(n=8192, d=32768):
+  train_time mean=1101.6526s, std=0.0000
+  inference_time mean=7.4370s, std=0.0000
+  accuracy mean=0.499, std=0.000
+
+(n=8192, d=65536):
+  train_time mean=2198.0656s, std=0.0000
+  inference_time mean=14.4683s, std=0.0000
+  accuracy mean=0.499, std=0.000
+
+(n=8192, d=131072):
+  train_time mean=4541.5457s, std=0.0000
+  inference_time mean=29.3866s, std=0.0000
+  accuracy mean=0.480, std=0.000
+
+(n=16384, d=128):
+  train_time mean=88.7991s, std=0.0000
+  inference_time mean=0.5600s, std=0.0000
+  accuracy mean=0.507, std=0.000
+
+(n=16384, d=256):
+  train_time mean=90.2499s, std=0.0000
+  inference_time mean=0.5911s, std=0.0000
+  accuracy mean=0.510, std=0.000
+
+(n=16384, d=512):
+  train_time mean=93.0423s, std=0.0000
+  inference_time mean=0.6075s, std=0.0000
+  accuracy mean=0.497, std=0.000
+
+(n=16384, d=1024):
+  train_time mean=97.4764s, std=0.0000
+  inference_time mean=0.6747s, std=0.0000
+  accuracy mean=0.495, std=0.000
+
+(n=16384, d=2048):
+  train_time mean=113.9150s, std=0.0000
+  inference_time mean=1.4009s, std=0.0000
+  accuracy mean=0.510, std=0.000
+
+(n=16384, d=4096):
+  train_time mean=196.9672s, std=0.0000
+  inference_time mean=2.2468s, std=0.0000
+  accuracy mean=0.501, std=0.000
+
+(n=16384, d=8192):
+  train_time mean=486.4720s, std=0.0000
+  inference_time mean=4.1712s, std=0.0000
+  accuracy mean=0.508, std=0.000
+
+(n=16384, d=16384):
+  train_time mean=1133.0971s, std=0.0000
+  inference_time mean=7.6534s, std=0.0000
+  accuracy mean=0.497, std=0.000
+
+(n=16384, d=32768):
+  train_time mean=2124.0059s, std=0.0000
+  inference_time mean=14.8342s, std=0.0000
+  accuracy mean=0.508, std=0.000
+
+(n=16384, d=65536):
+  train_time mean=4345.3448s, std=0.0000
+  inference_time mean=30.3294s, std=0.0000
+  accuracy mean=0.504, std=0.000
+
+(n=16384, d=131072):
+  train_time mean=9195.8384s, std=0.0000
+  inference_time mean=56.7453s, std=0.0000
+  accuracy mean=0.512, std=0.000
+
+(n=32768, d=128):
+  train_time mean=174.9956s, std=0.0000
+  inference_time mean=0.7903s, std=0.0000
+  accuracy mean=0.509, std=0.000
+
+(n=32768, d=256):
+  train_time mean=177.6914s, std=0.0000
+  inference_time mean=0.8445s, std=0.0000
+  accuracy mean=0.505, std=0.000
+
+(n=32768, d=512):
+  train_time mean=181.1314s, std=0.0000
+  inference_time mean=0.9860s, std=0.0000
+  accuracy mean=0.494, std=0.000
+
+(n=32768, d=1024):
+  train_time mean=190.2563s, std=0.0000
+  inference_time mean=1.5455s, std=0.0000
+  accuracy mean=0.494, std=0.000
+
+(n=32768, d=2048):
+  train_time mean=231.8506s, std=0.0000
+  inference_time mean=2.2450s, std=0.0000
+  accuracy mean=0.503, std=0.000
+
+(n=32768, d=4096):
+  train_time mean=401.5656s, std=0.0000
+  inference_time mean=4.0671s, std=0.0000
+  accuracy mean=0.499, std=0.000
+
+(n=32768, d=8192):
+  train_time mean=1017.5028s, std=0.0000
+  inference_time mean=7.7413s, std=0.0000
+  accuracy mean=0.496, std=0.000
+
+(n=32768, d=16384):
+  train_time mean=2394.7275s, std=0.0000
+  inference_time mean=14.7758s, std=0.0000
+  accuracy mean=0.505, std=0.000
+
+(n=32768, d=32768):
+  train_time mean=4158.8252s, std=0.0000
+  inference_time mean=28.8272s, std=0.0000
+  accuracy mean=0.510, std=0.000
+
+(n=32768, d=65536):
+  train_time mean=9019.3565s, std=0.0000
+  inference_time mean=58.2111s, std=0.0000
+  accuracy mean=0.501, std=0.000

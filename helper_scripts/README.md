@@ -1,1 +1,0 @@
-Helper scripts written by Ariel Lubonja. Not necessary for running the original YDF repo
