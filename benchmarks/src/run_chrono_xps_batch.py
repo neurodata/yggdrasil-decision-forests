@@ -28,16 +28,26 @@ def get_args():
                    default="Exact",
                    help="Numerical split type for the random forest")
     p.add_argument("--num_threads", type=int, default=1)
-    p.add_argument("--rows", type=int, default=524288)
-    p.add_argument("--cols", type=int, default=1024)
-    p.add_argument("--repeats", type=int, default=1)
-    p.add_argument("--num_trees", type=int, default=1)
-    p.add_argument("--tree_depth", type=int, default=2)
+    p.add_argument("--rows", type=int, default=4096), # 524288)
+    p.add_argument("--cols", type=int, default=4096), # 1024)
+    p.add_argument("--repeats", type=int, default=1,
+                   help="DEPRECATED: Use --num_trees instead. This argument is ignored.")
+    p.add_argument("--num_trees", type=int, default=5,
+                   help="Number of trees in the random forest (also serves as the repeat mechanism)")
+    p.add_argument("--tree_depth", type=int, default=-1)
     p.add_argument("--projection_density_factor", type=int, default=3)
-    p.add_argument("--max_num_projections", type=int, default=1)
+    p.add_argument("--max_num_projections", type=int, default=1000)
     p.add_argument("--save_log", action="store_true")
     p.add_argument("--verbose", action="store_true")
-    return p.parse_args()
+    
+    args = p.parse_args()
+    
+    # Show deprecation warning if --repeats is explicitly set to something other than default
+    import sys
+    if '--repeats' in sys.argv:
+        print("Warning: --repeats is deprecated. Use --num_trees instead, which functions the same way for benchmarking.", file=sys.stderr)
+    
+    return args
 
 
 def get_cpu_model() -> str:
@@ -209,66 +219,64 @@ if __name__ == "__main__":
     # print(f"Running with input dims {a.rows}x{a.cols}" )
     print(f"Running with args {a}")
 
-    for rep in range(a.repeats):
+    cmd = [
+        "./bazel-bin/examples/train_oblique_forest",
+        f"--num_trees={a.num_trees}",
+        f"--tree_depth={a.tree_depth}",
+        f"--num_threads={a.num_threads}",
+        f"--projection_density_factor={a.projection_density_factor}",
+        f"--max_num_projections={a.max_num_projections}",
+        f"--numerical_split_type={a.numerical_split_type}",
+    ]
 
-        cmd = [
-            "./bazel-bin/examples/train_oblique_forest",
-            f"--num_trees={a.num_trees}",
-            f"--tree_depth={a.tree_depth}",
-            f"--num_threads={a.num_threads}",
-            f"--projection_density_factor={a.projection_density_factor}",
-            f"--max_num_projections={a.max_num_projections}",
-            f"--numerical_split_type={a.numerical_split_type}",
+    if a.input_mode == "synthetic":
+        cmd += [
+            "--input_mode=synthetic",
+            f"--rows={a.rows}", f"--cols={a.cols}",
+        ]
+    else:  # csv
+        cmd += [
+            "--input_mode=csv",
+            f"--train_csv={a.train_csv}",
+            f"--label_col={a.label_col}",
         ]
 
-        if a.input_mode == "synthetic":
-            cmd += [
-                "--input_mode=synthetic",
-                f"--rows={a.rows}", f"--cols={a.cols}",
-            ]
-        else:  # csv
-            cmd += [
-                "--input_mode=csv",
-                f"--train_csv={a.train_csv}",
-                f"--label_col={a.label_col}",
-            ]
+    # Disable E-cores before running the binary
+    disable_e_cores()
+    
+    t0 = time.perf_counter()
+    log = subprocess.run(
+        cmd, stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT, text=True, check=True
+    ).stdout
+    t1 = time.perf_counter()
+    print(f"\n▶ binary ran in {t1 - t0:.3f}s")
 
-        # Disable E-cores before running the binary
-        disable_e_cores()
-        
-        t0 = time.perf_counter()
-        log = subprocess.run(
-            cmd, stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT, text=True, check=True
-        ).stdout
-        t1 = time.perf_counter()
-        print(f"\n▶ binary ran in {t1 - t0:.3f}s")
+    # Re-enable E-cores after the binary is done
+    enable_e_cores()
 
-        # Re-enable E-cores after the binary is done
-        enable_e_cores()
+    log = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', log)  # strip ANSI
+    table = PARSER[a.verbose](log)
+    t2 = time.perf_counter()
 
-        log = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', log)  # strip ANSI
-        table = PARSER[a.verbose](log)
-        t2 = time.perf_counter()
+    wall = TRAIN_RX.search(log).group(1)               # e.g. "0.0084s"
+    print(f"parsing output took {t2 - t1:.3f}s")
 
-        wall = TRAIN_RX.search(log).group(1)               # e.g. "0.0084s"
-        print(f"parsing output took {t2 - t1:.3f}s")
+    csv_path = os.path.join(out_dir, f"{wall}.csv")
+    params = dict(
+        rows=a.rows, cols=a.cols,
+        num_trees=a.num_trees, tree_depth=a.tree_depth,
+        proj_density_factor=a.projection_density_factor,
+        max_projections=a.max_num_projections,
+        num_threads=a.num_threads, experiment_name=a.experiment_name,
+        numerical_split_type=a.numerical_split_type,
+        cpu_model=get_cpu_model(),
+    )
+    write_csv(table, params, csv_path)
+    t3 = time.perf_counter()
 
-        csv_path = os.path.join(out_dir, f"{wall}.csv")
-        params = dict(
-            rows=a.rows, cols=a.cols,
-            num_trees=a.num_trees, tree_depth=a.tree_depth,
-            proj_density_factor=a.projection_density_factor,
-            max_projections=a.max_num_projections,
-            num_threads=a.num_threads, experiment_name=a.experiment_name,
-            numerical_split_type=a.numerical_split_type,
-            cpu_model=get_cpu_model(), repeat_index=rep + 1,
-        )
-        write_csv(table, params, csv_path)
-        t3 = time.perf_counter()
+    print(f"writing csv took {t3 - t2:.3f}s\nCSV written to {csv_path}")
 
-        print(f"writing csv took {t3 - t2:.3f}s\nCSV written to {csv_path}")
-
-        if a.save_log:
-            with open(os.path.join(out_dir, f"{wall}.log"), "w") as f:
-                f.write(log)
+    if a.save_log:
+        with open(os.path.join(out_dir, f"{wall}.log"), "w") as f:
+            f.write(log)
