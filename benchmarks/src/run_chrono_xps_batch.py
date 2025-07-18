@@ -14,8 +14,33 @@ from typing import Callable
 
 import pandas as pd
 
-# ─────────────────────────── misc helpers ───────────────────────────
-def cpu_model() -> str:
+
+def get_args():
+    p = argparse.ArgumentParser()
+    p.add_argument("--input_mode", choices=["synthetic", "csv"], default="synthetic")
+    p.add_argument("--train_csv",
+                   default="ariel_test_data/processed_wise1_data.csv")
+    p.add_argument("--label_col", default="Cancer Status")
+    p.add_argument("--experiment_name", type=str, default="untitled_experiment",
+                   help="Name for the experiment, used in the output directory path")
+    p.add_argument("--numerical_split_type", type=str, 
+                   choices=["Exact", "Random", "Equal Width"], 
+                   default="Exact",
+                   help="Numerical split type for the random forest")
+    p.add_argument("--num_threads", type=int, default=1)
+    p.add_argument("--rows", type=int, default=524288)
+    p.add_argument("--cols", type=int, default=1024)
+    p.add_argument("--repeats", type=int, default=1)
+    p.add_argument("--num_trees", type=int, default=1)
+    p.add_argument("--tree_depth", type=int, default=2)
+    p.add_argument("--projection_density_factor", type=int, default=3)
+    p.add_argument("--max_num_projections", type=int, default=1)
+    p.add_argument("--save_log", action="store_true")
+    p.add_argument("--verbose", action="store_true")
+    return p.parse_args()
+
+
+def get_cpu_model() -> str:
     try:
         with open("/proc/cpuinfo") as f:
             for l in f:
@@ -68,47 +93,21 @@ RENAMES = {
     "FillExampleBucketSet (calls 3 above)": "FillExampleBucketSet (next 3 calls)",
 }
 
-# ─────────────────────────── CLI ────────────────────────────────────
-def get_args():
-    p = argparse.ArgumentParser()
-    p.add_argument("--input_mode", choices=["synthetic", "csv"], default="synthetic")
-    p.add_argument("--train_csv",
-                   default="ariel_test_data/processed_wise1_data.csv")
-    p.add_argument("--label_col", default="Cancer Status")
-    p.add_argument("--experiment_name", type=str, default="untitled_experiment",
-                   help="Name for the experiment, used in the output directory path")
-    p.add_argument("--numerical_split_type", type=str, 
-                   choices=["Exact", "Random", "Equal Width"], 
-                   default="Exact",
-                   help="Numerical split type for the random forest")
-    p.add_argument("--num_threads", type=int, default=1)
-    p.add_argument("--rows", type=int, default=524288)
-    p.add_argument("--cols", type=int, default=1024)
-    p.add_argument("--repeats", type=int, default=1)
-    p.add_argument("--num_trees", type=int, default=1)
-    p.add_argument("--tree_depth", type=int, default=2)
-    p.add_argument("--projection_density_factor", type=int, default=3)
-    p.add_argument("--max_num_projections", type=int, default=1)
-    p.add_argument("--save_log", action="store_true")
-    p.add_argument("--verbose", action="store_true")
-    return p.parse_args()
 
-# ─────────────────────────── regexes ───────────────────────────────
 TRAIN_RX = re.compile(r"Training wall-time:\s*([0-9.eE+-]+)s")
 BOOT_TAG = "Selecting Bootstrapped Samples"
 DEPTH_TAG = "Depth "
 TOOK_TAG = " took:"               # exactly one leading space — leave as-is
 STRIP_SET = " \t-"
 
-# ─────────────────────────── parsing (fast path only) ──────────────
-def _num(tok: str) -> float:
-    tok = tok.rstrip()
-    if tok.endswith('s'):
-        tok = tok[:-1]
-    return float(tok)
-
 
 def fast_parse_tree_depth(log: str) -> pd.DataFrame:
+    def _num(tok: str) -> float:
+        tok = tok.rstrip()
+        if tok.endswith('s'):
+            tok = tok[:-1]
+        return float(tok)
+    
     rows: list[tuple[int, int, str, float]] = []
     node_counts: defaultdict[tuple[int, int], int] = defaultdict(int)
 
@@ -184,7 +183,7 @@ PARSER: dict[bool, Callable[[str], pd.DataFrame]] = {
     True:  fast_parse_tree_depth,
 }
 
-# ─────────────────────────── CSV writer ────────────────────────────
+
 def write_csv(table: pd.DataFrame, params: dict[str, object], path: str):
     """Write timing table left-aligned, params block to the right (after 2 blanks)."""
     p_df = pd.DataFrame(list(params.items()), columns=["Parameter", "Value"])
@@ -198,12 +197,12 @@ def write_csv(table: pd.DataFrame, params: dict[str, object], path: str):
         path, index=False, quoting=csv.QUOTE_MINIMAL
     )
 
-# ─────────────────────────── main ──────────────────────────────────
+
 if __name__ == "__main__":
     a = get_args()
     out_dir = os.path.join(
         "ariel_results", "per_function_timing",
-        cpu_model(), a.experiment_name, f"{a.rows}_x_{a.cols}"
+        get_cpu_model(), a.experiment_name, f"{a.rows}_x_{a.cols}"
     )
     os.makedirs(out_dir, exist_ok=True)
 
@@ -263,7 +262,7 @@ if __name__ == "__main__":
             max_projections=a.max_num_projections,
             num_threads=a.num_threads, experiment_name=a.experiment_name,
             numerical_split_type=a.numerical_split_type,
-            cpu_model=cpu_model(), repeat_index=rep + 1,
+            cpu_model=get_cpu_model(), repeat_index=rep + 1,
         )
         write_csv(table, params, csv_path)
         t3 = time.perf_counter()
