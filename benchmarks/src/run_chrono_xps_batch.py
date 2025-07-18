@@ -211,12 +211,11 @@ def write_csv(table: pd.DataFrame, params: dict[str, object], path: str):
 if __name__ == "__main__":
     a = get_args()
     out_dir = os.path.join(
-        "ariel_results", "per_function_timing",
+        "benchmarks/results", "per_function_timing",
         get_cpu_model(), a.experiment_name, f"{a.rows}_x_{a.cols}"
     )
     os.makedirs(out_dir, exist_ok=True)
 
-    # print(f"Running with input dims {a.rows}x{a.cols}" )
     print(f"Running with args {a}")
 
     cmd = [
@@ -273,9 +272,9 @@ if __name__ == "__main__":
         cpu_model=get_cpu_model(),
     )
     write_csv(table, params, csv_path)
-    t3 = time.perf_counter()
+    # t3 = time.perf_counter()
 
-    print(f"writing csv took {t3 - t2:.3f}s\nCSV written to {csv_path}")
+    # print(f"writing csv took {t3 - t2:.3f}s\nCSV written to {csv_path}")
 
     if a.save_log:
         with open(os.path.join(out_dir, f"{wall}.log"), "w") as f:
