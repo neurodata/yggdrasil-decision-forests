@@ -5,18 +5,22 @@
 #include <algorithm>
 #include <cmath>
 #include <numeric>
+#include <set>
 
 // Yggdrasil Decision Forests includes
 #include "yggdrasil_decision_forests/learner/decision_tree/oblique.h"
 #include "yggdrasil_decision_forests/learner/decision_tree/decision_tree.pb.h"
 #include "yggdrasil_decision_forests/dataset/data_spec.pb.h"
-// #include "yggdrasil_decision_forests/model/abstract_learner.pb.h"
 #include "yggdrasil_decision_forests/utils/random.h"
 #include "absl/types/span.h"
+#include "absl/container/btree_set.h"
+#include "absl/random/random.h"
 
 using namespace yggdrasil_decision_forests;
 using namespace yggdrasil_decision_forests::model::decision_tree;
 
+// Toggle between implementations - set to true for Floyd's, false for Fisher-Yates
+#define USE_FLOYDS_SAMPLER true
 
 void SampleProjection_floyds(const absl::Span<const int>& features,
                       const proto::DecisionTreeTrainingConfig& dt_config,
@@ -157,15 +161,12 @@ void SampleProjection_fisher_yates(const absl::Span<const int>& features,
   internal::Projection* projection,
   int8_t* monotonic_direction,
   utils::RandomEngine* random) {
-  // ----- RNG helpers --------------------------------------------------------
-  std::uniform_real_distribution<float>  unif01;
-  std::uniform_real_distribution<float>  unif1m1(-1.f, 1.f);
-
-  // ----- reset output -------------------------------------------------------
   *monotonic_direction = 0;
   projection->clear();
-
+  std::uniform_real_distribution<float>  unif01;
+  std::uniform_real_distribution<float>  unif1m1(-1.f, 1.f);
   const auto& oblique_cfg = dt_config.sparse_oblique_split();
+  
   const int   p          = features.size();
   int         k          = std::ceil(projection_density * p);
 
@@ -176,48 +177,48 @@ void SampleProjection_fisher_yates(const absl::Span<const int>& features,
 
   // ----- helper to draw a weight -------------------------------------------
   auto gen_weight = [&](int feature)->float {
-  float w = unif1m1(*random);
+    float w = unif1m1(*random);
 
-  switch (oblique_cfg.weights_case()) {
-  case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::kBinary:
-  w = (w >= 0.f) ? 1.f : -1.f; break;
+    switch (oblique_cfg.weights_case()) {
+    case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::kBinary:
+      w = (w >= 0.f) ? 1.f : -1.f; break;
 
-  case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::kPowerOfTwo: {
-  const float sign = (w >= 0.f) ? 1.f : -1.f;
-  const int   exp  = absl::Uniform<int>(absl::IntervalClosed,
-                              *random,
-                              oblique_cfg.power_of_two().min_exponent(),
-                              oblique_cfg.power_of_two().max_exponent());
-  w = sign * std::pow(2.f, exp);
-  } break;
+    case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::kPowerOfTwo: {
+      const float sign = (w >= 0.f) ? 1.f : -1.f;
+      const int   exp  = absl::Uniform<int>(absl::IntervalClosed,
+                                *random,
+                                oblique_cfg.power_of_two().min_exponent(),
+                                oblique_cfg.power_of_two().max_exponent());
+      w = sign * std::pow(2.f, exp);
+      } break;
 
-  case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::kInteger:
-  w = absl::Uniform(absl::IntervalClosed, *random,
-          oblique_cfg.integer().minimum(),
-          oblique_cfg.integer().maximum());
-  break;
+    case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::kInteger:
+      w = absl::Uniform(absl::IntervalClosed, *random,
+              oblique_cfg.integer().minimum(),
+              oblique_cfg.integer().maximum());
+      break;
 
-  default: /* continuous */ break;
-  }
+    default: /* continuous */ break;
+    }
 
-  if (config_link.per_columns_size() > 0 &&
-  config_link.per_columns(feature).has_monotonic_constraint()) {
-  const bool inc =
-  config_link.per_columns(feature).monotonic_constraint().direction() ==
-  model::proto::MonotonicConstraint::INCREASING;
-  if (inc == (w < 0)) w = -w;
-  *monotonic_direction = 1;
-  }
+    if (config_link.per_columns_size() > 0 &&
+        config_link.per_columns(feature).has_monotonic_constraint()) {
+      const bool inc =
+        config_link.per_columns(feature).monotonic_constraint().direction() ==
+        model::proto::MonotonicConstraint::INCREASING;
+      if (inc == (w < 0)) w = -w;
+      *monotonic_direction = 1;
+    }
 
-  const auto& spec = data_spec.columns(feature).numerical();
-  switch (oblique_cfg.normalization()) {
-  case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::NONE:
-  return w;
-  case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::STANDARD_DEVIATION:
-  return w / std::max(1e-6, spec.standard_deviation());
-  case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::MIN_MAX:
-  return w / std::max(1e-6f, spec.max_value() - spec.min_value());
-  }
+    const auto& spec = data_spec.columns(feature).numerical();
+    switch (oblique_cfg.normalization()) {
+    case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::NONE:
+      return w;
+    case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::STANDARD_DEVIATION:
+      return w / std::max(1e-6, spec.standard_deviation());
+    case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::MIN_MAX:
+      return w / std::max(1e-6f, spec.max_value() - spec.min_value());
+    }
   };
 
   // =================  PARTIAL FISHER–YATES  =================
@@ -240,25 +241,42 @@ void SampleProjection_fisher_yates(const absl::Span<const int>& features,
   // --------- Optional post-processing: max_num_features ---------------
   const int max_feat = dt_config.sparse_oblique_split().max_num_features();
   if (max_feat > 0 && projection->size() > max_feat) {
-  internal::Projection trimmed;
-  trimmed.reserve(max_feat);
+    internal::Projection trimmed;
+    trimmed.reserve(max_feat);
 
-  // Reservoir-sample max_feat indices out of [0 .. projection->size())
-  absl::btree_set<size_t> kept;
-  for (size_t j = projection->size() - max_feat; j < projection->size(); ++j) {
-  size_t t = absl::Uniform<size_t>(*random, 0, j + 1);
-  if (!kept.insert(t).second) kept.insert(j);
-  }
-  for (size_t idx : kept) trimmed.push_back((*projection)[idx]);
-  *projection = std::move(trimmed);
+    // Reservoir-sample max_feat indices out of [0 .. projection->size())
+    absl::btree_set<size_t> kept;
+    for (size_t j = projection->size() - max_feat; j < projection->size(); ++j) {
+      size_t t = absl::Uniform<size_t>(*random, 0, j + 1);
+      if (!kept.insert(t).second) kept.insert(j);
+    }
+    for (size_t idx : kept) trimmed.push_back((*projection)[idx]);
+    *projection = std::move(trimmed);
   }
 
   // Ensure single-feature projection gets weight 1
   if (projection->size() == 1) projection->front().weight = 1.f;
 }
 
+// Wrapper function to easily switch between implementations
+void SampleProjection_wrapper(const absl::Span<const int>& features,
+                             const proto::DecisionTreeTrainingConfig& dt_config,
+                             const dataset::proto::DataSpecification& data_spec,
+                             const model::proto::TrainingConfigLinking& config_link,
+                             const float projection_density,
+                             internal::Projection* projection,
+                             int8_t* monotonic_direction,
+                             utils::RandomEngine* random) {
+#if USE_FLOYDS_SAMPLER
+    SampleProjection_floyds(features, dt_config, data_spec, config_link, 
+                            projection_density, projection, monotonic_direction, random);
+#else
+    SampleProjection_fisher_yates(features, dt_config, data_spec, config_link, 
+                                  projection_density, projection, monotonic_direction, random);
+#endif
+}
 
-absl::Status SetCondition(const Projection& projection, const float threshold,
+absl::Status SetCondition(const internal::Projection& projection, const float threshold,
                           const dataset::proto::DataSpecification& dataspec,
                           proto::NodeCondition* condition) {
   if (projection.empty()) {
@@ -323,12 +341,12 @@ int main() {
     
     std::cout << "Starting benchmark with " << NUM_ITERATIONS << " iterations..." << std::endl;
     std::cout << "Features: " << NUM_FEATURES << ", Projection density factor: " << PROJECTION_DENSITY_FACTOR << std::endl;
-    std::cout << "Using real Yggdrasil Decision Forests library" << std::endl;
+    std::cout << "Using implementation: " << (USE_FLOYDS_SAMPLER ? "Floyd's Sampler" : "Fisher-Yates") << std::endl;
     
     auto start = std::chrono::high_resolution_clock::now();
     
-    for (int i = 0; i < NUM_ITERATIONS; ++i) {
-        internal::SampleProjection(
+    for (std::uintmax_t i = 0; i < NUM_ITERATIONS; ++i) {
+        SampleProjection_wrapper(
             absl::MakeConstSpan(features), 
             dt_config, 
             data_spec, 
