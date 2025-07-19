@@ -102,17 +102,18 @@ void SampleProjection_floyds(const absl::Span<const int>& features,
   const size_t num_selected_features = binom(*random);
 
   absl::btree_set<size_t> picked_idx;
+  projection->reserve(num_selected_features);
 
   // Floyd's sampler to select k indices uniformly
   for (size_t j = features.size() - num_selected_features; j < features.size(); ++j) {
-    size_t t = absl::Uniform<size_t>(*random, 0, j + 1);
-    if (!picked_idx.insert(t).second) picked_idx.insert(j);
-  }
-
-  projection->reserve(num_selected_features);
-  // O(k) minimal pass to fill in those indices
-  for (const auto idx : picked_idx) {
-      projection->push_back({features[idx], gen_weight(features[idx])});
+      size_t t = absl::Uniform<size_t>(*random, 0, j + 1);
+      auto [it, inserted] = picked_idx.insert(t);
+      if (!inserted) {
+          picked_idx.insert(j);
+          projection->push_back({features[j], gen_weight(features[j])});
+      } else {
+          projection->push_back({features[t], gen_weight(features[t])});
+      }
   }
 
   if (projection->empty()) {
@@ -322,7 +323,7 @@ BenchmarkResult benchmark_algorithm(
 
 int main() {
     const std::uintmax_t NUM_ITERATIONS = 10'000'000;
-    const int NUM_FEATURES = 10000;
+    const int NUM_FEATURES = 1000;
     const float PROJECTION_DENSITY_FACTOR = 3.0;
     const float PROJECTION_DENSITY = PROJECTION_DENSITY_FACTOR / NUM_FEATURES;
     
