@@ -111,7 +111,7 @@ void SampleProjection_floyds(const absl::Span<const int>& features,
     if (!picked_idx.insert(t).second) picked_idx.insert(j);
   }
 
-  projection->reserve(projection_density * features.size());
+  projection->reserve(num_selected_features);
   // O(k) minimal pass to fill in those indices
   for (const auto idx : picked_idx) {
         projection->push_back({features[idx], gen_weight(features[idx])});
