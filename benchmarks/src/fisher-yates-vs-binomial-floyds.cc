@@ -98,10 +98,10 @@ void SampleProjection_floyds(const absl::Span<const int>& features,
   }
   #endif
 
-  std::binomial_distribution<size_t> binom(features.size(), projection_density);
+  // std::binomial_distribution<size_t> binom(features.size(), projection_density);
 
   // Expectation[Binomial(p,projection_density)] = num_selected_features
-  const size_t num_selected_features = binom(*random);
+  const size_t num_selected_features = 3;//binom(*random);
 
   absl::btree_set<size_t> picked_idx;
 
