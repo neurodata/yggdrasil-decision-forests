@@ -19,9 +19,6 @@
 using namespace yggdrasil_decision_forests;
 using namespace yggdrasil_decision_forests::model::decision_tree;
 
-// Toggle between implementations - set to true for Floyd's, false for Fisher-Yates
-#define USE_FLOYDS_SAMPLER true
-
 void SampleProjection_floyds(const absl::Span<const int>& features,
                       const proto::DecisionTreeTrainingConfig& dt_config,
                       const dataset::proto::DataSpecification& data_spec,
@@ -270,24 +267,6 @@ void SampleProjection_fisher_yates(const absl::Span<const int>& features,
   if (projection->size() == 1) projection->front().weight = 1.f;
 }
 
-// Wrapper function to easily switch between implementations
-void SampleProjection_wrapper(const absl::Span<const int>& features,
-                             const proto::DecisionTreeTrainingConfig& dt_config,
-                             const dataset::proto::DataSpecification& data_spec,
-                             const model::proto::TrainingConfigLinking& config_link,
-                             const float projection_density,
-                             internal::Projection* projection,
-                             int8_t* monotonic_direction,
-                             utils::RandomEngine* random) {
-#if USE_FLOYDS_SAMPLER
-    SampleProjection_floyds(features, dt_config, data_spec, config_link, 
-                            projection_density, projection, monotonic_direction, random);
-#else
-    SampleProjection_fisher_yates(features, dt_config, data_spec, config_link, 
-                                  projection_density, projection, monotonic_direction, random);
-#endif
-}
-
 absl::Status SetCondition(const internal::Projection& projection, const float threshold,
                           const dataset::proto::DataSpecification& dataspec,
                           proto::NodeCondition* condition) {
@@ -310,11 +289,40 @@ absl::Status SetCondition(const internal::Projection& projection, const float th
   return absl::OkStatus();
 }
 
+// Benchmark helper function
+struct BenchmarkResult {
+    double total_time_ms;
+    double avg_time_ns;
+    double calls_per_second;
+    std::string algorithm_name;
+};
 
+BenchmarkResult benchmark_algorithm(
+    const std::function<void()>& func,
+    const std::string& name,
+    std::uintmax_t iterations) {
+    
+    std::cout << "Benchmarking " << name << "..." << std::endl;
+    
+    auto start = std::chrono::high_resolution_clock::now();
+    
+    for (std::uintmax_t i = 0; i < iterations; ++i) {
+        func();
+    }
+    
+    auto end = std::chrono::high_resolution_clock::now();
+    
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    double total_time_ms = duration.count() / 1000.0;
+    double avg_time_ns = (duration.count() * 1000.0) / iterations;
+    double calls_per_second = (iterations * 1000.0) / total_time_ms;
+    
+    return {total_time_ms, avg_time_ns, calls_per_second, name};
+}
 
 int main() {
     const std::uintmax_t NUM_ITERATIONS = 10'000'000;
-    const int NUM_FEATURES = 1000;
+    const int NUM_FEATURES = 10000;
     const float PROJECTION_DENSITY_FACTOR = 3.0;
     const float PROJECTION_DENSITY = PROJECTION_DENSITY_FACTOR / NUM_FEATURES;
     
@@ -344,49 +352,82 @@ int main() {
     // Create training config linking (empty for basic case)
     model::proto::TrainingConfigLinking config_link;
     
-    // Random engine
-    utils::RandomEngine random(42); // Fixed seed for reproducibility
+    // Output variables (separate for each algorithm)
+    internal::Projection projection_floyds, projection_fisher;
+    int8_t monotonic_direction_floyds, monotonic_direction_fisher;
     
-    // Output variables
-    internal::Projection projection;
-    int8_t monotonic_direction;
-    
-    std::cout << "Starting benchmark with " << NUM_ITERATIONS << " iterations..." << std::endl;
+    std::cout << "Starting dual algorithm benchmark with " << NUM_ITERATIONS << " iterations each..." << std::endl;
     std::cout << "Features: " << NUM_FEATURES << ", Projection density factor: " << PROJECTION_DENSITY_FACTOR << std::endl;
-    std::cout << "Using implementation: " << (USE_FLOYDS_SAMPLER ? "Floyd's Sampler" : "Fisher-Yates") << std::endl;
+    std::cout << "Expected features per projection: ~" << PROJECTION_DENSITY_FACTOR << std::endl;
+    std::cout << std::endl;
     
-    auto start = std::chrono::high_resolution_clock::now();
-    
-    for (std::uintmax_t i = 0; i < NUM_ITERATIONS; ++i) {
-        SampleProjection_wrapper(
+    // Benchmark Floyd's algorithm
+    utils::RandomEngine random_floyds(42); // Fixed seed for reproducibility
+    auto floyd_func = [&]() {
+        SampleProjection_floyds(
             absl::MakeConstSpan(features), 
             dt_config, 
             data_spec, 
             config_link,
             PROJECTION_DENSITY, 
-            &projection, 
-            &monotonic_direction, 
-            &random
+            &projection_floyds, 
+            &monotonic_direction_floyds, 
+            &random_floyds
         );
-    }
+    };
     
-    auto end = std::chrono::high_resolution_clock::now();
+    BenchmarkResult floyd_result = benchmark_algorithm(floyd_func, "Floyd's Sampler", NUM_ITERATIONS);
     
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    double total_time_ms = duration.count() / 1000.0;
-    double avg_time_ns = (duration.count() * 1000.0) / NUM_ITERATIONS;
+    // Benchmark Fisher-Yates algorithm
+    utils::RandomEngine random_fisher(42); // Same seed for fair comparison
+    auto fisher_func = [&]() {
+        SampleProjection_fisher_yates(
+            absl::MakeConstSpan(features), 
+            dt_config, 
+            data_spec, 
+            config_link,
+            PROJECTION_DENSITY, 
+            &projection_fisher, 
+            &monotonic_direction_fisher, 
+            &random_fisher
+        );
+    };
     
+    BenchmarkResult fisher_result = benchmark_algorithm(fisher_func, "Fisher-Yates Shuffle", NUM_ITERATIONS);
+    
+    // Display comparative results
     std::cout << std::endl;
-    std::cout << "=== Benchmark Results ===" << std::endl;
-    std::cout << "Total time: " << total_time_ms << " ms" << std::endl;
-    std::cout << "Average time per call: " << avg_time_ns << " ns" << std::endl;
-    std::cout << "Calls per second: " << (NUM_ITERATIONS * 1000.0) / total_time_ms << std::endl;
+    std::cout << "============ BENCHMARK COMPARISON ============" << std::endl;
+    std::cout << std::endl;
     
-    // Show sample output
-    std::cout << std::endl << "Sample projection (last call):" << std::endl;
-    for (const auto& elem : projection) {
-        std::cout << "  Feature " << elem.attribute_idx << " -> weight " << elem.weight << std::endl;
+    std::cout << "Floyd's Sampler Results:" << std::endl;
+    std::cout << "  Total time: " << floyd_result.total_time_ms << " ms" << std::endl;
+    std::cout << "  Average time per call: " << floyd_result.avg_time_ns << " ns" << std::endl;
+    std::cout << "  Calls per second: " << floyd_result.calls_per_second << std::endl;
+    std::cout << std::endl;
+    
+    std::cout << "Fisher-Yates Results:" << std::endl;
+    std::cout << "  Total time: " << fisher_result.total_time_ms << " ms" << std::endl;
+    std::cout << "  Average time per call: " << fisher_result.avg_time_ns << " ns" << std::endl;
+    std::cout << "  Calls per second: " << fisher_result.calls_per_second << std::endl;
+    std::cout << std::endl;
+    
+    // Performance comparison
+    double speedup_ratio = fisher_result.total_time_ms / floyd_result.total_time_ms;
+    std::string faster_algorithm;
+    double performance_improvement;
+    
+    if (speedup_ratio > 1.0) {
+        faster_algorithm = "Floyd's Sampler";
+        performance_improvement = ((speedup_ratio - 1.0) * 100.0);
+    } else {
+        faster_algorithm = "Fisher-Yates Shuffle";
+        performance_improvement = ((1.0 / speedup_ratio - 1.0) * 100.0);
     }
+    
+    std::cout << "Performance Analysis:" << std::endl;
+    std::cout << "  " << faster_algorithm << " is faster by " << performance_improvement << "%" << std::endl;
+    std::cout << "  Speed ratio (Fisher/Floyd): " << speedup_ratio << std::endl;
     
     return 0;
 }
