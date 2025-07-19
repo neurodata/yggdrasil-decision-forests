@@ -231,12 +231,6 @@ void SampleProjection_fisher_yates(const absl::Span<const int>& features,
     }
   };
 
-  #ifndef NDEBUG  // Keep DCHECK_EQ from for feature : features
-  for (const auto feature : features) {
-    DCHECK_EQ(data_spec.columns(feature).type(), dataset::proto::NUMERICAL);
-  }
-  #endif
-
   // =================  PARTIAL FISHER–YATES  =================
   // Copy indices locally so we can shuffle.
   std::vector<int> pool(features.begin(), features.end());
@@ -247,6 +241,7 @@ void SampleProjection_fisher_yates(const absl::Span<const int>& features,
       std::swap(pool[i], pool[j]);
 
       const int feature = pool[i];
+      // This costs nothing if not compiled w/ -c dbg
       DCHECK_EQ(data_spec.columns(feature).type(), dataset::proto::NUMERICAL);
 
       projection->push_back({feature, gen_weight(feature)});
