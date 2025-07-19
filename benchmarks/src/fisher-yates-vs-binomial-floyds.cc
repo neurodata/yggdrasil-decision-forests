@@ -114,7 +114,7 @@ void SampleProjection_floyds(const absl::Span<const int>& features,
   projection->reserve(projection_density * features.size());
   // O(k) minimal pass to fill in those indices
   for (const auto idx : picked_idx) {
-    projection->push_back({features[idx], gen_weight(features[idx])});
+        projection->push_back({features[idx], gen_weight(features[idx])});
   }
 
   if (projection->empty()) {
@@ -165,8 +165,8 @@ void SampleProjection_fisher_yates(const absl::Span<const int>& features,
   projection->clear();
   std::uniform_real_distribution<float>  unif01;
   std::uniform_real_distribution<float>  unif1m1(-1.f, 1.f);
-  const auto& oblique_cfg = dt_config.sparse_oblique_split();
-  
+  const auto& oblique_config = dt_config.sparse_oblique_split();
+
   const int   p          = features.size();
   int         k          = std::ceil(projection_density * p);
 
@@ -175,51 +175,67 @@ void SampleProjection_fisher_yates(const absl::Span<const int>& features,
 
   projection->reserve(k);
 
-  // ----- helper to draw a weight -------------------------------------------
-  auto gen_weight = [&](int feature)->float {
-    float w = unif1m1(*random);
-
-    switch (oblique_cfg.weights_case()) {
-    case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::kBinary:
-      w = (w >= 0.f) ? 1.f : -1.f; break;
-
-    case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::kPowerOfTwo: {
-      const float sign = (w >= 0.f) ? 1.f : -1.f;
-      const int   exp  = absl::Uniform<int>(absl::IntervalClosed,
-                                *random,
-                                oblique_cfg.power_of_two().min_exponent(),
-                                oblique_cfg.power_of_two().max_exponent());
-      w = sign * std::pow(2.f, exp);
-      } break;
-
-    case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::kInteger:
-      w = absl::Uniform(absl::IntervalClosed, *random,
-              oblique_cfg.integer().minimum(),
-              oblique_cfg.integer().maximum());
-      break;
-
-    default: /* continuous */ break;
+  const auto gen_weight = [&](const int feature) -> float {
+    float weight = unif1m1(*random);
+    switch (oblique_config.weights_case()) {
+      case (proto::DecisionTreeTrainingConfig::SparseObliqueSplit::WeightsCase::
+                kBinary): {
+        weight = (weight >= 0) ? 1.f : -1.f;
+        break;
+      }
+      case (proto::DecisionTreeTrainingConfig::SparseObliqueSplit::WeightsCase::
+                kPowerOfTwo): {
+        float sign = (weight >= 0) ? 1.f : -1.f;
+        int exponent =
+            absl::Uniform<int>(absl::IntervalClosed, *random,
+                               oblique_config.power_of_two().min_exponent(),
+                               oblique_config.power_of_two().max_exponent());
+        weight = sign * std::pow(2, exponent);
+        break;
+      }
+      case (proto::DecisionTreeTrainingConfig::SparseObliqueSplit::WeightsCase::
+                kInteger): {
+        weight = absl::Uniform(absl::IntervalClosed, *random,
+                               oblique_config.integer().minimum(),
+                               oblique_config.integer().maximum());
+        break;
+      }
+      default: {
+        // Return continuous weights.
+        break;
+      }
     }
 
     if (config_link.per_columns_size() > 0 &&
         config_link.per_columns(feature).has_monotonic_constraint()) {
-      const bool inc =
-        config_link.per_columns(feature).monotonic_constraint().direction() ==
-        model::proto::MonotonicConstraint::INCREASING;
-      if (inc == (w < 0)) w = -w;
+      const bool direction_increasing =
+          config_link.per_columns(feature).monotonic_constraint().direction() ==
+          model::proto::MonotonicConstraint::INCREASING;
+      if (direction_increasing == (weight < 0)) {
+        weight = -weight;
+      }
+      // As soon as one selected feature is monotonic, the oblique split
+      // becomes monotonic.
       *monotonic_direction = 1;
     }
 
     const auto& spec = data_spec.columns(feature).numerical();
-    switch (oblique_cfg.normalization()) {
-    case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::NONE:
-      return w;
-    case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::STANDARD_DEVIATION:
-      return w / std::max(1e-6, spec.standard_deviation());
-    case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::MIN_MAX:
-      return w / std::max(1e-6f, spec.max_value() - spec.min_value());
+    switch (oblique_config.normalization()) {
+      case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::NONE:
+        return weight;
+      case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::
+          STANDARD_DEVIATION:
+        return weight / std::max(1e-6, spec.standard_deviation());
+      case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::MIN_MAX:
+        return weight / std::max(1e-6f, spec.max_value() - spec.min_value());
     }
   };
+
+  #ifndef NDEBUG  // Keep DCHECK_EQ from for feature : features
+  for (const auto feature : features) {
+    DCHECK_EQ(data_spec.columns(feature).type(), dataset::proto::NUMERICAL);
+  }
+  #endif
 
   // =================  PARTIAL FISHER–YATES  =================
   // Copy indices locally so we can shuffle.
@@ -227,7 +243,6 @@ void SampleProjection_fisher_yates(const absl::Span<const int>& features,
 
   // TODO pick 2xp one-time - it's what Treeple does
   for (int i = 0; i < k; ++i) {
-      // Pick j uniformly in [i, p)
       const int j = absl::Uniform<int>(*random, i, p);
       std::swap(pool[i], pool[j]);
 
