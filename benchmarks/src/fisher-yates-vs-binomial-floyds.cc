@@ -98,10 +98,11 @@ void SampleProjection_floyds(const absl::Span<const int>& features,
   }
   #endif
 
-  // std::binomial_distribution<size_t> binom(features.size(), projection_density);
+  // Checks for 1 and >p are unnecessary due to Binomial dist.
+  std::binomial_distribution<size_t> binom(features.size(), projection_density);
 
   // Expectation[Binomial(p,projection_density)] = num_selected_features
-  const size_t num_selected_features = 3;//binom(*random);
+  const size_t num_selected_features = binom(*random);
 
   absl::btree_set<size_t> picked_idx;
 
@@ -169,7 +170,13 @@ void SampleProjection_fisher_yates(const absl::Span<const int>& features,
 
   const int   p          = features.size();
   // Always pick at least one feature.
-  const int         k = std::max(1, std::min(std::ceil(projection_density * p), p));
+  // const int         k = std::max(1, std::min(std::ceil(projection_density * p), p));
+  
+  std::binomial_distribution<size_t> binom(features.size(), projection_density);
+
+  // Expectation[Binomial(p,projection_density)] = num_selected_features
+  const size_t k = binom(*random);
+
 
   const auto gen_weight = [&](const int feature) -> float {
     float weight = unif1m1(*random);
