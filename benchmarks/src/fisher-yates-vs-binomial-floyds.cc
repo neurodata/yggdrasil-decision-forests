@@ -114,7 +114,7 @@ void SampleProjection_floyds(const absl::Span<const int>& features,
   projection->reserve(num_selected_features);
   // O(k) minimal pass to fill in those indices
   for (const auto idx : picked_idx) {
-        projection->push_back({features[idx], gen_weight(features[idx])});
+      projection->push_back({features[idx], gen_weight(features[idx])});
   }
 
   if (projection->empty()) {
@@ -168,12 +168,8 @@ void SampleProjection_fisher_yates(const absl::Span<const int>& features,
   const auto& oblique_config = dt_config.sparse_oblique_split();
 
   const int   p          = features.size();
-  int         k          = std::ceil(projection_density * p);
-
   // Always pick at least one feature.
-  k = std::max(1, std::min(k, p));
-
-  projection->reserve(k);
+  const int         k = std::max(1, std::min(std::ceil(projection_density * p), p));
 
   const auto gen_weight = [&](const int feature) -> float {
     float weight = unif1m1(*random);
@@ -232,10 +228,10 @@ void SampleProjection_fisher_yates(const absl::Span<const int>& features,
   };
 
   // =================  PARTIAL FISHER–YATES  =================
-  // Copy indices locally so we can shuffle.
+  // Copy indices locally so we can shuffle. features should remain const
   std::vector<int> pool(features.begin(), features.end());
+  projection->reserve(k);
 
-  // TODO pick 2xp one-time - it's what Treeple does
   for (int i = 0; i < k; ++i) {
       const int j = absl::Uniform<int>(*random, i, p);
       std::swap(pool[i], pool[j]);
@@ -246,7 +242,6 @@ void SampleProjection_fisher_yates(const absl::Span<const int>& features,
 
       projection->push_back({feature, gen_weight(feature)});
   }
-  // ===========================================================
 
   // --------- Optional post-processing: max_num_features ---------------
   const int max_feat = dt_config.sparse_oblique_split().max_num_features();
