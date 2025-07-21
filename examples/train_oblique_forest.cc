@@ -45,12 +45,18 @@ ABSL_FLAG(int, num_threads, 1, "Number of threads to use.");
 ABSL_FLAG(int, num_trees, 50, "Number of trees in the random forest.");
 ABSL_FLAG(int, tree_depth, -1,
           "Maximum depth of trees (-1 for unlimited).");
+
+ABSL_FLAG(std::string, feature_split_type, "Axis Aligned",
+          "Type of feature splits in decision trees: 'Axis Aligned' or 'Oblique'.");
+
+// Oblique split parameters (only used when feature_split_type = "Oblique")
 ABSL_FLAG(int, max_num_projections, 1000,
           "Maximum number of projections for oblique splits.");
 ABSL_FLAG(float, projection_density_factor, 3.0f,
           "Projection density factor.");
 ABSL_FLAG(int, num_projections_exponent, 1,
           "Exponent to determine number of projections.");
+
 ABSL_FLAG(bool, compute_oob_performances, false,
           "Whether to compute out-of-bag performances (only for csv mode).");
 
@@ -147,7 +153,6 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  // Placeholders for DataSpec and dataset
   dataset::proto::DataSpecification data_spec;
   std::unique_ptr<dataset::VerticalDataset> tf_ds;
   dataset::VerticalDataset* ds_ptr = nullptr;
@@ -263,13 +268,29 @@ int main(int argc, char** argv) {
       absl::GetFlag(FLAGS_tree_depth));
   rf.set_bootstrap_training_dataset(true);
   rf.set_bootstrap_size_ratio(1.0);
-  auto* sos = rf.mutable_decision_tree()->mutable_sparse_oblique_split();
-  sos->set_max_num_projections(
-      absl::GetFlag(FLAGS_max_num_projections));
-  sos->set_projection_density_factor(
-      absl::GetFlag(FLAGS_projection_density_factor));
-  sos->set_num_projections_exponent(
-      absl::GetFlag(FLAGS_num_projections_exponent));
+
+  /* #region Conditional Feature Split Type Configuration */
+  const std::string feature_split_type = absl::GetFlag(FLAGS_feature_split_type);
+  
+  if (feature_split_type == "Oblique") {
+    std::cout << "Configuring oblique splits\n";
+    auto* sos = rf.mutable_decision_tree()->mutable_sparse_oblique_split();
+    sos->set_max_num_projections(
+        absl::GetFlag(FLAGS_max_num_projections));
+    sos->set_projection_density_factor(
+        absl::GetFlag(FLAGS_projection_density_factor));
+    sos->set_num_projections_exponent(
+        absl::GetFlag(FLAGS_num_projections_exponent));
+  } else if (feature_split_type == "Axis Aligned") {
+    std::cout << "Using axis-aligned splits (default behavior)\n";
+    // No additional configuration needed for axis-aligned splits
+  } else {
+    std::cerr << "Unknown feature_split_type: " << feature_split_type 
+              << ". Use 'Axis Aligned' or 'Oblique'.\n";
+    return 1;
+  }
+  /* #endregion */
+
   rf.set_compute_oob_performances(
       absl::GetFlag(FLAGS_compute_oob_performances));
 

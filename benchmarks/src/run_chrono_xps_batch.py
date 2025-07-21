@@ -25,6 +25,10 @@ def get_args():
     p.add_argument("--label_col", default="Cancer Status")
     p.add_argument("--experiment_name", type=str, default="untitled_experiment",
                    help="Name for the experiment, used in the output directory path")
+    p.add_argument("--feature_split_type", type=str, 
+                   choices=["Axis Aligned", "Oblique"], 
+                   required=True,
+                   help="Feature split type for the random forest: Axis Aligned or Oblique")
     p.add_argument("--numerical_split_type", type=str, 
                    choices=["Exact", "Random", "Equal Width"], 
                    default="Exact",
@@ -252,6 +256,7 @@ if __name__ == "__main__":
         f"--num_threads={a.num_threads}",
         f"--projection_density_factor={a.projection_density_factor}",
         f"--max_num_projections={a.max_num_projections}",
+        f"--feature_split_type={a.feature_split_type}",
         f"--numerical_split_type={a.numerical_split_type}",
     ]
 

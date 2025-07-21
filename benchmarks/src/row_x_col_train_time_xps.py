@@ -73,8 +73,6 @@ def get_args():
     parser.add_argument("--experiment_name", type=str, default="untitled_experiment",
                         help="Name for the experiment, used in the output CSV filename")
     # Runtime params.
-    parser.add_argument("--numerical_split_type", type=str, choices=["Exact", "Random", "Equal Width"], required=True,
-                        help="Whether to use Exact or Histogram splits")
     parser.add_argument("--num_threads", type=int, default=1,
                         help="Number of threads to use. Use -1 for all logical CPUs.")
     parser.add_argument("--threads_list", type=int, nargs="+", default=None,
@@ -82,11 +80,15 @@ def get_args():
     parser.add_argument("--rows_list", type=int, nargs="+", default=[128, 256, 512,1024],
                         help="List of number of rows of the input matrix to test, e.g. --rows_list 128 256 512. Default: [128, 256, 512,1024]")
     parser.add_argument("--cols_list", type=int, nargs="+", default=[128,256,512,1024],
-                        help="List of number of cols of the input matrix to test, e.g. --cols_list 128 256 512. Default: [128,256,512,1024,2048,4096]")
+                        help="List of number of cols of the input matrix to test, e.g. --cols_list 128 256 512. Default: [128,256,512,1024]")
     parser.add_argument("--repeats", type=int, default=5,
                         help="Number of times to repeat & avg. experiments. Default: 7")
     
     # Model params
+    parser.add_argument("--feature_split_type", type=str, choices=["Axis Aligned", "Oblique"], required=True,
+                    help="Whether to use Exact or Histogram splits")
+    parser.add_argument("--numerical_split_type", type=str, choices=["Exact", "Random", "Equal Width"], required=True,
+                    help="Whether to use Exact or Histogram splits")
     parser.add_argument("--num_trees", type=int, default=50,
                         help="Number of trees in the Random Forest. Default: 50")
     parser.add_argument("--tree_depth", type=int, default=-1,
@@ -186,7 +188,7 @@ def main():
             avg_matrix = {n: {d: "" for d in d_values} for n in n_values}
             std_matrix = {n: {d: "" for d in d_values} for n in n_values}
 
-            header = ["YDF Fisher-Yates", f"per-proj. nnz={args.projection_density_factor}", f"trees={args.num_trees}", f"{args.repeats} repeats", f"{args.tree_depth} depth", get_cpu_model_proc(), f"{str(t)} thread(s)"]
+            header = ["YDF Floyds", f"per-proj. nnz={args.projection_density_factor}", f"trees={args.num_trees}", f"{args.repeats} repeats", f"{args.tree_depth} depth", get_cpu_model_proc(), f"{str(t)} thread(s)"]
 
             if args.input_mode == "csv":
                 # CSV mode static args
@@ -210,7 +212,7 @@ def main():
                         print(f"\nRunning on: {filename}")
                         times = []
                         for i in range(args.repeats):
-                            cmd = [binary, "--input_mode=csv", f"--train_csv={path}"] + static_args
+                            cmd = [binary, "--input_mode=csv", f"--train_csv={path}", f"--feature_split_type={args.feature_split_type}"] + static_args
                             try:
                                 out = run_binary_with_cleanup(cmd)
                                 
@@ -246,6 +248,7 @@ def main():
                     f"--tree_depth={args.tree_depth}",
                     f"--num_threads={thread_count}",
                     f"--max_num_projections={args.max_num_projections}",
+                    f"--feature_split_type={args.feature_split_type}",
                     f"--numerical_split_type={args.numerical_split_type}"
                 ]
                 time_rx = re.compile(r"Training wall-time: ([\d.]+)s")
