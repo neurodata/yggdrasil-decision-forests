@@ -5,6 +5,9 @@ import statistics
 import csv
 import argparse
 import logging
+import signal
+import sys
+import atexit
 
 logging.basicConfig(
     level=logging.INFO,
@@ -12,15 +15,19 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()]
 )
 
+# Global flag to track E-core state
+e_cores_disabled = False
 
 def disable_e_cores():
     """Disable E-cores (cores 6 to nproc-1)"""
+    global e_cores_disabled
     try:
         nproc = int(subprocess.run(['nproc'], capture_output=True, text=True).stdout.strip())
         if nproc > 6:
             result = subprocess.run(['sudo', 'chcpu', '-d', f'6-{nproc-1}'], 
                                   capture_output=True, text=True, check=True)
             print(f"Disabled E-cores 6-{nproc-1}")
+            e_cores_disabled = True
             if result.stdout: print(result.stdout.strip())
             if result.stderr: print(result.stderr.strip())
     except Exception as e:
@@ -29,14 +36,34 @@ def disable_e_cores():
 
 def enable_e_cores():
     """Re-enable E-cores (cores 6-15)"""
+    global e_cores_disabled
     try:
         result = subprocess.run(['sudo', 'chcpu', '-e', '6-15'], 
                               capture_output=True, text=True, check=True)
         print("Re-enabled E-cores 6-15")
+        e_cores_disabled = False
         if result.stdout: print(result.stdout.strip())
         if result.stderr: print(result.stderr.strip())
     except Exception as e:
         print(f"Warning: Could not re-enable E-cores: {e}")
+
+
+def cleanup_and_exit(signum=None, frame=None):
+    """Cleanup function to re-enable E-cores before exiting"""
+    global e_cores_disabled
+    if e_cores_disabled:
+        print("\nCleaning up: Re-enabling E-cores...")
+        enable_e_cores()
+    if signum is not None:
+        print(f"\nReceived signal {signum}, exiting cleanly.")
+        sys.exit(1)
+
+
+def setup_signal_handlers():
+    """Setup signal handlers for graceful cleanup"""
+    signal.signal(signal.SIGINT, cleanup_and_exit)   # Ctrl+C
+    signal.signal(signal.SIGTERM, cleanup_and_exit)  # Termination signal
+    atexit.register(cleanup_and_exit)  # Fallback for other exit scenarios
 
 
 def get_args():
@@ -106,9 +133,25 @@ def get_cpu_model_proc():
                     return line.split(":", 1)[1].strip()
     except FileNotFoundError:
         return "Could not access /proc/cpuinfo to get CPU model name"
+
+
+def run_binary_with_cleanup(cmd):
+    """Run binary command without toggling E-cores (they should stay disabled)"""
+    try:
+        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
+        return out
+    except subprocess.CalledProcessError as e:
+        raise e
+    except KeyboardInterrupt:
+        # Handle Ctrl+C during subprocess execution
+        print("\nKeyboard interrupt received during binary execution...")
+        raise
     
 
 def main():
+    # Setup signal handlers first
+    setup_signal_handlers()
+    
     args = get_args()
     
     global n_values, d_values
@@ -124,126 +167,130 @@ def main():
     os.makedirs(base_results_dir, exist_ok=True)
     binary = "./bazel-bin/examples/train_oblique_forest"
 
-    for t in threads_to_test:
-        print("Running w/ Threads=", t)
-        # resolve -1 to all logical CPUs
-        if t == -1:
-            thread_count = os.cpu_count()
-            logging.info(f"\n\nUnlimited threads requested. Found {thread_count} logical CPUs. Calling train_oblique_forest with --threads={thread_count}\n\n")
-        else:
-            thread_count = t
+    # Disable E-cores once at the beginning
+    disable_e_cores()
 
-        combined_csv = os.path.join(base_results_dir, f"{args.experiment_name}_{thread_count}.csv")
+    try:
+        for t in threads_to_test:
+            print("Running w/ Threads=", t)
+            # resolve -1 to all logical CPUs
+            if t == -1:
+                thread_count = os.cpu_count()
+                logging.info(f"\n\nUnlimited threads requested. Found {thread_count} logical CPUs. Calling train_oblique_forest with --threads={thread_count}\n\n")
+            else:
+                thread_count = t
 
-        # Initialize matrices
-        avg_matrix = {n: {d: "" for d in d_values} for n in n_values}
-        std_matrix = {n: {d: "" for d in d_values} for n in n_values}
+            combined_csv = os.path.join(base_results_dir, f"{args.experiment_name}_{thread_count}.csv")
 
-        header = ["YDF Fisher-Yates", f"per-proj. nnz={args.projection_density_factor}", f"trees={args.num_trees}", f"{args.repeats} repeats", f"{args.tree_depth} depth", get_cpu_model_proc(), f"{str(t)} thread(s)"]
+            # Initialize matrices
+            avg_matrix = {n: {d: "" for d in d_values} for n in n_values}
+            std_matrix = {n: {d: "" for d in d_values} for n in n_values}
 
-        if args.input_mode == "csv":
-            # CSV mode static args
-            static_args = [
-                "--label_col=Target",
-                f"--projection_density_factor={args.projection_density_factor}.0",
-                f"--num_threads={thread_count}",
-                f"--numerical_split_type={args.numerical_split_type}"
-            ]
-            time_rx = re.compile(r"Training time: ([\d.]+) seconds")
-            
+            header = ["YDF Fisher-Yates", f"per-proj. nnz={args.projection_density_factor}", f"trees={args.num_trees}", f"{args.repeats} repeats", f"{args.tree_depth} depth", get_cpu_model_proc(), f"{str(t)} thread(s)"]
 
-            data_dir = "ariel_test_data/random_csvs"
-            for n in n_values:
-                for d in d_values:
-                    filename = f"random_n={n}_d={d}.csv"
-                    path = os.path.join(data_dir, filename)
-                    if not os.path.exists(path):
-                        logging.warning(f"Skipping missing file: {filename}")
-                        continue
-                    print(f"\nRunning on: {filename}")
-                    times = []
-                    for i in range(args.repeats):
-                        cmd = [binary, "--input_mode=csv", f"--train_csv={path}"] + static_args
-                        try:
-                            # Disable E-cores before running the binary
-                            disable_e_cores()
-                            
-                            out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
-                            
-                            # Re-enable E-cores after the binary is done
-                            enable_e_cores()
-                            
-                            m = time_rx.search(out)
-                            if m:
-                                t_measured = float(m.group(1))
-                                times.append(t_measured)
-                                print(f"  Run {i+1}: {t_measured:.4f} s")
-                            else:
-                                logging.error(f"  Run {i+1}: parse fail")
-                        except subprocess.CalledProcessError as e:
-                            # Make sure to re-enable E-cores even if binary fails
-                            enable_e_cores()
-                            logging.error(f"  Run {i+1}: error\n{e.output}")
-                    if times:
-                        avg = statistics.mean(times)
-                        std = statistics.stdev(times) if len(times) > 1 else 0.0
-                        avg_matrix[n][d] = f"{avg:.4f}"
-                        std_matrix[n][d] = f"{std:.4f}"
-                        print(f"  ➤ Avg: {avg:.4f}s | Std: {std:.4f}s")
-                    else:
-                        logging.critical("  ➤ All runs failed.")
+            if args.input_mode == "csv":
+                # CSV mode static args
+                static_args = [
+                    "--label_col=Target",
+                    f"--projection_density_factor={args.projection_density_factor}.0",
+                    f"--num_threads={thread_count}",
+                    f"--numerical_split_type={args.numerical_split_type}"
+                ]
+                time_rx = re.compile(r"Training time: ([\d.]+) seconds")
+                
 
-                    # Save after each cell
-                    save_combined_matrix(avg_matrix, std_matrix, combined_csv, header)
+                data_dir = "ariel_test_data/random_csvs"
+                for n in n_values:
+                    for d in d_values:
+                        filename = f"random_n={n}_d={d}.csv"
+                        path = os.path.join(data_dir, filename)
+                        if not os.path.exists(path):
+                            logging.warning(f"Skipping missing file: {filename}")
+                            continue
+                        print(f"\nRunning on: {filename}")
+                        times = []
+                        for i in range(args.repeats):
+                            cmd = [binary, "--input_mode=csv", f"--train_csv={path}"] + static_args
+                            try:
+                                out = run_binary_with_cleanup(cmd)
+                                
+                                m = time_rx.search(out)
+                                if m:
+                                    t_measured = float(m.group(1))
+                                    times.append(t_measured)
+                                    print(f"  Run {i+1}: {t_measured:.4f} s")
+                                else:
+                                    logging.error(f"  Run {i+1}: parse fail")
+                            except subprocess.CalledProcessError as e:
+                                logging.error(f"  Run {i+1}: error\n{e.output}")
+                            except KeyboardInterrupt:
+                                print(f"\nKeyboard interrupt during run {i+1}")
+                                raise
+                        if times:
+                            avg = statistics.mean(times)
+                            std = statistics.stdev(times) if len(times) > 1 else 0.0
+                            avg_matrix[n][d] = f"{avg:.4f}"
+                            std_matrix[n][d] = f"{std:.4f}"
+                            print(f"  ➤ Avg: {avg:.4f}s | Std: {std:.4f}s")
+                        else:
+                            logging.critical("  ➤ All runs failed.")
 
-        else:  # rng mode
-            static_args = [
-                "--label_mod=2",
-                f"--projection_density_factor={args.projection_density_factor}.0",
-                f"--num_trees={args.num_trees}",
-                f"--tree_depth={args.tree_depth}",
-                f"--num_threads={thread_count}",
-                f"--max_num_projections={args.max_num_projections}",
-                f"--numerical_split_type={args.numerical_split_type}"
-            ]
-            time_rx = re.compile(r"Training wall-time: ([\d.]+)s")
+                        # Save after each cell
+                        save_combined_matrix(avg_matrix, std_matrix, combined_csv, header)
 
-            for n in n_values:
-                for d in d_values:
-                    print(f"\nRunning: rows={n}, cols={d}")
-                    times = []
-                    for i in range(args.repeats):
-                        cmd = [binary, "--input_mode=synthetic", f"--rows={n}", f"--cols={d}"] + static_args
-                        try:
-                            out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
-                            
-                            m = time_rx.search(out)
-                            if m:
-                                t_measured = float(m.group(1))
-                                times.append(t_measured)
-                                print(f"  Run {i+1}: {t_measured:.4f} s")
-                            else:
-                                logging.error(f"  Run {i+1}: parse fail")
-                        except subprocess.CalledProcessError as e:
-                            # Make sure to re-enable E-cores even if binary fails
-                            enable_e_cores()
-                            logging.error(f"  Run {i+1}: error\n{e.output}")
-                    if times:
-                        avg = statistics.mean(times)
-                        std = statistics.stdev(times) if len(times) > 1 else 0.0
-                        avg_matrix[n][d] = f"{avg:.4f}"
-                        std_matrix[n][d] = f"{std:.4f}"
-                        print(f"  ➤ Avg: {avg:.4f}s | Std: {std:.4f}s")
-                    else:
-                        logging.critical("  ➤ All runs failed.")
+            else:  # synthetic mode
+                static_args = [
+                    "--label_mod=2",
+                    f"--projection_density_factor={args.projection_density_factor}.0",
+                    f"--num_trees={args.num_trees}",
+                    f"--tree_depth={args.tree_depth}",
+                    f"--num_threads={thread_count}",
+                    f"--max_num_projections={args.max_num_projections}",
+                    f"--numerical_split_type={args.numerical_split_type}"
+                ]
+                time_rx = re.compile(r"Training wall-time: ([\d.]+)s")
 
-                    # Save after each cell
-                    save_combined_matrix(avg_matrix, std_matrix, combined_csv, header)
+                for n in n_values:
+                    for d in d_values:
+                        print(f"\nRunning: rows={n}, cols={d}")
+                        times = []
+                        for i in range(args.repeats):
+                            cmd = [binary, "--input_mode=synthetic", f"--rows={n}", f"--cols={d}"] + static_args
+                            try:
+                                out = run_binary_with_cleanup(cmd)
+                                
+                                m = time_rx.search(out)
+                                if m:
+                                    t_measured = float(m.group(1))
+                                    times.append(t_measured)
+                                    print(f"  Run {i+1}: {t_measured:.4f} s")
+                                else:
+                                    logging.error(f"  Run {i+1}: parse fail")
+                            except subprocess.CalledProcessError as e:
+                                logging.error(f"  Run {i+1}: error\n{e.output}")
+                            except KeyboardInterrupt:
+                                print(f"\nKeyboard interrupt during run {i+1}")
+                                raise
+                        if times:
+                            avg = statistics.mean(times)
+                            std = statistics.stdev(times) if len(times) > 1 else 0.0
+                            avg_matrix[n][d] = f"{avg:.4f}"
+                            std_matrix[n][d] = f"{std:.4f}"
+                            print(f"  ➤ Avg: {avg:.4f}s | Std: {std:.4f}s")
+                        else:
+                            logging.critical("  ➤ All runs failed.")
+
+                        # Save after each cell
+                        save_combined_matrix(avg_matrix, std_matrix, combined_csv, header)
+
+    except KeyboardInterrupt:
+        print("\nExperiment interrupted by user.")
+    except Exception as e:
+        print(f"\nUnexpected error: {e}")
+    finally:
+        # Ensure cleanup happens regardless of how we exit
+        cleanup_and_exit()
 
 
 if __name__ == "__main__":
-    # Disable E-cores before running the binary
-    disable_e_cores()
     main()
-    # Re-enable E-cores after the binary is done
-    enable_e_cores()

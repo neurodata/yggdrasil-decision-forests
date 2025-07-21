@@ -8,12 +8,14 @@ Produces one CSV per run:
 """
 
 from __future__ import annotations
-import argparse, csv, os, re, subprocess, time
+import argparse, csv, os, re, subprocess, time, signal, sys, atexit
 from collections import defaultdict
 from typing import Callable
 
 import pandas as pd
 
+# Global flag to track E-core state
+e_cores_disabled = False
 
 def get_args():
     p = argparse.ArgumentParser()
@@ -65,12 +67,14 @@ def get_cpu_model() -> str:
 
 def disable_e_cores():
     """Disable E-cores (cores 6 to nproc-1)"""
+    global e_cores_disabled
     try:
         nproc = int(subprocess.run(['nproc'], capture_output=True, text=True).stdout.strip())
         if nproc > 6:
             result = subprocess.run(['sudo', 'chcpu', '-d', f'6-{nproc-1}'], 
                                   capture_output=True, text=True, check=True)
             print(f"Disabled E-cores 6-{nproc-1}")
+            e_cores_disabled = True
             if result.stdout: print(result.stdout.strip())
             if result.stderr: print(result.stderr.strip())
     except Exception as e:
@@ -78,14 +82,34 @@ def disable_e_cores():
 
 def enable_e_cores():
     """Re-enable E-cores (cores 6-15)"""
+    global e_cores_disabled
     try:
         result = subprocess.run(['sudo', 'chcpu', '-e', '6-15'], 
                               capture_output=True, text=True, check=True)
         print("Re-enabled E-cores 6-15")
+        e_cores_disabled = False
         if result.stdout: print(result.stdout.strip())
         if result.stderr: print(result.stderr.strip())
     except Exception as e:
         print(f"Warning: Could not re-enable E-cores: {e}")
+
+
+def cleanup_and_exit(signum=None, frame=None):
+    """Cleanup function to re-enable E-cores before exiting"""
+    global e_cores_disabled
+    if e_cores_disabled:
+        print("\nCleaning up: Re-enabling E-cores...")
+        enable_e_cores()
+    if signum is not None:
+        print(f"\nReceived signal {signum}, exiting cleanly.")
+        sys.exit(1)
+
+
+def setup_signal_handlers():
+    """Setup signal handlers for graceful cleanup"""
+    signal.signal(signal.SIGINT, cleanup_and_exit)   # Ctrl+C
+    signal.signal(signal.SIGTERM, cleanup_and_exit)  # Termination signal
+    atexit.register(cleanup_and_exit)  # Fallback for other exit scenarios
 
 
 ORDER = [
@@ -209,6 +233,9 @@ def write_csv(table: pd.DataFrame, params: dict[str, object], path: str):
 
 
 if __name__ == "__main__":
+    # Setup signal handlers first
+    setup_signal_handlers()
+    
     a = get_args()
     out_dir = os.path.join(
         "benchmarks/results", "per_function_timing",
@@ -240,42 +267,45 @@ if __name__ == "__main__":
             f"--label_col={a.label_col}",
         ]
 
-    # Disable E-cores before running the binary
-    disable_e_cores()
-    
-    t0 = time.perf_counter()
-    log = subprocess.run(
-        cmd, stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT, text=True, check=True
-    ).stdout
-    t1 = time.perf_counter()
-    print(f"\n▶ binary ran in {t1 - t0:.3f}s")
+    try:
+        # Disable E-cores before running the binary
+        disable_e_cores()
+        
+        t0 = time.perf_counter()
+        log = subprocess.run(
+            cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, text=True, check=True
+        ).stdout
+        t1 = time.perf_counter()
+        print(f"\n▶ binary ran in {t1 - t0:.3f}s")
 
-    # Re-enable E-cores after the binary is done
-    enable_e_cores()
+        log = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', log)  # strip ANSI
+        table = PARSER[a.verbose](log)
+        t2 = time.perf_counter()
 
-    log = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', log)  # strip ANSI
-    table = PARSER[a.verbose](log)
-    t2 = time.perf_counter()
+        wall = TRAIN_RX.search(log).group(1)               # e.g. "0.0084s"
+        print(f"parsing output took {t2 - t1:.3f}s")
 
-    wall = TRAIN_RX.search(log).group(1)               # e.g. "0.0084s"
-    print(f"parsing output took {t2 - t1:.3f}s")
+        csv_path = os.path.join(out_dir, f"{wall}.csv")
+        params = dict(
+            rows=a.rows, cols=a.cols,
+            num_trees=a.num_trees, tree_depth=a.tree_depth,
+            proj_density_factor=a.projection_density_factor,
+            max_projections=a.max_num_projections,
+            num_threads=a.num_threads, experiment_name=a.experiment_name,
+            numerical_split_type=a.numerical_split_type,
+            cpu_model=get_cpu_model(),
+        )
+        write_csv(table, params, csv_path)
 
-    csv_path = os.path.join(out_dir, f"{wall}.csv")
-    params = dict(
-        rows=a.rows, cols=a.cols,
-        num_trees=a.num_trees, tree_depth=a.tree_depth,
-        proj_density_factor=a.projection_density_factor,
-        max_projections=a.max_num_projections,
-        num_threads=a.num_threads, experiment_name=a.experiment_name,
-        numerical_split_type=a.numerical_split_type,
-        cpu_model=get_cpu_model(),
-    )
-    write_csv(table, params, csv_path)
-    # t3 = time.perf_counter()
+        if a.save_log:
+            with open(os.path.join(out_dir, f"{wall}.log"), "w") as f:
+                f.write(log)
 
-    # print(f"writing csv took {t3 - t2:.3f}s\nCSV written to {csv_path}")
-
-    if a.save_log:
-        with open(os.path.join(out_dir, f"{wall}.log"), "w") as f:
-            f.write(log)
+    except KeyboardInterrupt:
+        print("\nBenchmark interrupted by user.")
+    except Exception as e:
+        print(f"\nUnexpected error: {e}")
+    finally:
+        # Ensure cleanup happens regardless of how we exit
+        cleanup_and_exit()
