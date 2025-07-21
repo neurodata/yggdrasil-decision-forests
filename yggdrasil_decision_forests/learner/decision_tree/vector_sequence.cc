@@ -55,7 +55,7 @@ absl::Status TryCloserThanCondition(
     std::vector<UnsignedExampleIdx> dense_example_idxs,
     const InternalTrainConfig& internal_config, SplitterPerThreadCache* cache,
     proto::NodeCondition* condition, SplitSearchResult* result_flag,
-    std::vector<float>* projections) {
+    std::vector<float>* projections, utils::RandomEngine* random) {
   STATUS_CHECK(internal_config.vector_sequence_computer);
   projections->resize(selected_examples.size() * num_anchors);
   RETURN_IF_ERROR(
@@ -79,7 +79,7 @@ absl::Status TryCloserThanCondition(
         EvaluateProjection(dt_config, label_stats, dense_example_idxs,
                            selected_weights, selected_labels, local_projection,
                            internal_config, attribute_idx, {}, 0, condition,
-                           cache));
+                           cache, random));
 
     if (*result_flag == SplitSearchResult::kInvalidAttribute &&
         local_result_flag == SplitSearchResult::kNoBetterSplitFound) {
@@ -115,7 +115,8 @@ absl::Status TryProjectedMoreThanCondition(
     std::vector<UnsignedExampleIdx> dense_example_idxs,
     const InternalTrainConfig& internal_config, SplitterPerThreadCache* cache,
     proto::NodeCondition* condition, SplitSearchResult* result_flag,
-    std::vector<float>* projections) {
+    std::vector<float>* projections, utils::RandomEngine* random) {
+
   STATUS_CHECK(internal_config.vector_sequence_computer);
   projections->resize(selected_examples.size() * num_anchors);
   RETURN_IF_ERROR(
@@ -137,7 +138,7 @@ absl::Status TryProjectedMoreThanCondition(
         EvaluateProjection(dt_config, label_stats, dense_example_idxs,
                            selected_weights, selected_labels, local_projection,
                            internal_config, attribute_idx, {}, 0, condition,
-                           cache));
+                           cache, random));
 
     if (*result_flag == SplitSearchResult::kInvalidAttribute &&
         local_result_flag == SplitSearchResult::kNoBetterSplitFound) {
@@ -227,7 +228,7 @@ FindSplitAnyLabelTemplateFeatureNumericalVectorSequence(
         effective_selected_examples, dt_config, label_stats,
         effective_selected_labels, effective_selected_weights, attribute_idx,
         dense_example_idxs, internal_config, cache, effective_condition,
-        &effective_result_flag, &projections);
+        &effective_result_flag, &projections, random);
   };
 
   const auto try_projected_more_than = [&](absl::Span<const float> anchors,
@@ -237,7 +238,7 @@ FindSplitAnyLabelTemplateFeatureNumericalVectorSequence(
         effective_selected_examples, dt_config, label_stats,
         effective_selected_labels, effective_selected_weights, attribute_idx,
         dense_example_idxs, internal_config, cache, effective_condition,
-        &effective_result_flag, &projections);
+        &effective_result_flag, &projections, random);
   };
 
   const auto sample_vector_forced =
@@ -280,35 +281,35 @@ FindSplitAnyLabelTemplateFeatureNumericalVectorSequence(
         std::min(num_anchors_per_round, num_anchors - anchor_idx);
     anchors.resize(local_num_anchors * attribute.vector_length());
 
-    for (int i = 0; i < local_num_anchors; i++) {
+      for (int i = 0; i < local_num_anchors; i++) {
       // The anchor is the difference between two random values in the dataset.
-      ASSIGN_OR_RETURN(const auto vector_1, sample_vector_forced());
-      if (!vector_1.has_value()) {
-        break;
+        ASSIGN_OR_RETURN(const auto vector_1, sample_vector_forced());
+        if (!vector_1.has_value()) {
+          break;
+        }
+        ASSIGN_OR_RETURN(const auto vector_2, sample_vector_forced());
+        if (!vector_2.has_value()) {
+          break;
+        }
+        for (size_t j = 0; j < vector_1.value().size(); j++) {
+          anchors[i * attribute.vector_length() + j] =
+              vector_1.value()[j] - vector_2.value()[j];
+        }
       }
-      ASSIGN_OR_RETURN(const auto vector_2, sample_vector_forced());
-      if (!vector_2.has_value()) {
-        break;
-      }
-      for (size_t j = 0; j < vector_1.value().size(); j++) {
-        anchors[i * attribute.vector_length() + j] =
-            vector_1.value()[j] - vector_2.value()[j];
-      }
-    }
-    RETURN_IF_ERROR(try_projected_more_than(anchors, local_num_anchors));
+      RETURN_IF_ERROR(try_projected_more_than(anchors, local_num_anchors));
 
-    for (int i = 0; i < local_num_anchors; i++) {
-      // The anchor is a random value in the dataset.
-      ASSIGN_OR_RETURN(const auto vector, sample_vector_forced());
-      if (!vector.has_value()) {
-        break;
+      for (int i = 0; i < local_num_anchors; i++) {
+        // The anchor is a random value in the dataset.
+        ASSIGN_OR_RETURN(const auto vector, sample_vector_forced());
+        if (!vector.has_value()) {
+          break;
+        }
+        // TODO: Better copy.
+        for (size_t j = 0; j < vector.value().size(); j++) {
+          anchors[i * attribute.vector_length() + j] = vector.value()[j];
+        }
       }
-      // TODO: Better copy.
-      for (size_t j = 0; j < vector.value().size(); j++) {
-        anchors[i * attribute.vector_length() + j] = vector.value()[j];
-      }
-    }
-    RETURN_IF_ERROR(try_closer_that(anchors, local_num_anchors));
+      RETURN_IF_ERROR(try_closer_that(anchors, local_num_anchors));
   }
 
   if (effective_result_flag == SplitSearchResult::kBetterSplitFound) {
@@ -343,7 +344,7 @@ FindSplitAnyLabelTemplateFeatureNumericalVectorSequence(
               anchor, 1, attribute, attribute_spec, selected_examples,
               dt_config, label_stats, selected_labels, selected_weights,
               attribute_idx, dense_example_idxs, internal_config, cache,
-              condition, &final_result_flag, &projections));
+              condition, &final_result_flag, &projections, random));
         } break;
 
         case proto::Condition::NumericalVectorSequence::kProjectedMoreThan: {
@@ -358,7 +359,7 @@ FindSplitAnyLabelTemplateFeatureNumericalVectorSequence(
               anchor, 1, attribute, attribute_spec, selected_examples,
               dt_config, label_stats, selected_labels, selected_weights,
               attribute_idx, dense_example_idxs, internal_config, cache,
-              condition, &final_result_flag, &projections));
+              condition, &final_result_flag, &projections, random));
         } break;
 
         default:
