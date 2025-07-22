@@ -165,7 +165,7 @@ def main():
     else:
         threads_to_test = [args.num_threads]
 
-    base_results_dir = os.path.join("ariel_results", "runtime_heatmap", get_cpu_model_proc())
+    base_results_dir = os.path.join("benchmarks/results", "runtime_heatmap", get_cpu_model_proc())
     os.makedirs(base_results_dir, exist_ok=True)
     binary = "./bazel-bin/examples/train_oblique_forest"
 
