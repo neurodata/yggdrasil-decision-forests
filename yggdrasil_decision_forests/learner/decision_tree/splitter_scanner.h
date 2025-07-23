@@ -48,6 +48,15 @@
 #ifndef YGGDRASIL_DECISION_FORESTS_LEARNER_DECISION_TREE_SPLITTER_SCANNER_H_
 #define YGGDRASIL_DECISION_FORESTS_LEARNER_DECISION_TREE_SPLITTER_SCANNER_H_
 
+// If these aren't defined, go with regular/fastest setup
+#ifndef CHRONO_MEASUREMENTS_LOG_LEVEL_FLAG
+  #define CHRONO_MEASUREMENTS_LOG_LEVEL_FLAG 0
+#endif
+
+#ifndef HARD_CODE_1000_PROJECTIONS_FLAG
+  #define HARD_CODE_1000_PROJECTIONS_FLAG false
+#endif
+
 #include <stddef.h>
 
 #include <algorithm>
@@ -79,9 +88,11 @@ namespace decision_tree {
 // choose from {2="verbose", 1="concise", 0="none"}
 // verbose also times fns. that take ~0 time
 // none is much faster, for end-to-end timing
-static constexpr int CHRONO_MEASUREMENTS_LOG_LEVEL = 0;
+// TODO swap back to True/False. This isn't useful
+static constexpr int CHRONO_MEASUREMENTS_LOG_LEVEL = CHRONO_MEASUREMENTS_LOG_LEVEL_FLAG;
 // Normally, n_projections bounded by n_features. Override it to time cache hits w.r.t n_features
-static constexpr bool HARD_CODE_1000_PROJECTIONS = false;
+static constexpr bool HARD_CODE_1000_PROJECTIONS = HARD_CODE_1000_PROJECTIONS_FLAG;
+
 
 // TODO: Explain the expected signature of FeatureBucket and LabelBucket.
 template <typename FeatureBucket, typename LabelBucket>
