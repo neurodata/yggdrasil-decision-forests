@@ -101,26 +101,53 @@ def get_args():
     return parser.parse_args()
 
 
-def save_combined_matrix(avg_matrix, std_matrix, filepath, title_row=None):
+def save_combined_matrix(avg_matrix, std_matrix, filepath, params=None):
+    """Save results with parameters to the right (after 2 blanks), similar to chrono parsing code."""
+    
+    # Create the main results data
+    results_data = []
+    
+    # Header row
+    header = ["n"] + d_values + [""] * 5 + [f"{d}_std" for d in d_values]
+    results_data.append(header)
+    
+    # Data rows
+    for n in n_values:
+        row = [n]
+        # Add average values
+        row.extend([avg_matrix[n][d] for d in d_values])
+        # Add 5 empty columns
+        row.extend([""] * 5)
+        # Add std values
+        row.extend([std_matrix[n][d] for d in d_values])
+        results_data.append(row)
+    
     with open(filepath, "w", newline='') as f:
         writer = csv.writer(f)
-        if title_row:
-            writer.writerow(title_row)
         
-        # Create header row with averages and std columns (5 columns apart)
-        header = ["n"] + d_values + [""] * 5 + [f"{d}_std" for d in d_values]
-        writer.writerow(header)
-        
-        # Write data rows
-        for n in n_values:
-            row = [n]
-            # Add average values
-            row.extend([avg_matrix[n][d] for d in d_values])
-            # Add 5 empty columns
-            row.extend([""] * 5)
-            # Add std values
-            row.extend([std_matrix[n][d] for d in d_values])
-            writer.writerow(row)
+        if params:
+            # Convert params dict to list of [Parameter, Value] pairs
+            param_rows = [[k, v] for k, v in params.items()]
+            # Add header for parameters
+            param_rows.insert(0, ["Parameter", "Value"])
+            
+            # Ensure both tables have the same number of rows
+            n_rows = max(len(results_data), len(param_rows))
+            
+            # Pad with empty rows if needed
+            while len(results_data) < n_rows:
+                results_data.append([""] * len(results_data[0]))
+            while len(param_rows) < n_rows:
+                param_rows.append(["", ""])
+            
+            # Write combined data: [results] [2 gaps] [parameters]
+            for i in range(n_rows):
+                combined_row = results_data[i] + ["", ""] + param_rows[i]
+                writer.writerow(combined_row)
+        else:
+            # No parameters, just write results
+            for row in results_data:
+                writer.writerow(row)
 
 
 def get_cpu_model_proc():
@@ -188,9 +215,24 @@ def main():
             avg_matrix = {n: {d: "" for d in d_values} for n in n_values}
             std_matrix = {n: {d: "" for d in d_values} for n in n_values}
 
-            header = ["YDF Floyds", f"per-proj. nnz={args.projection_density_factor}", f"trees={args.num_trees}", f"{args.repeats} repeats", f"{args.tree_depth} depth", get_cpu_model_proc(), f"{str(t)} thread(s)"]
+            params = {
+                "Benchmark": args.experiment_name,
+
+                "Projection Density Factor": args.projection_density_factor,
+                "Trees": args.num_trees,
+                "depth": args.tree_depth,
+                "feature_split_type": args.feature_split_type,
+                "numerical_split_type": args.numerical_split_type,
+
+                "cpu_model": get_cpu_model_proc(),
+                "threads": str(t),
+                "repeats": args.repeats,
+            }
 
             if args.input_mode == "csv":
+                # Add max_num_projections to params for CSV mode if needed
+                params["max_num_projections"] = args.max_num_projections
+                
                 # CSV mode static args
                 static_args = [
                     "--label_col=Target",
@@ -238,9 +280,11 @@ def main():
                             logging.critical("  ➤ All runs failed.")
 
                         # Save after each cell
-                        save_combined_matrix(avg_matrix, std_matrix, combined_csv, header)
+                        save_combined_matrix(avg_matrix, std_matrix, combined_csv, params)
 
             else:  # synthetic mode
+                params["max_num_projections"] = args.max_num_projections
+                
                 static_args = [
                     "--label_mod=2",
                     f"--projection_density_factor={args.projection_density_factor}.0",
@@ -284,7 +328,7 @@ def main():
                             logging.critical("  ➤ All runs failed.")
 
                         # Save after each cell
-                        save_combined_matrix(avg_matrix, std_matrix, combined_csv, header)
+                        save_combined_matrix(avg_matrix, std_matrix, combined_csv, params)
 
     except KeyboardInterrupt:
         print("\nExperiment interrupted by user.")
