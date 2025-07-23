@@ -118,30 +118,52 @@ def get_cpu_model() -> str:
 def disable_e_cores():
     """Disable E-cores (cores 6 to nproc-1)"""
     global e_cores_disabled
-    try:
-        nproc = int(subprocess.run(['nproc'], capture_output=True, text=True).stdout.strip())
-        if nproc > 6:
-            result = subprocess.run(['sudo', 'chcpu', '-d', f'6-{nproc-1}'], 
-                                  capture_output=True, text=True, check=True)
-            print(f"Disabled E-cores 6-{nproc-1}")
-            e_cores_disabled = True
-            if result.stdout: print(result.stdout.strip())
-            if result.stderr: print(result.stderr.strip())
-    except Exception as e:
-        print(f"Warning: Could not disable E-cores: {e}")
+    if get_cpu_model_proc() == "Intel(R) Core(TM) Ultra 9 185H":
+        try:
+            nproc = int(subprocess.run(['nproc'], capture_output=True, text=True).stdout.strip())
+            if nproc > 6:
+                result = subprocess.run(['sudo', 'chcpu', '-d', f'6-{nproc-1}'], 
+                                    capture_output=True, text=True, check=True)
+                print(f"Disabled E-cores 6-{nproc-1}")
+                e_cores_disabled = True
+                if result.stdout: print(result.stdout.strip())
+                if result.stderr: print(result.stderr.strip())
+        except Exception as e:
+            print(f"Warning: Could not disable E-cores: {e}")
+    else:
+        print("CPU doesn't match Ultra 9 185H - not changing anything")
+
 
 def enable_e_cores():
     """Re-enable E-cores (cores 6-15)"""
     global e_cores_disabled
+    if get_cpu_model_proc() == "Intel(R) Core(TM) Ultra 9 185H":
+        try:
+            result = subprocess.run(['sudo', 'chcpu', '-e', '6-15'], 
+                                capture_output=True, text=True, check=True)
+            print("Re-enabled E-cores 6-15")
+            e_cores_disabled = False
+            if result.stdout: print(result.stdout.strip())
+            if result.stderr: print(result.stderr.strip())
+        except Exception as e:
+            print(f"Warning: Could not re-enable E-cores: {e}")
+    else:
+        print("CPU doesn't match Ultra 9 185H - not changing anything")
+
+
+
+def get_cpu_model_proc():
+    """
+    Reads /proc/cpuinfo and returns the first 'model name' value.
+    """
     try:
-        result = subprocess.run(['sudo', 'chcpu', '-e', '6-15'], 
-                              capture_output=True, text=True, check=True)
-        print("Re-enabled E-cores 6-15")
-        e_cores_disabled = False
-        if result.stdout: print(result.stdout.strip())
-        if result.stderr: print(result.stderr.strip())
-    except Exception as e:
-        print(f"Warning: Could not re-enable E-cores: {e}")
+        with open("/proc/cpuinfo", "r") as f:
+            for line in f:
+                if line.startswith("model name"):
+                    # split only on the first ':' → [key, value]
+                    return line.split(":", 1)[1].strip()
+    except FileNotFoundError:
+        return "Could not access /proc/cpuinfo to get CPU model name"
 
 
 def cleanup_and_exit(signum=None, frame=None):
