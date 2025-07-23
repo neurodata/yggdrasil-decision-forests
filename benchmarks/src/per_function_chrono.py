@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse, csv, os, re, subprocess, time, signal, sys, atexit
 from collections import defaultdict
 from typing import Callable
+import logging
 
 import pandas as pd
 
@@ -54,6 +55,51 @@ def get_args():
         print("Warning: --repeats is deprecated. Use --num_trees instead, which functions the same way for benchmarking.", file=sys.stderr)
     
     return args
+
+
+def build_binary():
+    """Build the binary using bazel. Returns True if successful, False otherwise."""
+    build_cmd = [
+        'bazel', 'build', '-c', 'opt', 
+        '--config=fixed_1000_projections', 
+        '--config=chrono_profile', 
+        '//examples:train_oblique_forest'
+    ]
+    
+    print("Building binary...")
+    print(f"Running: {' '.join(build_cmd)}")
+    
+    try:
+        result = subprocess.run(
+            build_cmd, 
+            capture_output=False, 
+            text=True, 
+            check=True
+        )
+        
+        print("✅ Build succeeded!")
+        if result.stdout:
+            logging.info(f"Build stdout:\n{result.stdout}")
+        if result.stderr:
+            logging.info(f"Build stderr:\n{result.stderr}")
+        return True
+        
+    except subprocess.CalledProcessError as e:
+        print("❌ Build failed!")
+        print(f"Return code: {e.returncode}")
+        if e.stdout:
+            print(f"Build stdout:\n{e.stdout}")
+        if e.stderr:
+            print(f"Build stderr:\n{e.stderr}")
+        return False
+    
+    except KeyboardInterrupt:
+        print("\n❌ Build interrupted by user")
+        return False
+    
+    except Exception as e:
+        print(f"❌ Unexpected error during build: {e}")
+        return False
 
 
 def get_cpu_model() -> str:
@@ -239,6 +285,11 @@ def write_csv(table: pd.DataFrame, params: dict[str, object], path: str):
 if __name__ == "__main__":
     # Setup signal handlers first
     setup_signal_handlers()
+
+    # Build the binary first - exit if build fails
+    if not build_binary():
+        print("\n❌ Cannot proceed with benchmarks - build failed!")
+        sys.exit(1)
     
     a = get_args()
     out_dir = os.path.join(
