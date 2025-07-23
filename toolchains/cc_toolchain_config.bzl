@@ -10,10 +10,10 @@ all_link_actions = [
 
 def _impl(ctx):
     tool_paths = [
-        tool_path(name = "gcc", path = "/opt/intel/oneapi/compiler/2025.1/bin/icx"),
-        tool_path(name = "ld", path = "/opt/intel/oneapi/compiler/2025.1/bin/icx"),
+        tool_path(name = "gcc", path = "/opt/intel/oneapi/compiler/latest/bin/icx"),
+        tool_path(name = "ld", path = "/opt/intel/oneapi/compiler/latest/bin/icx"),
         tool_path(name = "ar", path = "/usr/bin/ar"),
-        tool_path(name = "cpp", path = "/opt/intel/oneapi/compiler/2025.1/bin/icx"),
+        tool_path(name = "cpp", path = "/opt/intel/oneapi/compiler/latest/bin/icx"),
         tool_path(name = "gcov", path = "/bin/false"),
         tool_path(name = "nm", path = "/usr/bin/nm"),
         tool_path(name = "objdump", path = "/usr/bin/objdump"),
@@ -39,10 +39,10 @@ def _impl(ctx):
         ctx = ctx,
         features = features,
         cxx_builtin_include_directories = [
-            "/opt/intel/oneapi/compiler/2025.1/lib/clang/20/include",
-            "/opt/intel/oneapi/compiler/2025.1/opt/compiler/include",
-            "/opt/intel/oneapi/compiler/2025.1/linux/include",
-            "/opt/intel/oneapi/compiler/2025.1/linux/include/sycl",
+            "/opt/intel/oneapi/compiler/latest/lib/clang/20/include",
+            "/opt/intel/oneapi/compiler/latest/opt/compiler/include",
+            "/opt/intel/oneapi/compiler/latest/linux/include",
+            "/opt/intel/oneapi/compiler/latest/linux/include/sycl",
             "/usr/include",
         ],
         toolchain_identifier = "intel-linux-toolchain",
