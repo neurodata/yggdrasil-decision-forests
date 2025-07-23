@@ -131,8 +131,8 @@ def get_args():
                         help="List of number of rows of the input matrix to test, e.g. --rows_list 128 256 512. Default: [128, 256, 512,1024]")
     parser.add_argument("--cols_list", type=int, nargs="+", default=[128,256,512,1024],
                         help="List of number of cols of the input matrix to test, e.g. --cols_list 128 256 512. Default: [128,256,512,1024]")
-    parser.add_argument("--repeats", type=int, default=5,
-                        help="Number of times to repeat & avg. experiments. Default: 7")
+    parser.add_argument("--repeats", type=int, default=1,
+                        help="Number of times to repeat & avg. experiments. Use at least 5 for publishable results. Default: 1, for speed")
     
     # Model params
     parser.add_argument("--feature_split_type", type=str, choices=["Axis Aligned", "Oblique"], required=True,

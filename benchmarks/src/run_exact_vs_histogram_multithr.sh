@@ -15,4 +15,5 @@ python3 benchmarks/src/data_size_vs_train_time.py\
     --feature_split_type="Oblique"\
     --numerical_split_type="Random"\
     --experiment_name="Oblique Random Histogram - Row Scaling - 48thr"\
-    --threads=48
+    --threads=48\
+    --repeats=1
