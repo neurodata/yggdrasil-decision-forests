@@ -1,11 +1,11 @@
 n,1024,,,,,,1024_std,,,Parameter,Value
-2048,9.2952,,,,,,0.1304,,,Benchmark,Oblique Random Histogram - Row Scaling - 48thr
-4096,19.3714,,,,,,0.2565,,,Projection Density Factor,3
-8192,40.6908,,,,,,0.1776,,,Trees,50
-16384,84.7741,,,,,,0.8498,,,depth,-1
-32768,,,,,,,,,,feature_split_type,Oblique
-65536,,,,,,,,,,numerical_split_type,Random
-131072,,,,,,,,,,cpu_model,Intel(R) Xeon(R) Platinum 8488C
-262144,,,,,,,,,,threads,48
-524288,,,,,,,,,,repeats,5
-1048576,,,,,,,,,,max_num_projections,1000
+524288,3774.2500,,,,,,0.0000,,,Benchmark,Oblique Random Histogram - Row Scaling - 48thr
+1048576,8197.4600,,,,,,0.0000,,,Projection Density Factor,3
+,,,,,,,,,,Trees,50
+,,,,,,,,,,depth,-1
+,,,,,,,,,,feature_split_type,Oblique
+,,,,,,,,,,numerical_split_type,Random
+,,,,,,,,,,cpu_model,Intel(R) Xeon(R) Platinum 8488C
+,,,,,,,,,,threads,48
+,,,,,,,,,,repeats,1
+,,,,,,,,,,max_num_projections,1000
