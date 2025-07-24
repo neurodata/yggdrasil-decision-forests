@@ -184,7 +184,7 @@ def setup_signal_handlers():
     atexit.register(cleanup_and_exit)  # Fallback for other exit scenarios
 
 
-ORDER = [
+ORDER_EXACT = [
     "Selecting Bootstrapped Samples",
     "Initialization of FindBestCondOblique",
     "SampleProjection", "ApplyProjection",
@@ -194,6 +194,19 @@ ORDER = [
     "EvaluateProjection",
     "FillExampleBucketSet (next 3 calls)",
 ]
+
+ORDER_HISTOGRAM = [
+    "Selecting Bootstrapped Samples",
+    "Initialization of FindBestCondOblique",
+    "SampleProjection", "ApplyProjection",
+    "Initializing Histogram Bins",
+    "Setting Split Distributions",
+    "Looping over samples",
+    "Looping over splits",
+    "Finding best threshold (Computing Entropies)",
+    "Post-processing after Training all Trees",
+]
+
 RENAMES = {
     "Post-processing after Train": "Post-processing after Training all Trees",
     "FillExampleBucketSet (calls 3 above)": "FillExampleBucketSet (next 3 calls)",
@@ -207,7 +220,7 @@ TOOK_TAG = " took:"               # exactly one leading space — leave as-is
 STRIP_SET = " \t-"
 
 
-def fast_parse_tree_depth(log: str) -> pd.DataFrame:
+def fast_parse_tree_depth(log: str, split_type: str = "Exact") -> pd.DataFrame:
     def _num(tok: str) -> float:
         tok = tok.rstrip()
         if tok.endswith('s'):
@@ -216,6 +229,8 @@ def fast_parse_tree_depth(log: str) -> pd.DataFrame:
     
     rows: list[tuple[int, int, str, float]] = []
     node_counts: defaultdict[tuple[int, int], int] = defaultdict(int)
+
+    ORDER = ORDER_HISTOGRAM if split_type in ["Random", "Equal Width", "Histogram"] else ORDER_EXACT
 
     cur_tree = -1
     cur_depth: int | None = None
@@ -282,12 +297,6 @@ def fast_parse_tree_depth(log: str) -> pd.DataFrame:
 
     cols = ["tree", "depth", "nodes"] + ORDER
     return wide[cols]
-
-
-PARSER: dict[bool, Callable[[str], pd.DataFrame]] = {
-    False: fast_parse_tree_depth,
-    True:  fast_parse_tree_depth,
-}
 
 
 def write_csv(table: pd.DataFrame, params: dict[str, object], path: str):
@@ -358,7 +367,7 @@ if __name__ == "__main__":
         print(f"\n▶ binary ran in {t1 - t0:.3f}s")
 
         log = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', log)  # strip ANSI
-        table = PARSER[a.verbose](log)
+        table = fast_parse_tree_depth(log, a.numerical_split_type)
         t2 = time.perf_counter()
 
         wall = TRAIN_RX.search(log).group(1)               # e.g. "0.0084s"

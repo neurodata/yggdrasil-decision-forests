@@ -2198,148 +2198,191 @@ namespace yggdrasil_decision_forests::model::decision_tree
     return false;
   }
 
-  // Ariel - this is used for approx. splits. We haven't profiled this
-  absl::StatusOr<SplitSearchResult>
-  FindSplitLabelClassificationFeatureNumericalHistogram(
-      const absl::Span<const UnsignedExampleIdx> selected_examples,
-      const std::vector<float> &weights, const absl::Span<const float> attributes,
-      const std::vector<int32_t> &labels, const int32_t num_label_classes,
-      float na_replacement, const UnsignedExampleIdx min_num_obs,
-      const proto::DecisionTreeTrainingConfig &dt_config,
-      const utils::IntegerDistributionDouble &label_distribution,
-      const int32_t attribute_idx, utils::RandomEngine *random,
+  // Ariel - this is used for approx. splits
+absl::StatusOr<SplitSearchResult>
+FindSplitLabelClassificationFeatureNumericalHistogram(
+const absl::Span<const UnsignedExampleIdx> selected_examples,
+const std::vector<float> &weights, const absl::Span<const float> attributes,
+const std::vector<int32_t> &labels, const int32_t num_label_classes,
+float na_replacement, const UnsignedExampleIdx min_num_obs,
+const proto::DecisionTreeTrainingConfig &dt_config,
+const utils::IntegerDistributionDouble &label_distribution,
+const int32_t attribute_idx, utils::RandomEngine *random,
       proto::NodeCondition *condition)
-  {
-    /* #region Checks */
-    DCHECK(condition != nullptr);
-    if (!weights.empty())
-    {
-      DCHECK_EQ(weights.size(), labels.size());
-    }
+{
+/* #region Checks */
+DCHECK(condition != nullptr);
+if (!weights.empty())
+{
+DCHECK_EQ(weights.size(), labels.size());
+}
 
-    if (dt_config.missing_value_policy() ==
-        proto::DecisionTreeTrainingConfig::LOCAL_IMPUTATION)
-    {
-      LocalImputationForNumericalAttribute(selected_examples, weights, attributes,
-                                           &na_replacement);
-    }
+if (dt_config.missing_value_policy() ==
+    proto::DecisionTreeTrainingConfig::LOCAL_IMPUTATION)
+{
+  LocalImputationForNumericalAttribute(selected_examples, weights, attributes,
+                                       &na_replacement);
+}
     /* #endregion */
 
-    // Determine the minimum and maximum values of the attribute.
-    // Ariel which attribute? Each feature?
-    float min_value, max_value;
+// Determine the minimum and maximum values of the attribute.
+// Ariel which attribute? Each feature?
+float min_value, max_value;
 
     /* #region Basic Validity Checks */
-    if (!MinMaxNumericalAttribute(selected_examples, attributes, &min_value,
-                                  &max_value))
-    { return SplitSearchResult::kInvalidAttribute; }
-    // There should be at least two different unique values.
-    if (min_value == max_value)
-    { return SplitSearchResult::kInvalidAttribute; }
-    /* #endregion */
+if (!MinMaxNumericalAttribute(selected_examples, attributes, &min_value,
+                              &max_value))
+{ return SplitSearchResult::kInvalidAttribute; }
+// There should be at least two different unique values.
+if (min_value == max_value)
+{ return SplitSearchResult::kInvalidAttribute; }
+/* #endregion */
 
-    struct CandidateSplit
-    {
-      float threshold;
-      utils::IntegerDistributionDouble pos_label_distribution;
-      int64_t num_positive_examples_without_weights = 0;
-      bool operator<(const CandidateSplit &other) const
-      {
-        return threshold < other.threshold;
-      }
-    };
-
-    // Randomly select some threshold values.
-    ASSIGN_OR_RETURN(
-        const auto bins,
-        internal::GenHistogramBins(dt_config.numerical_split().type(),
-                                   dt_config.numerical_split().num_candidates(),
-                                   attributes, min_value, max_value, random));
-
-    std::vector<CandidateSplit> candidate_splits(bins.size());
-    for (int split_idx = 0; split_idx < candidate_splits.size(); split_idx++)
-    {
-      auto &candidate_split = candidate_splits[split_idx];
-      candidate_split.pos_label_distribution.SetNumClasses(num_label_classes);
-      candidate_split.threshold = bins[split_idx];
-    }
-
-    // Compute the split score of each threshold.
-    for (const auto example_idx : selected_examples)
-    {
-      const int32_t label = labels[example_idx];
-      const float weight = weights.empty() ? 1.f : weights[example_idx];
-      float attribute = attributes[example_idx];
-      if (std::isnan(attribute))
-      {
-        attribute = na_replacement;
-      }
-      auto it_split = std::upper_bound(
-          candidate_splits.begin(), candidate_splits.end(), attribute,
-          [](const float a, const CandidateSplit &b)
-          { return a < b.threshold; });
-      if (it_split == candidate_splits.begin())
-      {
-        continue;
-      }
-      --it_split;
-      it_split->num_positive_examples_without_weights++;
-      it_split->pos_label_distribution.Add(label, weight);
-    }
-
-    for (int split_idx = candidate_splits.size() - 2; split_idx >= 0;
-         split_idx--)
-    {
-      const auto &src = candidate_splits[split_idx + 1];
-      auto &dst = candidate_splits[split_idx];
-      dst.num_positive_examples_without_weights +=
-          src.num_positive_examples_without_weights;
-      dst.pos_label_distribution.Add(src.pos_label_distribution);
-    }
-
-    const double initial_entropy = label_distribution.Entropy();
-    utils::BinaryToIntegerConfusionMatrixDouble confusion;
-    confusion.SetNumClassesIntDim(num_label_classes);
-
-    // Select the best threshold.
-    bool found_split = false;
-    for (auto &candidate_split : candidate_splits)
-    {
-      if (selected_examples.size() -
-                  candidate_split.num_positive_examples_without_weights <
-              min_num_obs ||
-          candidate_split.num_positive_examples_without_weights < min_num_obs)
-      {
-        continue;
-      }
-
-      confusion.mutable_neg()->Set(label_distribution);
-      confusion.mutable_neg()->Sub(candidate_split.pos_label_distribution);
-      confusion.mutable_pos()->Set(candidate_split.pos_label_distribution);
-
-      const double final_entropy = confusion.FinalEntropy();
-      const double information_gain = initial_entropy - final_entropy;
-      if (information_gain > condition->split_score())
-      {
-        condition->set_split_score(information_gain);
-        condition->mutable_condition()->mutable_higher_condition()->set_threshold(
-            candidate_split.threshold);
-        condition->set_attribute(attribute_idx);
-        condition->set_num_training_examples_without_weight(
-            selected_examples.size());
-        condition->set_num_training_examples_with_weight(
-            confusion.NumObservations());
-        condition->set_num_pos_training_examples_without_weight(
-            candidate_split.num_positive_examples_without_weights);
-        condition->set_num_pos_training_examples_with_weight(
-            confusion.pos().NumObservations());
-        condition->set_na_value(na_replacement >= candidate_split.threshold);
-        found_split = true;
-      }
-    }
-    return found_split ? SplitSearchResult::kBetterSplitFound
-                       : SplitSearchResult::kNoBetterSplitFound;
+struct CandidateSplit
+{
+  float threshold;
+  utils::IntegerDistributionDouble pos_label_distribution;
+  int64_t num_positive_examples_without_weights = 0;
+  bool operator<(const CandidateSplit &other) const
+  {
+    return threshold < other.threshold;
   }
+};
+std::chrono::high_resolution_clock::time_point start, end;
+std::chrono::duration<double> dur;
+
+if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
+
+// Randomly select some threshold values.
+ASSIGN_OR_RETURN(
+    const auto bins,
+    internal::GenHistogramBins(dt_config.numerical_split().type(),
+                               dt_config.numerical_split().num_candidates(),
+                               attributes, min_value, max_value, random));
+if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
+end = std::chrono::high_resolution_clock::now();
+dur = end - start;
+std::cout << " - - Initializing Histogram Bins took: " << dur.count() << "s" << std::endl;
+}
+
+if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
+
+std::vector<CandidateSplit> candidate_splits(bins.size());
+for (int split_idx = 0; split_idx < candidate_splits.size(); split_idx++)
+{
+  auto &candidate_split = candidate_splits[split_idx];
+  candidate_split.pos_label_distribution.SetNumClasses(num_label_classes);
+  candidate_split.threshold = bins[split_idx];
+}
+
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
+end = std::chrono::high_resolution_clock::now();
+dur = end - start;
+std::cout << " - - Setting Split Distributions took: " << dur.count() << "s" << std::endl;
+}
+
+if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
+
+// Compute the split score of each threshold.
+for (const auto example_idx : selected_examples)
+{
+  const int32_t label = labels[example_idx];
+  const float weight = weights.empty() ? 1.f : weights[example_idx];
+  float attribute = attributes[example_idx];
+  if (std::isnan(attribute))
+  {
+    attribute = na_replacement;
+  }
+  auto it_split = std::upper_bound(
+      candidate_splits.begin(), candidate_splits.end(), attribute,
+      [](const float a, const CandidateSplit &b)
+      { return a < b.threshold; });
+  if (it_split == candidate_splits.begin())
+  {
+    continue;
+  }
+  --it_split;
+  it_split->num_positive_examples_without_weights++;
+  it_split->pos_label_distribution.Add(label, weight);
+}
+
+      if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
+end = std::chrono::high_resolution_clock::now();
+dur = end - start;
+std::cout << " - - Looping over samples took: " << dur.count() << "s" << std::endl;
+}
+
+if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
+
+
+for (int split_idx = candidate_splits.size() - 2; split_idx >= 0;
+     split_idx--)
+{
+  const auto &src = candidate_splits[split_idx + 1];
+  auto &dst = candidate_splits[split_idx];
+  dst.num_positive_examples_without_weights +=
+      src.num_positive_examples_without_weights;
+  dst.pos_label_distribution.Add(src.pos_label_distribution);
+}
+
+      if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
+end = std::chrono::high_resolution_clock::now();
+dur = end - start;
+std::cout << " - - Looping over splits took: " << dur.count() << "s" << std::endl;
+}
+
+const double initial_entropy = label_distribution.Entropy();
+utils::BinaryToIntegerConfusionMatrixDouble confusion;
+confusion.SetNumClassesIntDim(num_label_classes);
+
+if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
+
+// Select the best threshold.
+bool found_split = false;
+for (auto &candidate_split : candidate_splits)
+{
+  if (selected_examples.size() -
+              candidate_split.num_positive_examples_without_weights <
+          min_num_obs ||
+      candidate_split.num_positive_examples_without_weights < min_num_obs)
+  {
+    continue;
+  }
+
+  confusion.mutable_neg()->Set(label_distribution);
+  confusion.mutable_neg()->Sub(candidate_split.pos_label_distribution);
+  confusion.mutable_pos()->Set(candidate_split.pos_label_distribution);
+
+  const double final_entropy = confusion.FinalEntropy();
+  const double information_gain = initial_entropy - final_entropy;
+  if (information_gain > condition->split_score())
+  {
+    condition->set_split_score(information_gain);
+    condition->mutable_condition()->mutable_higher_condition()->set_threshold(
+        candidate_split.threshold);
+    condition->set_attribute(attribute_idx);
+    condition->set_num_training_examples_without_weight(
+        selected_examples.size());
+    condition->set_num_training_examples_with_weight(
+        confusion.NumObservations());
+    condition->set_num_pos_training_examples_without_weight(
+        candidate_split.num_positive_examples_without_weights);
+    condition->set_num_pos_training_examples_with_weight(
+        confusion.pos().NumObservations());
+    condition->set_na_value(na_replacement >= candidate_split.threshold);
+    found_split = true;
+  }
+}
+
+if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
+end = std::chrono::high_resolution_clock::now();
+dur = end - start;
+std::cout << " - - Finding best threshold (Computing Entropies) took: " << dur.count() << "s" << std::endl;
+}
+
+return found_split ? SplitSearchResult::kBetterSplitFound
+                   : SplitSearchResult::kNoBetterSplitFound;
+}
 
   // Ariel - train oblique rf w/ MIGHT hits this, not Histogram
   // ~13% of multicore runtime
