@@ -1,0 +1,11 @@
+n,1024,,,,,,1024_std,,,Parameter,Value
+1048576,166.2690,,,,,,0.0000,,,Benchmark,Axis Aligned Exact Splits - Row Scaling - 48thr
+,,,,,,,,,,Projection Density Factor,3
+,,,,,,,,,,Trees,1
+,,,,,,,,,,depth,-1
+,,,,,,,,,,feature_split_type,Axis Aligned
+,,,,,,,,,,numerical_split_type,Exact
+,,,,,,,,,,cpu_model,Intel(R) Xeon(R) Platinum 8488C
+,,,,,,,,,,threads,1
+,,,,,,,,,,repeats,1
+,,,,,,,,,,max_num_projections,1000
