@@ -366,6 +366,11 @@ if __name__ == "__main__":
         t1 = time.perf_counter()
         print(f"\n▶ binary ran in {t1 - t0:.3f}s")
 
+        # Move Save Log before parsing
+        if a.save_log:
+            with open(os.path.join(out_dir, f"{a.experiment_name}.log"), "w") as f:
+                f.write(log)
+
         log = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', log)  # strip ANSI
         table = fast_parse_tree_depth(log, a.numerical_split_type)
         t2 = time.perf_counter()
@@ -383,11 +388,7 @@ if __name__ == "__main__":
             numerical_split_type=a.numerical_split_type,
             cpu_model=get_cpu_model(),
         )
-        write_csv(table, params, csv_path)
-
-        if a.save_log:
-            with open(os.path.join(out_dir, f"{wall}.log"), "w") as f:
-                f.write(log)
+        write_csv(table, vars(a), csv_path)
 
     except KeyboardInterrupt:
         print("\nBenchmark interrupted by user.")
