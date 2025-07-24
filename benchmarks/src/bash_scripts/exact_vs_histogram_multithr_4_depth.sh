@@ -7,7 +7,8 @@ python3 benchmarks/src/data_size_vs_train_time.py \
     --repeats=1 \
     --rows_list 2048 4096 8192 16384 32768 65536 131072 262144 524288 1048576\
     --cols=1024 \
-    --threads=48 ;
+    --threads=48 \
+    --tree_depth=4;
     
     
 python3 benchmarks/src/data_size_vs_train_time.py\
@@ -16,4 +17,5 @@ python3 benchmarks/src/data_size_vs_train_time.py\
     --numerical_split_type="Random"\
     --experiment_name="Oblique Random Histogram - Row Scaling - 48thr"\
     --threads=48\
-    --repeats=1
+    --repeats=1\
+    --tree_depth=4
