@@ -323,9 +323,12 @@ if __name__ == "__main__":
         sys.exit(1)
     
     a = get_args()
+
+    experiment_name = a.experiment_name + f"| {a.feature_split_type} | {a.numerical_split_type}"
+
     out_dir = os.path.join(
         "benchmarks/results", "per_function_timing",
-        get_cpu_model(), a.experiment_name, f"{a.rows}_x_{a.cols}"
+        get_cpu_model(), experiment_name, f"{a.rows}_x_{a.cols}"
     )
     os.makedirs(out_dir, exist_ok=True)
 
@@ -368,7 +371,7 @@ if __name__ == "__main__":
 
         # Move Save Log before parsing
         if a.save_log:
-            with open(os.path.join(out_dir, f"{a.experiment_name}.log"), "w") as f:
+            with open(os.path.join(out_dir, f"{experiment_name}.log"), "w") as f:
                 f.write(log)
 
         log = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', log)  # strip ANSI
@@ -379,15 +382,15 @@ if __name__ == "__main__":
         print(f"parsing output took {t2 - t1:.3f}s")
 
         csv_path = os.path.join(out_dir, f"{wall}.csv")
-        params = dict(
-            rows=a.rows, cols=a.cols,
-            num_trees=a.num_trees, tree_depth=a.tree_depth,
-            proj_density_factor=a.projection_density_factor,
-            max_projections=a.max_num_projections,
-            num_threads=a.num_threads, experiment_name=a.experiment_name,
-            numerical_split_type=a.numerical_split_type,
-            cpu_model=get_cpu_model(),
-        )
+        # params = dict(
+        #     rows=a.rows, cols=a.cols,
+        #     num_trees=a.num_trees, tree_depth=a.tree_depth,
+        #     proj_density_factor=a.projection_density_factor,
+        #     max_projections=a.max_num_projections,
+        #     num_threads=a.num_threads, experiment_name=a.experiment_name,
+        #     numerical_split_type=a.numerical_split_type,
+        #     cpu_model=get_cpu_model(),
+        # )
         write_csv(table, vars(a), csv_path)
 
     except KeyboardInterrupt:
