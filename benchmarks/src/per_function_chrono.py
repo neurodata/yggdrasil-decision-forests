@@ -324,7 +324,7 @@ if __name__ == "__main__":
     
     a = get_args()
 
-    experiment_name = a.experiment_name + f"| {a.feature_split_type} | {a.numerical_split_type}"
+    experiment_name = a.experiment_name + f" | {a.feature_split_type} | {a.numerical_split_type}"
 
     out_dir = os.path.join(
         "benchmarks/results", "per_function_timing",

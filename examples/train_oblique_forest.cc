@@ -66,7 +66,7 @@ ABSL_FLAG(int, cols, 4096, "Number of numerical features (for synthetic mode).")
 ABSL_FLAG(int, label_mod, 2,
           "Number of classes (labels are 1..label_mod, for synthetic mode).");
 ABSL_FLAG(uint32_t, seed, 1234,
-          "PRNG seed (for synthetic mode).");
+          "PRNG seed (for deterministic synthetic mode and model training).");
 
 // Histogram-based splits - Updated to match Yggdrasil implementation
 ABSL_FLAG(std::string, numerical_split_type, "Exact",
@@ -264,6 +264,9 @@ int main(int argc, char** argv) {
   auto& rf = *train_config.MutableExtension(
       model::random_forest::proto::random_forest_config);
   rf.set_num_trees(absl::GetFlag(FLAGS_num_trees));
+
+  train_config.set_random_seed(absl::GetFlag(FLAGS_seed));
+
   rf.mutable_decision_tree()->set_max_depth(
       absl::GetFlag(FLAGS_tree_depth));
   rf.set_bootstrap_training_dataset(true);
