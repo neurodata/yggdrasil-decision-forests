@@ -70,11 +70,14 @@ def build_binary():
     print(f"Running: {' '.join(build_cmd)}")
     
     try:
+        # Use the current environment and working directory
         result = subprocess.run(
             build_cmd, 
             capture_output=False, 
             text=True, 
-            check=True
+            check=True,
+            env=os.environ.copy(),  # Preserve current environment
+            cwd=os.getcwd()         # Explicitly set working directory
         )
         
         print("✅ Build succeeded!")
@@ -100,20 +103,6 @@ def build_binary():
     except Exception as e:
         print(f"❌ Unexpected error during build: {e}")
         return False
-
-
-def get_cpu_model() -> str:
-    try:
-        with open("/proc/cpuinfo") as f:
-            for l in f:
-                if l.startswith("model name"):
-                    return (
-                        l.split(":", 1)[1]
-                        .strip().replace(" ", "_").replace("/", "-")
-                    )
-    except FileNotFoundError:
-        pass
-    return "unknown_cpu"
 
 def disable_e_cores():
     """Disable E-cores (cores 6 to nproc-1)"""
@@ -328,7 +317,7 @@ if __name__ == "__main__":
 
     out_dir = os.path.join(
         "benchmarks/results", "per_function_timing",
-        get_cpu_model(), experiment_name, f"{a.rows}_x_{a.cols}"
+        get_cpu_model_proc(), experiment_name, f"{a.rows}_x_{a.cols}"
     )
     os.makedirs(out_dir, exist_ok=True)
 

@@ -88,7 +88,9 @@ def build_binary():
             build_cmd, 
             capture_output=False, 
             text=True, 
-            check=True
+            check=True,
+            env=os.environ.copy(),  # Preserve current environment
+            cwd=os.getcwd()         # Explicitly set working directory
         )
         
         print("✅ Build succeeded!")
