@@ -220,11 +220,13 @@ def fast_parse_tree_depth(log: str, split_type: str = "Exact") -> pd.DataFrame:
     
     rows: list[tuple[int, int, str, float]] = []
     node_counts: defaultdict[tuple[int, int], int] = defaultdict(int)
+    sample_counts: defaultdict[tuple[int, int], int] = defaultdict(int)
 
     ORDER = ORDER_HISTOGRAM if split_type in ["Random", "Equal Width", "Histogram"] else ORDER_EXACT
 
     cur_tree = -1
     cur_depth: int | None = None
+    in_timing_block = False
 
     for line in log.splitlines():
 
@@ -234,7 +236,7 @@ def fast_parse_tree_depth(log: str, split_type: str = "Exact") -> pd.DataFrame:
             node_counts[(cur_tree, 0)] += 1           # depth-0 node
             rows.append(
                 (
-                    cur_tree, 0, ORDER[0],
+                    cur_tree, 0, "Selecting Bootstrapped Samples",
                     _num(line.rsplit(maxsplit=1)[-1]),
                 )
             )
@@ -248,24 +250,54 @@ def fast_parse_tree_depth(log: str, split_type: str = "Exact") -> pd.DataFrame:
             continue
 
         # ── skip lines until at least one tree seen ──────────────
-        if cur_tree < 0 or TOOK_TAG not in line:
+        if cur_tree < 0:
             continue
 
-        # ── timing line ──────────────────────────────────────────
-        name_part, _, rest = line.partition(TOOK_TAG)
-        time_s = _num(rest.split()[0])
+        # ── timing summary block start ────────────────────────────
+        if "=== Timing summary for" in line:
+            in_timing_block = True
+            continue
 
-        clean = name_part.lstrip(STRIP_SET).rstrip()
-        clean = RENAMES.get(clean, clean)
+        # ── parse N. Samples ──────────────────────────────────────
+        if in_timing_block and line.startswith("N. Samples:"):
+            n_samples = int(line.split(":")[1].strip())
+            sample_counts[(cur_tree, cur_depth)] += n_samples
+            continue
 
-        rows.append((cur_tree, cur_depth, clean, time_s))
+        # ── timing lines ──────────────────────────────────────────
+        if in_timing_block and " took:" in line:
+            # Handle both regular and nested timing lines
+            line_stripped = line.strip()
+            
+            # Check if it's a nested line (starts with " - ")
+            if line_stripped.startswith("- "):
+                # Nested timing (Sorting, ScanSplits)
+                name_part, _, rest = line_stripped[2:].partition(" took:")
+                time_s = _num(rest.split()[0])
+                
+                # Map nested names to original names
+                if name_part == "Sorting":
+                    rows.append((cur_tree, cur_depth, "SortFeature", time_s))
+                elif name_part == "ScanSplits":
+                    rows.append((cur_tree, cur_depth, "ScanSplits", time_s))
+            else:
+                # Regular timing line
+                name_part, _, rest = line_stripped.partition(" took:")
+                time_s = _num(rest.split()[0])
+                
+                # Add the timing
+                rows.append((cur_tree, cur_depth, name_part, time_s))
+
+        # ── end of timing block (empty line or new section) ──────
+        if in_timing_block and (line.strip() == "" or line.startswith("Depth") or line.startswith("Starting work")):
+            in_timing_block = False
 
     if not rows:
         raise ValueError("No timing lines parsed")
 
-    df = pd.DataFrame(rows, columns=["tree", "depth",
-                                     "function", "time_s"])
+    df = pd.DataFrame(rows, columns=["tree", "depth", "function", "time_s"])
 
+    # Aggregate times for same function at same tree/depth
     wide = (
         df.pivot_table(index=["tree", "depth"],
                        columns="function",
@@ -286,7 +318,17 @@ def fast_parse_tree_depth(log: str, split_type: str = "Exact") -> pd.DataFrame:
     wide = wide.merge(counts_df, on=["tree", "depth"], how="left")
     wide["nodes"] = wide["nodes"].fillna(0).astype(int)
 
-    cols = ["tree", "depth", "nodes"] + ORDER
+    # merge the sample counts
+    samples_df = (
+        pd.DataFrame(
+            [(t, d, s) for (t, d), s in sample_counts.items()],
+            columns=["tree", "depth", "total_samples"]
+        )
+    )
+    wide = wide.merge(samples_df, on=["tree", "depth"], how="left")
+    wide["total_samples"] = wide["total_samples"].fillna(0).astype(int)
+
+    cols = ["tree", "depth", "nodes", "total_samples"] + ORDER
     return wide[cols]
 
 
