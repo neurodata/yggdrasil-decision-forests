@@ -430,7 +430,7 @@ absl::StatusOr<SplitSearchResult> FindSplitLabelRegressionFeatureNA(
 
   return FindBestSplit_LabelRegressionFeatureNACart<weighted>(
       selected_examples, feature_filler, label_filler, initializer, min_num_obs,
-      attribute_idx, condition, &cache->cache_v2);
+      attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
 }
 
 // Search for the best split of the type "Attribute is NA" (i.e. "Attribute is
@@ -535,7 +535,8 @@ FindSplitLabelClassificationFeatureNumericalCart(
     const proto::DecisionTreeTrainingConfig& dt_config,
     const utils::IntegerDistributionDouble& label_distribution,
     int32_t attribute_idx, const InternalTrainConfig& internal_config,
-    proto::NodeCondition* condition, SplitterPerThreadCache* cache);
+    proto::NodeCondition* condition, SplitterPerThreadCache* cache, 
+    std::chrono::duration<double>* sort_time = nullptr, std::chrono::duration<double>* scan_splits_time = nullptr);
 
 // Similarly to "FindSplitLabelClassificationFeatureNumericalCart", but uses an
 // histogram approach to find the best split.

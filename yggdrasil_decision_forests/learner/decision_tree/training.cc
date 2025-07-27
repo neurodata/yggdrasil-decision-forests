@@ -2395,7 +2395,8 @@ return found_split ? SplitSearchResult::kBetterSplitFound
       const proto::DecisionTreeTrainingConfig &dt_config,
       const utils::IntegerDistributionDouble &label_distribution,
       const int32_t attribute_idx, const InternalTrainConfig &internal_config,
-      proto::NodeCondition *condition, SplitterPerThreadCache *cache)
+      proto::NodeCondition *condition, SplitterPerThreadCache *cache, 
+      std::chrono::duration<double>* sort_time, std::chrono::duration<double>* scan_splits_time)
   {
     /* #region Deal w/ empty weights */
     if (!weights.empty()) { DCHECK_EQ(weights.size(), labels.size()); }
@@ -2445,7 +2446,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
           // This is what's done by MIGHT, w/ default settings
           return FindBestSplit_LabelUnweightedBinaryClassificationFeatureNumerical(
               selected_examples, feature_filler, label_filler, initializer,
-              min_num_obs, attribute_idx, condition, &cache->cache_v2);
+              min_num_obs, attribute_idx, condition, &cache->cache_v2, sort_time, scan_splits_time);
         }
         else { return absl::InvalidArgumentError("Non supported strategy."); }
       }
@@ -2475,7 +2476,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
         {
           return FindBestSplit_LabelBinaryClassificationFeatureNumerical(
               selected_examples, feature_filler, label_filler, initializer,
-              min_num_obs, attribute_idx, condition, &cache->cache_v2);
+              min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
         }
         else
         {
@@ -2513,7 +2514,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
         {
           return FindBestSplit_LabelUnweightedClassificationFeatureNumerical(
               selected_examples, feature_filler, label_filler, initializer,
-              min_num_obs, attribute_idx, condition, &cache->cache_v2);
+              min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
         }
         else
         {
@@ -2547,7 +2548,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
         {
           return FindBestSplit_LabelClassificationFeatureNumerical(
               selected_examples, feature_filler, label_filler, initializer,
-              min_num_obs, attribute_idx, condition, &cache->cache_v2);
+              min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
         }
         else
         {
@@ -2591,7 +2592,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
         return FindBestSplit_LabelUnweightedBinaryClassificationFeatureDiscretizedNumerical( // NOLINT(whitespace/line_length)
             selected_examples, feature_filler, label_filler, initializer,
-            min_num_obs, attribute_idx, condition, &cache->cache_v2);
+            min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
       }
       else
       {
@@ -2602,7 +2603,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
         return FindBestSplit_LabelBinaryClassificationFeatureDiscretizedNumerical(
             selected_examples, feature_filler, label_filler, initializer,
-            min_num_obs, attribute_idx, condition, &cache->cache_v2);
+            min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
       }
     }
     else
@@ -2617,7 +2618,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
         return FindBestSplit_LabelUnweightedClassificationFeatureDiscretizedNumerical(
             selected_examples, feature_filler, label_filler, initializer,
-            min_num_obs, attribute_idx, condition, &cache->cache_v2);
+            min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
       }
       else
       {
@@ -2628,7 +2629,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
         return FindBestSplit_LabelClassificationFeatureDiscretizedNumerical(
             selected_examples, feature_filler, label_filler, initializer,
-            min_num_obs, attribute_idx, condition, &cache->cache_v2);
+            min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
       }
     }
   }
@@ -2859,7 +2860,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
     {
       return FindBestSplit_LabelHessianRegressionFeatureNumerical<weighted>(
           selected_examples, feature_filler, label_filler, initializer,
-          min_num_obs, attribute_idx, condition, &cache->cache_v2);
+          min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
     }
     else
     {
@@ -2929,7 +2930,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
     return FindBestSplit_LabelHessianRegressionFeatureDiscretizedNumerical<
         weighted>(selected_examples, feature_filler, label_filler, initializer,
-                  min_num_obs, attribute_idx, condition, &cache->cache_v2);
+                  min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
   }
 
   template <bool weighted>
@@ -2990,7 +2991,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
     {
       return FindBestSplit_LabelRegressionFeatureNumerical<weighted>(
           selected_examples, feature_filler, label_filler, initializer,
-          min_num_obs, attribute_idx, condition, &cache->cache_v2);
+          min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
     }
     else
     {
@@ -3052,7 +3053,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
     return FindBestSplit_LabelRegressionFeatureDiscretizedNumerical<weighted>(
         selected_examples, feature_filler, label_filler, initializer, min_num_obs,
-        attribute_idx, condition, &cache->cache_v2);
+        attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
   }
 
   absl::StatusOr<SplitSearchResult> FindSplitLabelClassificationFeatureNA(
@@ -3084,7 +3085,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
         return FindBestSplit_LabelUnweightedBinaryClassificationFeatureNACart(
             selected_examples, feature_filler, label_filler, initializer,
-            min_num_obs, attribute_idx, condition, &cache->cache_v2);
+            min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
       }
       else
       {
@@ -3096,7 +3097,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
         return FindBestSplit_LabelBinaryClassificationFeatureNACart(
             selected_examples, feature_filler, label_filler, initializer,
-            min_num_obs, attribute_idx, condition, &cache->cache_v2);
+            min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
       }
     }
     else
@@ -3111,7 +3112,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
         return FindBestSplit_LabelUnweightedClassificationFeatureNACart(
             selected_examples, feature_filler, label_filler, initializer,
-            min_num_obs, attribute_idx, condition, &cache->cache_v2);
+            min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
       }
       else
       {
@@ -3122,7 +3123,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
         return FindBestSplit_LabelClassificationFeatureNACart(
             selected_examples, feature_filler, label_filler, initializer,
-            min_num_obs, attribute_idx, condition, &cache->cache_v2);
+            min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
       }
     }
   }
@@ -3163,7 +3164,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
     return FindBestSplit_LabelHessianRegressionFeatureNACart<weighted>(
         selected_examples, feature_filler, label_filler, initializer, min_num_obs,
-        attribute_idx, condition, &cache->cache_v2);
+        attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
   }
 
   absl::StatusOr<SplitSearchResult> FindSplitLabelClassificationFeatureBoolean(
@@ -3202,7 +3203,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
         return FindBestSplit_LabelUnweightedBinaryClassificationFeatureBooleanCart( // NOLINT(whitespace/line_length)
             selected_examples, feature_filler, label_filler, initializer,
-            min_num_obs, attribute_idx, condition, &cache->cache_v2);
+            min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
       }
       else
       {
@@ -3214,7 +3215,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
         return FindBestSplit_LabelBinaryClassificationFeatureBooleanCart(
             selected_examples, feature_filler, label_filler, initializer,
-            min_num_obs, attribute_idx, condition, &cache->cache_v2);
+            min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
       }
     }
     else
@@ -3230,7 +3231,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
         return FindBestSplit_LabelUnweightedClassificationFeatureBooleanCart(
             selected_examples, feature_filler, label_filler, initializer,
-            min_num_obs, attribute_idx, condition, &cache->cache_v2);
+            min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
       }
       else
       {
@@ -3242,7 +3243,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
         return FindBestSplit_LabelClassificationFeatureBooleanCart(
             selected_examples, feature_filler, label_filler, initializer,
-            min_num_obs, attribute_idx, condition, &cache->cache_v2);
+            min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
       }
     }
   }
@@ -3281,7 +3282,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
     return FindBestSplit_LabelRegressionFeatureBooleanCart<weighted>(
         selected_examples, feature_filler, label_filler, initializer, min_num_obs,
-        attribute_idx, condition, &cache->cache_v2);
+        attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
   }
 
   template absl::StatusOr<SplitSearchResult>
@@ -3346,7 +3347,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
     return FindBestSplit_LabelHessianRegressionFeatureBooleanCart<weighted>(
         selected_examples, feature_filler, label_filler, initializer, min_num_obs,
-        attribute_idx, condition, &cache->cache_v2);
+        attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
   }
 
   template <bool weighted>
@@ -3404,7 +3405,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
       return FindBestSplit_LabelHessianRegressionFeatureCategoricalCart<
           weighted>(selected_examples, feature_filler, label_filler,
                     initializer, min_num_obs, attribute_idx, condition,
-                    &cache->cache_v2);
+                    &cache->cache_v2, nullptr, nullptr);
 
     case proto::Categorical::kRandom:
       return FindBestSplit_LabelHessianRegressionFeatureCategoricalRandom<
@@ -3465,7 +3466,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
     case proto::Categorical::kCart:
       return FindBestSplit_LabelRegressionFeatureCategoricalCart<weighted>(
           selected_examples, feature_filler, label_filler, initializer,
-          min_num_obs, attribute_idx, condition, &cache->cache_v2);
+          min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
 
     case proto::Categorical::kRandom:
       return FindBestSplit_LabelRegressionFeatureCategoricalRandom<weighted>(
@@ -4230,7 +4231,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
     return FindBestSplit_LabelUpliftClassificationFeatureNumerical(
         selected_examples, feature_filler, label_filler, initializer, min_num_obs,
-        attribute_idx, condition, &cache->cache_v2);
+        attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
   }
 
   absl::StatusOr<SplitSearchResult>
@@ -4265,7 +4266,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
     return FindBestSplit_LabelUpliftNumericalFeatureNumerical(
         selected_examples, feature_filler, label_filler, initializer, min_num_obs,
-        attribute_idx, condition, &cache->cache_v2);
+        attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
   }
 
   absl::StatusOr<SplitSearchResult>
@@ -4312,7 +4313,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
     case proto::Categorical::kCart:
       return FindBestSplit_LabelUpliftClassificationFeatureCategoricalCart(
           selected_examples, feature_filler, label_filler, initializer,
-          min_num_obs, attribute_idx, condition, &cache->cache_v2);
+          min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
 
     case proto::Categorical::kRandom:
       return FindBestSplit_LabelUpliftClassificationFeatureCategoricalRandom(
@@ -4370,7 +4371,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
     case proto::Categorical::kCart:
       return FindBestSplit_LabelUpliftNumericalFeatureCategoricalCart(
           selected_examples, feature_filler, label_filler, initializer,
-          min_num_obs, attribute_idx, condition, &cache->cache_v2);
+          min_num_obs, attribute_idx, condition, &cache->cache_v2, nullptr, nullptr);
 
     case proto::Categorical::kRandom:
       return FindBestSplit_LabelUpliftNumericalFeatureCategoricalRandom(

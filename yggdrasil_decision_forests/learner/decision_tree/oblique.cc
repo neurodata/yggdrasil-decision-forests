@@ -237,9 +237,15 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   std::chrono::duration<double> total_sample_proj_time{0};
   std::chrono::duration<double> total_apply_proj_time{0};
   std::chrono::duration<double> total_eval_proj_time{0};
+  
+  std::chrono::duration<double> all_proj_sort_time{0};
+  std::chrono::duration<double> all_proj_scan_splits_time{0};
+
 
   for (int proj_idx = 0; proj_idx < num_projections; ++proj_idx) {
       int8_t monotonic = 0;
+      std::chrono::duration<double> sort_time{0};
+      std::chrono::duration<double> scan_splits_time{0};
 
       // 2a. SampleProjection timing
       if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
@@ -275,11 +281,15 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
                             current_projection.front().attribute_idx,
                             constraints, monotonic,
                             best_condition, cache,
-                            random)); // random needed for Histogramming
+                            random,// random needed for Histogramming
+                            &sort_time, &scan_splits_time // to time without cout
+                          )); 
 
       if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
         dur = std::chrono::high_resolution_clock::now() - start;
         total_eval_proj_time += dur;
+        all_proj_sort_time += sort_time;
+        all_proj_scan_splits_time += scan_splits_time;
       }
 
       if (split_result == SplitSearchResult::kBetterSplitFound) {
@@ -293,7 +303,9 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   std::cout << "\n=== Timing summary for " << num_projections << " projections ===\n"
             << "SampleProjection took:  " << total_sample_proj_time.count() << "s\n"
             << "ApplyProjection took:   " << total_apply_proj_time.count()  << "s\n"
-            << "EvaluateProjection took:  " << total_eval_proj_time.count()  << "s" << std::endl;
+            << "EvaluateProjection took:  " << total_eval_proj_time.count()  << "s\n"
+            << "Sorting took:   " << all_proj_sort_time.count()  << "s\n"
+            << "ScanSplits took:   " << all_proj_scan_splits_time.count()  << "s" << std::endl;
   }
 
   /* #endregion */
@@ -362,7 +374,9 @@ absl::StatusOr<SplitSearchResult> EvaluateProjection(
     const InternalTrainConfig& internal_config, const int first_attribute_idx,
     const NodeConstraints& constraints, int8_t monotonic_direction,
     proto::NodeCondition* condition, SplitterPerThreadCache* cache,
-    utils::RandomEngine* random) {
+    utils::RandomEngine* random, 
+    std::chrono::duration<double>* sort_time, 
+    std::chrono::duration<double>* scan_splits_time) {
   InternalTrainConfig effective_internal_config = internal_config;
 
   // Choose sorting strategy
@@ -393,7 +407,7 @@ absl::StatusOr<SplitSearchResult> EvaluateProjection(
             projection_values, // Ariel: vector?
             selected_labels, label_stats.num_label_classes, na_replacement,
             min_num_obs, dt_config, label_stats.label_distribution,
-            first_attribute_idx, effective_internal_config, condition, cache));
+            first_attribute_idx, effective_internal_config, condition, cache, sort_time, scan_splits_time));
     }
       else {
       ASSIGN_OR_RETURN(
@@ -402,7 +416,7 @@ absl::StatusOr<SplitSearchResult> EvaluateProjection(
               dense_example_idxs, selected_weights, projection_values,
               selected_labels, label_stats.num_label_classes, na_replacement,
               min_num_obs, dt_config, label_stats.label_distribution,
-              first_attribute_idx, random, condition));
+              first_attribute_idx, random, condition));  // TODO add timings for sort and Scansplits as return value
     }
   }
 
@@ -475,7 +489,9 @@ EvaluateProjection<ClassificationLabelStats, std::vector<int32_t>>(
     const InternalTrainConfig& internal_config, const int first_attribute_idx,
     const NodeConstraints& constraints, int8_t monotonic_direction,
     proto::NodeCondition* condition, SplitterPerThreadCache* cache,
-    utils::RandomEngine* random);
+    utils::RandomEngine* random,
+    std::chrono::duration<double>* sort_time,
+    std::chrono::duration<double>* scan_splits_time);
 
 template absl::StatusOr<SplitSearchResult>
 EvaluateProjection<RegressionLabelStats, std::vector<float>>(
@@ -488,7 +504,9 @@ EvaluateProjection<RegressionLabelStats, std::vector<float>>(
     const InternalTrainConfig& internal_config, const int first_attribute_idx,
     const NodeConstraints& constraints, int8_t monotonic_direction,
     proto::NodeCondition* condition, SplitterPerThreadCache* cache,
-    utils::RandomEngine* random);
+    utils::RandomEngine* random,
+    std::chrono::duration<double>* sort_time,
+    std::chrono::duration<double>* scan_splits_time);
 
 template absl::StatusOr<SplitSearchResult>
 EvaluateProjection<RegressionHessianLabelStats, GradientAndHessian>(
@@ -501,7 +519,9 @@ EvaluateProjection<RegressionHessianLabelStats, GradientAndHessian>(
     const InternalTrainConfig& internal_config, const int first_attribute_idx,
     const NodeConstraints& constraints, int8_t monotonic_direction,
     proto::NodeCondition* condition, SplitterPerThreadCache* cache,
-    utils::RandomEngine* random);
+    utils::RandomEngine* random,
+    std::chrono::duration<double>* sort_time,
+    std::chrono::duration<double>* scan_splits_time);
 
 
 template <typename LabelStats, typename Labels>
@@ -522,7 +542,7 @@ absl::Status EvaluateProjectionAndSetCondition(
                          selected_weights, selected_labels, projection_values,
                          internal_config, first_attribute_idx,
                          /*constraints=*/{}, /*monotonic_direction=*/0,
-                         condition, cache, random));
+                         condition, cache, random, nullptr, nullptr));
 
   if (result == SplitSearchResult::kBetterSplitFound) {
     RETURN_IF_ERROR(SetCondition(

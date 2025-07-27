@@ -659,13 +659,12 @@ void FillExampleBucketSet(
 
   /* #endregion */
 
-  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
+  
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) { // This takes ~0 time
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
     std::cout << " - - Bucket Allocation & Initialization=0 took: " << dur.count() << "s" << std::endl;
   }
-
-  // TODO TRY Already sort data (by feature, paired w/ Label), then assign to Buckets
 
   if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) { start = std::chrono::high_resolution_clock::now(); }
 
@@ -690,7 +689,7 @@ void FillExampleBucketSet(
     label_filler.Finalize(&bucket.label);
   }
 
-  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) { // Takes no time. Don't print, will flood output
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
     std::cout << " - - Filling & Finalizing the Buckets took: " << dur.count() << "s" << std::endl;
@@ -700,7 +699,7 @@ void FillExampleBucketSet(
                   require_label_sorting),
                 "Bucket require sorting");
 
-  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) { start = std::chrono::high_resolution_clock::now(); }
 
   //  Sort the buckets.
   if constexpr (ExampleBucketSet::FeatureBucketType::kRequireSorting) {
@@ -710,7 +709,8 @@ void FillExampleBucketSet(
               typename ExampleBucketSet::ExampleBucketType::SortFeature());
   }
 
-  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
+  // Time whole function in parent instead. Sort takes ~98% of this fn
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
     std::cout << " - - SortFeature took: " << dur.count() << "s" << std::endl;
@@ -1404,18 +1404,19 @@ SplitSearchResult FindBestSplit(
     const typename ExampleBucketSet::LabelBucketType::Filler& label_filler,
     const typename ExampleBucketSet::LabelBucketType::Initializer& initializer,
     const int min_num_obs, const int attribute_idx,
-    proto::NodeCondition* condition, PerThreadCacheV2* cache) {
+    proto::NodeCondition* condition, PerThreadCacheV2* cache,
+  std::chrono::duration<double>* sort_time = nullptr, std::chrono::duration<double>* scan_split_time = nullptr) {
   
-      DCHECK(condition != nullptr);
+  DCHECK(condition != nullptr);
   
-      std::chrono::high_resolution_clock::time_point start, end;
+  std::chrono::high_resolution_clock::time_point start, end;
   std::chrono::duration<double> dur;
 
   // Create buckets. - takes practically 0 time
   ExampleBucketSet& example_set_accumulator =
       *GetCachedExampleBucketSet<ExampleBucketSet>(cache);
 
-  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) { start = std::chrono::high_resolution_clock::now(); }
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
 
   // PRIORITY Ariel: This takes a bunch of time - 15-20% on its own
   // Sorting within takes 45%!
@@ -1423,10 +1424,10 @@ SplitSearchResult FindBestSplit(
       selected_examples, feature_filler, label_filler, &example_set_accumulator,
       cache);
 
-  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> dur = end - start;
-    std::cout << "\n - FillExampleBucketSet (calls 3 above) took: " << dur.count() << "s\n\n";
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
+    end = std::chrono::high_resolution_clock::now();
+    *sort_time = end - start;
+    // std::cout << "\n - Sort (FillExampleBucketSet) took: " << dur.count() << "s\n\n";
   }
 
   if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
@@ -1437,8 +1438,8 @@ SplitSearchResult FindBestSplit(
 
   if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
     end = std::chrono::high_resolution_clock::now();
-    dur = end - start;
-    std::cout << " - ScanSplits took: " << dur.count() << "s\n\n";
+    *scan_split_time = end - start;
+    // std::cout << " - ScanSplits took: " << dur.count() << "s\n\n";
   }
 
   return scan_splits_result;
