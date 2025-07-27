@@ -1094,7 +1094,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
         auto return_val = std::move(mdl);
 
-        if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL) {
+        if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL > 1) {
           end = std::chrono::high_resolution_clock::now();
           dur = end - start;
           std::cout << "\nPost-processing after Train took: " << dur.count() << "s\n\n";

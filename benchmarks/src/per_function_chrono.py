@@ -45,7 +45,7 @@ def get_args():
     p.add_argument("--projection_density_factor", type=int, default=3)
     p.add_argument("--max_num_projections", type=int, default=1000)
     p.add_argument("--save_log", action="store_true")
-    p.add_argument("--verbose_chrono", action="store_true")
+    # p.add_argument("--verbose", action="store_true")
     
     args = p.parse_args()
     
@@ -60,20 +60,12 @@ def get_args():
 def build_binary(args):
     """Build the binary using bazel. Returns True if successful, False otherwise."""
 
-    if not args.verbose_chrono:
-        build_cmd = [
-            'bazel', 'build', '-c', 'opt', 
-            '--config=fixed_1000_projections', 
-            '--config=chrono_profile', 
-            '//examples:train_oblique_forest'
-        ]
-    else:
-        build_cmd = [
-            'bazel', 'build', '-c', 'opt', 
-            '--config=fixed_1000_projections', 
-            '--config=chrono_profile_verbose', 
-            '//examples:train_oblique_forest'
-        ]
+    build_cmd = [
+        'bazel', 'build', '-c', 'opt', 
+        '--config=fixed_1000_projections', 
+        '--config=chrono_profile', 
+        '//examples:train_oblique_forest'
+    ]
     
     print("Building binary...")
     print(f"Running: {' '.join(build_cmd)}")
@@ -184,31 +176,32 @@ def setup_signal_handlers():
 
 ORDER_EXACT = [
     "Selecting Bootstrapped Samples",
-    "Initialization of FindBestCondOblique",
+    # "Initialization of FindBestCondOblique", # only in Verbose
     "SampleProjection", "ApplyProjection",
-    "Bucket Allocation & Initialization=0",
-    "Filling & Finalizing the Buckets", "SortFeature", "ScanSplits",
-    "Post-processing after Training all Trees",
+    # "Bucket Allocation & Initialization=0", # only in Verbose
+    # "Filling & Finalizing the Buckets", # only in Verbose
+    "SortFeature", "ScanSplits",
+    # "Post-processing after Training all Trees", # only in Verbose
     "EvaluateProjection",
-    "FillExampleBucketSet (next 3 calls)",
+    # "FillExampleBucketSet (next 3 calls)",
 ]
 
 ORDER_HISTOGRAM = [
     "Selecting Bootstrapped Samples",
-    "Initialization of FindBestCondOblique",
+    # "Initialization of FindBestCondOblique", # only in Verbose
     "SampleProjection", "ApplyProjection",
     "Initializing Histogram Bins",
     "Setting Split Distributions",
     "Looping over samples",
     "Looping over splits",
     "Finding best threshold (Computing Entropies)",
-    "Post-processing after Training all Trees",
+    # "Post-processing after Training all Trees", # only in Verbose
 ]
 
-RENAMES = {
-    "Post-processing after Train": "Post-processing after Training all Trees",
-    "FillExampleBucketSet (calls 3 above)": "FillExampleBucketSet (next 3 calls)",
-}
+# RENAMES = {
+#     "Post-processing after Train": "Post-processing after Training all Trees",
+#     "FillExampleBucketSet (calls 3 above)": "FillExampleBucketSet (next 3 calls)",
+# }
 
 
 TRAIN_RX = re.compile(r"Training wall-time:\s*([0-9.eE+-]+)s")

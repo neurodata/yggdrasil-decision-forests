@@ -301,11 +301,12 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
 
   if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
   std::cout << "\n=== Timing summary for " << num_projections << " projections ===\n"
+            << "N. Samples:  " << selected_examples.size() << "\n"
             << "SampleProjection took:  " << total_sample_proj_time.count() << "s\n"
             << "ApplyProjection took:   " << total_apply_proj_time.count()  << "s\n"
             << "EvaluateProjection took:  " << total_eval_proj_time.count()  << "s\n"
-            << "Sorting took:   " << all_proj_sort_time.count()  << "s\n"
-            << "ScanSplits took:   " << all_proj_scan_splits_time.count()  << "s" << std::endl;
+            << " - Sorting took:   " << all_proj_sort_time.count()  << "s\n"
+            << " - ScanSplits took:   " << all_proj_scan_splits_time.count()  << "s" << std::endl;
   }
 
   /* #endregion */
