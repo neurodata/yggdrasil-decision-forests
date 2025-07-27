@@ -982,7 +982,7 @@ void SampleProjection(const absl::Span<const int>& features,
     }
   };
 
-#ifdef NDEBUG  // Keep DCHECK_EQ from for feature : features
+#ifndef NDEBUG  // Keep DCHECK_EQ from for feature : features
   for (const auto feature : features) {
     DCHECK_EQ(data_spec.columns(feature).type(), dataset::proto::NUMERICAL);
   }

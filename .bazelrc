@@ -5,14 +5,15 @@
 # Base Intel toolchain, no debug, optimize for speed – the new default.
 build:intel_base --cxxopt=-std=c++17
 build:intel_base --cxxopt=-O2 --linkopt=-O2
-# Comment-out if you prefer not to pin to host μarch
-# build:intel_base --cxxopt=-xHost
+
+# Disable debug checks - pretty expensive
+build:intel_base --copt=-DNDEBUG --cxxopt=-DNDEBUG
 
 
 # DEBUGGING  -------------------------------------------------
 # Breakpoints don't seem to get hit without this!
 # Can't seem to add to bazel dbg using build:dbg!! Define separate config!
-build:intel_dbg --config=intel_base
+build:intel_dbg --cxxopt=-std=c++17
 build:intel_dbg --strip=never          # keep symbols, don’t fiddle with fission
 build:intel_dbg --cxxopt=-g --linkopt=-g
 build:intel_dbg --cxxopt=-O0 --linkopt=-O0
