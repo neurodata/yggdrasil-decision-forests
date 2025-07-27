@@ -15,8 +15,8 @@ import logging
 
 import pandas as pd
 
-# Global flag to track E-core state
-e_cores_disabled = False
+# Global flag to track if CPU configuration was modified
+cpu_modified = False
 
 def get_args():
     p = argparse.ArgumentParser()
@@ -105,41 +105,34 @@ def build_binary(args):
         print(f"❌ Unexpected error during build: {e}")
         return False
 
-def disable_e_cores():
-    """Disable E-cores (cores 6 to nproc-1)"""
-    global e_cores_disabled
-    if get_cpu_model_proc() == "Intel(R) Core(TM) Ultra 9 185H":
-        try:
-            nproc = int(subprocess.run(['nproc'], capture_output=True, text=True).stdout.strip())
-            if nproc > 6:
-                result = subprocess.run(['sudo', 'chcpu', '-d', f'6-{nproc-1}'], 
-                                    capture_output=True, text=True, check=True)
-                print(f"Disabled E-cores 6-{nproc-1}")
-                e_cores_disabled = True
-                if result.stdout: print(result.stdout.strip())
-                if result.stderr: print(result.stderr.strip())
-        except Exception as e:
-            print(f"Warning: Could not disable E-cores: {e}")
-    else:
-        print("CPU doesn't match Ultra 9 185H - not changing anything")
-
-
-def enable_e_cores():
-    """Re-enable E-cores (cores 6-15)"""
-    global e_cores_disabled
-    if get_cpu_model_proc() == "Intel(R) Core(TM) Ultra 9 185H":
-        try:
-            result = subprocess.run(['sudo', 'chcpu', '-e', '6-15'], 
-                                capture_output=True, text=True, check=True)
-            print("Re-enabled E-cores 6-15")
-            e_cores_disabled = False
-            if result.stdout: print(result.stdout.strip())
-            if result.stderr: print(result.stderr.strip())
-        except Exception as e:
-            print(f"Warning: Could not re-enable E-cores: {e}")
-    else:
-        print("CPU doesn't match Ultra 9 185H - not changing anything")
-
+def configure_cpu_for_benchmarks(enable_pcore_only=True):
+    """
+    Configure CPU for benchmarking.
+    
+    Args:
+        enable_pcore_only: If True, disable HT/E-cores/turbo. If False, restore all.
+    """
+    global cpu_modified
+    
+    action = "--disable" if enable_pcore_only else "--enable"
+    cmd = ["sudo", "./benchmarks/src/utils/disable_cpu_e_features.sh", action]
+    
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        print(result.stdout)
+        if result.stderr:
+            print(result.stderr)
+        
+        # Update global flag based on action
+        cpu_modified = enable_pcore_only
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to configure CPU: {e}")
+        if e.stdout:
+            print(e.stdout)
+        if e.stderr:
+            print(e.stderr)
+        return False
 
 
 def get_cpu_model_proc():
@@ -157,11 +150,11 @@ def get_cpu_model_proc():
 
 
 def cleanup_and_exit(signum=None, frame=None):
-    """Cleanup function to re-enable E-cores before exiting"""
-    global e_cores_disabled
-    if e_cores_disabled:
-        print("\nCleaning up: Re-enabling E-cores...")
-        enable_e_cores()
+    """Cleanup function to restore CPU configuration before exiting"""
+    global cpu_modified
+    if cpu_modified:
+        print("\nCleaning up: Restoring CPU configuration...")
+        configure_cpu_for_benchmarks(False)  # This will set cpu_modified = False
     if signum is not None:
         print(f"\nReceived signal {signum}, exiting cleanly.")
         sys.exit(1)
@@ -230,7 +223,7 @@ def fast_parse_tree_depth(log: str, split_type: str = "Exact") -> pd.DataFrame:
 
     for line in log.splitlines():
 
-        # ── new tree (depth 0) ─────────────────────────────────────
+        # ── new tree (depth 0) 
         if BOOT_TAG in line:
             cur_tree += 1
             node_counts[(cur_tree, 0)] += 1           # depth-0 node
@@ -243,28 +236,28 @@ def fast_parse_tree_depth(log: str, split_type: str = "Exact") -> pd.DataFrame:
             cur_depth = None
             continue
 
-        # ── depth header ──────────────────────────────────────────
+        # ── depth header 
         if line.lstrip().startswith(DEPTH_TAG):
             cur_depth = int(line.lstrip()[len(DEPTH_TAG):].split()[0])
             node_counts[(cur_tree, cur_depth)] += 1   # count this node
             continue
 
-        # ── skip lines until at least one tree seen ──────────────
+        # ── skip lines until at least one tree seen 
         if cur_tree < 0:
             continue
 
-        # ── timing summary block start ────────────────────────────
+        # ── timing summary block start 
         if "=== Timing summary for" in line:
             in_timing_block = True
             continue
 
-        # ── parse N. Samples ──────────────────────────────────────
+        # ── parse N. Samples 
         if in_timing_block and line.startswith("N. Samples:"):
             n_samples = int(line.split(":")[1].strip())
             sample_counts[(cur_tree, cur_depth)] += n_samples
             continue
 
-        # ── timing lines ──────────────────────────────────────────
+        # ── timing lines 
         if in_timing_block and " took:" in line:
             # Handle both regular and nested timing lines
             line_stripped = line.strip()
@@ -391,8 +384,8 @@ if __name__ == "__main__":
         ]
 
     try:
-        # Disable E-cores before running the binary
-        disable_e_cores()
+        # Configure CPU for benchmarking (P-cores only, no turbo)
+        configure_cpu_for_benchmarks(True)
         
         t0 = time.perf_counter()
         log = subprocess.run(
@@ -415,15 +408,7 @@ if __name__ == "__main__":
         print(f"parsing output took {t2 - t1:.3f}s")
 
         csv_path = os.path.join(out_dir, f"{wall}.csv")
-        # params = dict(
-        #     rows=a.rows, cols=a.cols,
-        #     num_trees=a.num_trees, tree_depth=a.tree_depth,
-        #     proj_density_factor=a.projection_density_factor,
-        #     max_projections=a.max_num_projections,
-        #     num_threads=a.num_threads, experiment_name=a.experiment_name,
-        #     numerical_split_type=a.numerical_split_type,
-        #     cpu_model=get_cpu_model(),
-        # )
+
         write_csv(table, vars(a), csv_path)
 
     except KeyboardInterrupt:

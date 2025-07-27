@@ -16,50 +16,43 @@ logging.basicConfig(
 )
 
 # Global flag to track E-core state
-e_cores_disabled = False
+cpu_modified = False
 
-def disable_e_cores():
-    """Disable E-cores (cores 6 to nproc-1)"""
-    global e_cores_disabled
-    if get_cpu_model_proc() == "Intel(R) Core(TM) Ultra 9 185H":
-        try:
-            nproc = int(subprocess.run(['nproc'], capture_output=True, text=True).stdout.strip())
-            if nproc > 6:
-                result = subprocess.run(['sudo', 'chcpu', '-d', f'6-{nproc-1}'], 
-                                    capture_output=True, text=True, check=True)
-                print(f"Disabled E-cores 6-{nproc-1}")
-                e_cores_disabled = True
-                if result.stdout: print(result.stdout.strip())
-                if result.stderr: print(result.stderr.strip())
-        except Exception as e:
-            print(f"Warning: Could not disable E-cores: {e}")
-    else:
-        print("CPU doesn't match Ultra 9 185H - not changing anything")
-
-
-def enable_e_cores():
-    """Re-enable E-cores (cores 6-15)"""
-    global e_cores_disabled
-    if get_cpu_model_proc() == "Intel(R) Core(TM) Ultra 9 185H":
-        try:
-            result = subprocess.run(['sudo', 'chcpu', '-e', '6-15'], 
-                                capture_output=True, text=True, check=True)
-            print("Re-enabled E-cores 6-15")
-            e_cores_disabled = False
-            if result.stdout: print(result.stdout.strip())
-            if result.stderr: print(result.stderr.strip())
-        except Exception as e:
-            print(f"Warning: Could not re-enable E-cores: {e}")
-    else:
-        print("CPU doesn't match Ultra 9 185H - not changing anything")
-
+def configure_cpu_for_benchmarks(enable_pcore_only=True):
+    """
+    Configure CPU for benchmarking.
+    
+    Args:
+        enable_pcore_only: If True, disable HT/E-cores/turbo. If False, restore all.
+    """
+    global cpu_modified
+    
+    action = "--disable" if enable_pcore_only else "--enable"
+    cmd = ["sudo", "./benchmarks/src/utils/disable_cpu_e_features.sh", action]
+    
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        print(result.stdout)
+        if result.stderr:
+            print(result.stderr)
+        
+        # Update global flag based on action
+        cpu_modified = enable_pcore_only
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to configure CPU: {e}")
+        if e.stdout:
+            print(e.stdout)
+        if e.stderr:
+            print(e.stderr)
+        return False
 
 def cleanup_and_exit(signum=None, frame=None):
-    """Cleanup function to re-enable E-cores before exiting"""
-    global e_cores_disabled
-    if e_cores_disabled:
-        print("\nCleaning up: Re-enabling E-cores...")
-        enable_e_cores()
+    """Cleanup function to restore CPU configuration before exiting"""
+    global cpu_modified
+    if cpu_modified:
+        print("\nCleaning up: Restoring CPU configuration...")
+        configure_cpu_for_benchmarks(False)  # This will set cpu_modified = False
     if signum is not None:
         print(f"\nReceived signal {signum}, exiting cleanly.")
         sys.exit(1)
@@ -254,7 +247,7 @@ def main():
     binary = "./bazel-bin/examples/train_oblique_forest"
 
     # Disable E-cores once at the beginning. Only do it for my CPU with E-cores
-    disable_e_cores()
+    configure_cpu_for_benchmarks(True)
 
     try:
         for t in threads_to_test:
