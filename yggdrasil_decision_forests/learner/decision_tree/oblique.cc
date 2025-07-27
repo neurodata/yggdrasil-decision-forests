@@ -315,7 +315,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
                 << "SampleProjection took:  " << total_sample_proj_time.count() << "s\n"
                 << "ApplyProjection took:   " << total_apply_proj_time.count()  << "s\n"
                 << "EvaluateProjection took:  " << total_eval_proj_time.count()  << "s\n"
-                << " - Iterating over Selected_Examples took:   " << all_proj_sort_time.count()  << "s\n"
+                << " - Histogramming took:   " << all_proj_sort_time.count()  << "s\n"
                 << " - ScanSplits took:   " << all_proj_scan_splits_time.count()  << "s" << std::endl;
     }
   }

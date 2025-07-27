@@ -1411,12 +1411,11 @@ SplitSearchResult FindBestSplit(
   
   std::chrono::high_resolution_clock::time_point start, end;
   std::chrono::duration<double> dur;
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL) { start = std::chrono::high_resolution_clock::now(); }
 
   // Create buckets. - takes practically 0 time
   ExampleBucketSet& example_set_accumulator =
       *GetCachedExampleBucketSet<ExampleBucketSet>(cache);
-
-  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
 
   // PRIORITY Ariel: This takes a bunch of time - 15-20% on its own
   // Sorting within takes 45%!
@@ -1424,19 +1423,19 @@ SplitSearchResult FindBestSplit(
       selected_examples, feature_filler, label_filler, &example_set_accumulator,
       cache);
 
-  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL) {
     end = std::chrono::high_resolution_clock::now();
     *sort_time = end - start;
     // std::cout << "\n - Sort (FillExampleBucketSet) took: " << dur.count() << "s\n\n";
   }
 
-  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL) { start = std::chrono::high_resolution_clock::now(); }
 
   auto scan_splits_result = ScanSplits<ExampleBucketSet, LabelBucketSet, bucket_interpolation>(
       feature_filler, initializer, example_set_accumulator,
       selected_examples.size(), min_num_obs, attribute_idx, condition, cache);
 
-  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL) {
     end = std::chrono::high_resolution_clock::now();
     *scan_split_time = end - start;
     // std::cout << " - ScanSplits took: " << dur.count() << "s\n\n";
