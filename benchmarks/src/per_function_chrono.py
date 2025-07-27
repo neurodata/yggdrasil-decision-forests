@@ -23,7 +23,7 @@ def get_args():
     p.add_argument("--train_csv",
                    default="ariel_test_data/processed_wise1_data.csv")
     p.add_argument("--label_col", default="Cancer Status")
-    p.add_argument("--experiment_name", type=str, default="untitled_experiment",
+    p.add_argument("--experiment_name", type=str, default="",
                    help="Name for the experiment, used in the output directory path")
     p.add_argument("--feature_split_type", type=str, 
                    choices=["Axis Aligned", "Oblique"], 
@@ -185,9 +185,9 @@ ORDER_HISTOGRAM = [
     "Selecting Bootstrapped Samples",
     # "Initialization of FindBestCondOblique", # only in Verbose
     "SampleProjection", "ApplyProjection",
-    "Initializing Histogram Bins",
-    "Setting Split Distributions",
-    "Looping over samples",
+    # "Initializing Histogram Bins",
+    # "Setting Split Distributions",
+    # "Looping over samples",
     "Histogramming",
     "ScanSplits",
     # "Looping over splits",
@@ -354,7 +354,7 @@ if __name__ == "__main__":
         print("\n❌ Cannot proceed with benchmarks - build failed!")
         sys.exit(1)
 
-    experiment_name = a.experiment_name + f" | {a.feature_split_type} | {a.numerical_split_type}"
+    experiment_name = f"{a.feature_split_type} | {a.numerical_split_type} | {a.num_threads} thread(s) | {a.experiment_name}"
 
     out_dir = os.path.join(
         "benchmarks/results", "per_function_timing",

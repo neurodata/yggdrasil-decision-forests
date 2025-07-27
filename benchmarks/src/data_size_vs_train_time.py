@@ -115,7 +115,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_mode", choices=["csv", "synthetic"], default="synthetic",
                         help="Experiment mode: 'csv' to load data via train_forest, 'rng' to generate via train_forest synthetic")
-    parser.add_argument("--experiment_name", type=str, default="untitled_experiment",
+    parser.add_argument("--experiment_name", type=str, default="",
                         help="Name for the experiment, used in the output CSV filename")
     # Runtime params.
     parser.add_argument("--num_threads", type=int, default=1,
@@ -259,7 +259,7 @@ def main():
             else:
                 thread_count = t
 
-            combined_csv = os.path.join(base_results_dir, f"{args.experiment_name}_{thread_count}.csv")
+            combined_csv = os.path.join(base_results_dir, f"{args.feature_split_type} | {args.numerical_split_type} | {args.num_threads} thread(s) | {args.experiment_name}.csv")
 
             # Initialize matrices
             avg_matrix = {n: {d: "" for d in d_values} for n in n_values}
