@@ -12,7 +12,6 @@ import argparse, csv, os, re, subprocess, time, signal, sys, atexit
 from collections import defaultdict
 from typing import Callable
 import logging
-
 import pandas as pd
 
 # Global flag to track if CPU configuration was modified
@@ -105,6 +104,7 @@ def build_binary(args):
         print(f"❌ Unexpected error during build: {e}")
         return False
 
+
 def configure_cpu_for_benchmarks(enable_pcore_only=True):
     """
     Configure CPU for benchmarking.
@@ -113,9 +113,11 @@ def configure_cpu_for_benchmarks(enable_pcore_only=True):
         enable_pcore_only: If True, disable HT/E-cores/turbo. If False, restore all.
     """
     global cpu_modified
+
+    print(os.getcwd())
     
     action = "--disable" if enable_pcore_only else "--enable"
-    cmd = ["sudo", "./benchmarks/src/utils/set_cpu_e_features.sh", action]
+    cmd = ["sudo", "benchmarks/src/utils/set_cpu_e_features.sh", action]
     
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
@@ -132,7 +134,7 @@ def configure_cpu_for_benchmarks(enable_pcore_only=True):
             print(e.stdout)
         if e.stderr:
             print(e.stderr)
-        return False
+        sys.exit(1)
 
 
 def get_cpu_model_proc():
@@ -157,7 +159,7 @@ def cleanup_and_exit(signum=None, frame=None):
         configure_cpu_for_benchmarks(False)  # This will set cpu_modified = False
     if signum is not None:
         print(f"\nReceived signal {signum}, exiting cleanly.")
-        sys.exit(1)
+        sys.exit(0)
 
 
 def setup_signal_handlers():
@@ -186,8 +188,10 @@ ORDER_HISTOGRAM = [
     "Initializing Histogram Bins",
     "Setting Split Distributions",
     "Looping over samples",
-    "Looping over splits",
-    "Finding best threshold (Computing Entropies)",
+    "Histogramming",
+    "ScanSplits",
+    # "Looping over splits",
+    # "Finding best threshold (Computing Entropies)",
     # "Post-processing after Training all Trees", # only in Verbose
 ]
 
