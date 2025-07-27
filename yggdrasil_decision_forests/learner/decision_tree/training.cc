@@ -2225,8 +2225,7 @@ if (dt_config.missing_value_policy() ==
 }
     /* #endregion */
 
-// Determine the minimum and maximum values of the attribute.
-// Ariel which attribute? Each feature?
+// Determine the minimum and maximum values of the attribute
 float min_value, max_value;
 
     /* #region Basic Validity Checks */
@@ -2251,22 +2250,23 @@ struct CandidateSplit
 std::chrono::high_resolution_clock::time_point start, end;
 std::chrono::duration<double> dur;
 
-if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
+if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>=2) { start = std::chrono::high_resolution_clock::now(); }
 
-// Randomly select some threshold values.
+// Randomly select some threshold values. Takes very little time
 ASSIGN_OR_RETURN(
     const auto bins,
     internal::GenHistogramBins(dt_config.numerical_split().type(),
                                dt_config.numerical_split().num_candidates(),
                                attributes, min_value, max_value, random));
-if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
+if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>=2) {
 end = std::chrono::high_resolution_clock::now();
 dur = end - start;
 std::cout << " - - Initializing Histogram Bins took: " << dur.count() << "s" << std::endl;
 }
 
-if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
+if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>=2) { start = std::chrono::high_resolution_clock::now(); }
 
+// Takes very little time
 std::vector<CandidateSplit> candidate_splits(bins.size());
 for (int split_idx = 0; split_idx < candidate_splits.size(); split_idx++)
 {
@@ -2275,13 +2275,13 @@ for (int split_idx = 0; split_idx < candidate_splits.size(); split_idx++)
   candidate_split.threshold = bins[split_idx];
 }
 
-  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>=2) {
 end = std::chrono::high_resolution_clock::now();
 dur = end - start;
 std::cout << " - - Setting Split Distributions took: " << dur.count() << "s" << std::endl;
 }
 
-if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
+if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL) { start = std::chrono::high_resolution_clock::now(); }
 
 // Compute the split score of each threshold.
 for (const auto example_idx : selected_examples)
@@ -2289,30 +2289,28 @@ for (const auto example_idx : selected_examples)
   const int32_t label = labels[example_idx];
   const float weight = weights.empty() ? 1.f : weights[example_idx];
   float attribute = attributes[example_idx];
-  if (std::isnan(attribute))
-  {
-    attribute = na_replacement;
-  }
+  
+  if (std::isnan(attribute)) { attribute = na_replacement; }
+  
   auto it_split = std::upper_bound(
       candidate_splits.begin(), candidate_splits.end(), attribute,
       [](const float a, const CandidateSplit &b)
       { return a < b.threshold; });
-  if (it_split == candidate_splits.begin())
-  {
-    continue;
-  }
-  --it_split;
+  
+      if (it_split == candidate_splits.begin()) { continue; }
+  
+      --it_split;
   it_split->num_positive_examples_without_weights++;
   it_split->pos_label_distribution.Add(label, weight);
 }
 
-      if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
+if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL) {
 end = std::chrono::high_resolution_clock::now();
 dur = end - start;
-std::cout << " - - Looping over samples took: " << dur.count() << "s" << std::endl;
+std::cout << " - - Looping over selected_examples took: " << dur.count() << "s" << std::endl;
 }
 
-if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
+if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL) { start = std::chrono::high_resolution_clock::now(); }
 
 
 for (int split_idx = candidate_splits.size() - 2; split_idx >= 0;
@@ -2325,17 +2323,18 @@ for (int split_idx = candidate_splits.size() - 2; split_idx >= 0;
   dst.pos_label_distribution.Add(src.pos_label_distribution);
 }
 
-      if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
-end = std::chrono::high_resolution_clock::now();
-dur = end - start;
-std::cout << " - - Looping over splits took: " << dur.count() << "s" << std::endl;
-}
+// Included in ScanSplits
+//       if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL) {
+// end = std::chrono::high_resolution_clock::now();
+// dur = end - start;
+// std::cout << " - - Updating Split Distributions took: " << dur.count() << "s" << std::endl;
+// }
 
 const double initial_entropy = label_distribution.Entropy();
 utils::BinaryToIntegerConfusionMatrixDouble confusion;
 confusion.SetNumClassesIntDim(num_label_classes);
 
-if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
+// if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL) { start = std::chrono::high_resolution_clock::now(); }
 
 // Select the best threshold.
 bool found_split = false;
@@ -2374,10 +2373,11 @@ for (auto &candidate_split : candidate_splits)
   }
 }
 
-if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
+if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL) {
 end = std::chrono::high_resolution_clock::now();
 dur = end - start;
-std::cout << " - - Finding best threshold (Computing Entropies) took: " << dur.count() << "s" << std::endl;
+// std::cout << " - - Computing Entropy took: " << dur.count() << "s" << std::endl;
+std::cout << " - - ScanSplits took: " << dur.count() << "s" << std::endl;
 }
 
 return found_split ? SplitSearchResult::kBetterSplitFound
