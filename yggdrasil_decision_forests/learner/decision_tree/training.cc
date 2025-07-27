@@ -2208,7 +2208,9 @@ float na_replacement, const UnsignedExampleIdx min_num_obs,
 const proto::DecisionTreeTrainingConfig &dt_config,
 const utils::IntegerDistributionDouble &label_distribution,
 const int32_t attribute_idx, utils::RandomEngine *random,
-      proto::NodeCondition *condition)
+      proto::NodeCondition *condition,
+      std::chrono::duration<double>* selected_examples_time, std::chrono::duration<double>* scan_splits_time
+    )
 {
 /* #region Checks */
 DCHECK(condition != nullptr);
@@ -2306,8 +2308,8 @@ for (const auto example_idx : selected_examples)
 
 if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL) {
 end = std::chrono::high_resolution_clock::now();
-dur = end - start;
-std::cout << " - - Looping over selected_examples took: " << dur.count() << "s" << std::endl;
+*selected_examples_time = end - start;
+// std::cout << " - - Looping over selected_examples took: " << dur.count() << "s" << std::endl;
 }
 
 if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL) { start = std::chrono::high_resolution_clock::now(); }
@@ -2375,9 +2377,9 @@ for (auto &candidate_split : candidate_splits)
 
 if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL) {
 end = std::chrono::high_resolution_clock::now();
-dur = end - start;
+*scan_splits_time = end - start;
 // std::cout << " - - Computing Entropy took: " << dur.count() << "s" << std::endl;
-std::cout << " - - ScanSplits took: " << dur.count() << "s" << std::endl;
+// std::cout << " - - ScanSplits took: " << dur.count() << "s" << std::endl;
 }
 
 return found_split ? SplitSearchResult::kBetterSplitFound

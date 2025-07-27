@@ -551,7 +551,8 @@ FindSplitLabelClassificationFeatureNumericalHistogram(
     const proto::DecisionTreeTrainingConfig& dt_config,
     const utils::IntegerDistributionDouble& label_distribution,
     int32_t attribute_idx, utils::RandomEngine* random,
-    proto::NodeCondition* condition);
+    proto::NodeCondition* condition,
+std::chrono::duration<double>* selected_examples_time = nullptr, std::chrono::duration<double>* scan_splits_time = nullptr);
 
 // Similar to "FindSplitLabelClassificationFeatureNumericalCart", but work on
 // pre-discretized numerical values.

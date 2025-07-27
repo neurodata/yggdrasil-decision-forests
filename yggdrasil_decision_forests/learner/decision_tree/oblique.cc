@@ -300,6 +300,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   }
 
   if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
+    if (dt_config.numerical_split().type() == proto::NumericalSplit::EXACT) {
   std::cout << "\n=== Timing summary for " << num_projections << " projections ===\n"
             << "N. Samples:  " << selected_examples.size() << "\n"
             << "SampleProjection took:  " << total_sample_proj_time.count() << "s\n"
@@ -307,6 +308,16 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
             << "EvaluateProjection took:  " << total_eval_proj_time.count()  << "s\n"
             << " - Sorting took:   " << all_proj_sort_time.count()  << "s\n"
             << " - ScanSplits took:   " << all_proj_scan_splits_time.count()  << "s" << std::endl;
+    }
+    else {
+      std::cout << "\n=== Timing summary for " << num_projections << " projections ===\n"
+                << "N. Samples:  " << selected_examples.size() << "\n"
+                << "SampleProjection took:  " << total_sample_proj_time.count() << "s\n"
+                << "ApplyProjection took:   " << total_apply_proj_time.count()  << "s\n"
+                << "EvaluateProjection took:  " << total_eval_proj_time.count()  << "s\n"
+                << " - Iterating over Selected_Examples took:   " << all_proj_sort_time.count()  << "s\n"
+                << " - ScanSplits took:   " << all_proj_scan_splits_time.count()  << "s" << std::endl;
+    }
   }
 
   /* #endregion */
@@ -417,7 +428,8 @@ absl::StatusOr<SplitSearchResult> EvaluateProjection(
               dense_example_idxs, selected_weights, projection_values,
               selected_labels, label_stats.num_label_classes, na_replacement,
               min_num_obs, dt_config, label_stats.label_distribution,
-              first_attribute_idx, random, condition));  // TODO add timings for sort and Scansplits as return value
+              first_attribute_idx, random, condition, 
+              sort_time, scan_splits_time));  // TODO add timings for sort and Scansplits as return value
     }
   }
 
