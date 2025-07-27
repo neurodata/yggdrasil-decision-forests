@@ -1,6 +1,5 @@
 {
   "configurations": [
-
     {
       "name": "Oblique Forest Haberman",
       "type": "cppdbg",
@@ -17,9 +16,6 @@
       "environment": [],
       "externalConsole": false,
       "MIMode": "gdb",
-      // "sourceFileMap": {
-      //   "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
-      // },
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",
@@ -50,9 +46,6 @@
       "environment": [],
       "externalConsole": false,
       "MIMode": "gdb",
-      // "sourceFileMap": {
-      //   "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
-      // },
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",
@@ -71,20 +64,21 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
-"args": [
-  "--train_csv", "${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
-  "--label_col", "Cancer Status",
-  "--projection_density_factor", "3",
-  "--input_mode", "csv"
-],
+      "args": [
+        "--train_csv",
+        "${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
+        "--label_col",
+        "Cancer Status",
+        "--projection_density_factor",
+        "3",
+        "--input_mode",
+        "csv"
+      ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": false,
       "MIMode": "gdb",
-      // "sourceFileMap": {
-      //   "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
-      // },
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",
@@ -103,20 +97,21 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
-"args": [
-  "--train_csv", "${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
-  "--label_col", "Cancer Status",
-  "--projection_density_factor", "3",
-  "--numerical_split_type", "Equal Width",
-],
+      "args": [
+        "--train_csv",
+        "${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
+        "--label_col",
+        "Cancer Status",
+        "--projection_density_factor",
+        "3",
+        "--numerical_split_type",
+        "Equal Width"
+      ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": false,
       "MIMode": "gdb",
-      // "sourceFileMap": {
-      //   "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
-      // },
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",
@@ -130,17 +125,20 @@
         }
       ]
     },
-
     {
       "name": "Synthetic matrix 4096x4096",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
       "args": [
-        "--input_mode", "synthetic",
-        "--cols", "4096",
-        "--rows", "4096",
-        "--projection_density_factor", "3",
+        "--input_mode",
+        "synthetic",
+        "--cols",
+        "4096",
+        "--rows",
+        "4096",
+        "--projection_density_factor",
+        "3"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
@@ -163,19 +161,24 @@
         }
       ]
     },
-
     {
       "name": "1-split 1-tree Huge Synthetic",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
       "args": [
-        "--input_mode", "synthetic",
-        "--cols", "1024",
-        "--rows", "32000",
-        "--projection_density_factor", "3",
-        "--num_trees", "1",
-        "--tree_depth","2", // depth=1 doesn't run anything due to IF in NodeTrain - considered as root.
+        "--input_mode",
+        "synthetic",
+        "--cols",
+        "1024",
+        "--rows",
+        "32000",
+        "--projection_density_factor",
+        "3",
+        "--num_trees",
+        "1",
+        "--tree_depth",
+        "2"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
@@ -198,37 +201,15 @@
         }
       ]
     },
-
     {
-      "name": "Decision Tree MIGHT",
-      "type": "cppdbg",
+      "name": "per_function_chrono.py Exact Oblique",
+      "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/bazel-bin/examples/ariel_dt_train",
-      "args": [ // MIGHT data
-        "${workspaceFolder}/ariel_test_data/processed_wise1_data.csv",
-        "Cancer Status",
-        "tmp/ariel_rf_model"
-      ],
-
-      "stopAtEntry": false,
-      "cwd": "${workspaceFolder}",
-      "environment": [],
-      "externalConsole": false,
-      "MIMode": "gdb",
-      // "sourceFileMap": {
-      //   "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
-      // },
-      "setupCommands": [
-        {
-          "description": "Enable pretty-printing for gdb",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
-        },
-        {
-          "description": "Set Disassembly Flavor to Intel",
-          "text": "-gdb-set disassembly-flavor intel",
-          "ignoreFailures": true
-        }
+      "program": "${workspaceFolder}/benchmarks/src/per_function_chrono.py",
+      "console": "integratedTerminal",
+      "args": [
+        "--numerical_split_type=Exact",
+        "--feature_split_type=Oblique"
       ]
     },
     {
@@ -238,8 +219,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "/home/ubuntu/yggdrasil-decision-forests/examples",
-      "program": "/home/ubuntu/yggdrasil-decision-forests/examples/build/Debug/outDebug",
+      "cwd": "/home/ariel/prog/yggdrasil-decision-forests/yggdrasil_decision_forests/learner/decision_tree",
+      "program": "/home/ariel/prog/yggdrasil-decision-forests/yggdrasil_decision_forests/learner/decision_tree/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
@@ -250,7 +231,6 @@
         }
       ]
     }
-
   ],
   "version": "2.0.0"
 }
