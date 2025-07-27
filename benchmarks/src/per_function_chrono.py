@@ -45,6 +45,7 @@ def get_args():
     p.add_argument("--projection_density_factor", type=int, default=3)
     p.add_argument("--max_num_projections", type=int, default=1000)
     p.add_argument("--save_log", action="store_true")
+    p.add_argument("--verbose_chrono", action="store_true")
     
     args = p.parse_args()
     
@@ -56,14 +57,23 @@ def get_args():
     return args
 
 
-def build_binary():
+def build_binary(args):
     """Build the binary using bazel. Returns True if successful, False otherwise."""
-    build_cmd = [
-        'bazel', 'build', '-c', 'opt', 
-        '--config=fixed_1000_projections', 
-        '--config=chrono_profile', 
-        '//examples:train_oblique_forest'
-    ]
+
+    if not args.verbose_chrono:
+        build_cmd = [
+            'bazel', 'build', '-c', 'opt', 
+            '--config=fixed_1000_projections', 
+            '--config=chrono_profile', 
+            '//examples:train_oblique_forest'
+        ]
+    else:
+        build_cmd = [
+            'bazel', 'build', '-c', 'opt', 
+            '--config=fixed_1000_projections', 
+            '--config=chrono_profile_verbose', 
+            '//examples:train_oblique_forest'
+        ]
     
     print("Building binary...")
     print(f"Running: {' '.join(build_cmd)}")
@@ -305,12 +315,12 @@ if __name__ == "__main__":
     # Setup signal handlers first
     setup_signal_handlers()
 
+    a = get_args()
+
     # Build the binary first - exit if build fails
-    if not build_binary():
+    if not build_binary(a):
         print("\n❌ Cannot proceed with benchmarks - build failed!")
         sys.exit(1)
-    
-    a = get_args()
 
     experiment_name = a.experiment_name + f" | {a.feature_split_type} | {a.numerical_split_type}"
 

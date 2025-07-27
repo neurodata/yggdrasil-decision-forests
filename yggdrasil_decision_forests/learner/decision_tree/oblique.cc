@@ -220,7 +220,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     matrix.resize(num_projections, std::vector<float>(num_features, 0.f));
   }
 
-  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
+  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>1) {
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
     std::cout << "\n - Initialization of FindBestCondOblique took: " << dur.count() << "s" << std::endl;
