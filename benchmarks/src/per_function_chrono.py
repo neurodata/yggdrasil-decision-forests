@@ -45,7 +45,6 @@ def get_args():
     p.add_argument("--projection_density_factor", type=int, default=3)
     p.add_argument("--max_num_projections", type=int, default=1000)
     p.add_argument("--save_log", action="store_true")
-    p.add_argument("--verbose", action="store_true")
     
     args = p.parse_args()
     
