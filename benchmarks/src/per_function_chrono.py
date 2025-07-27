@@ -275,6 +275,8 @@ def fast_parse_tree_depth(log: str, split_type: str = "Exact") -> pd.DataFrame:
                 # Map nested names to original names
                 if name_part == "Sorting":
                     rows.append((cur_tree, cur_depth, "SortFeature", time_s))
+                elif name_part == "Histogramming":
+                    rows.append((cur_tree, cur_depth, "Histogramming", time_s))
                 elif name_part == "ScanSplits":
                     rows.append((cur_tree, cur_depth, "ScanSplits", time_s))
             else:
