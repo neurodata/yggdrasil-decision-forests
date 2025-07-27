@@ -46,7 +46,7 @@ ABSL_FLAG(int, num_trees, 50, "Number of trees in the random forest.");
 ABSL_FLAG(int, tree_depth, -1,
           "Maximum depth of trees (-1 for unlimited).");
 
-ABSL_FLAG(std::string, feature_split_type, "Axis Aligned",
+ABSL_FLAG(std::string, feature_split_type, "Oblique",
           "Type of feature splits in decision trees: 'Axis Aligned' or 'Oblique'.");
 
 // Oblique split parameters (only used when feature_split_type = "Oblique")
