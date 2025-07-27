@@ -115,7 +115,7 @@ def configure_cpu_for_benchmarks(enable_pcore_only=True):
     global cpu_modified
     
     action = "--disable" if enable_pcore_only else "--enable"
-    cmd = ["sudo", "./benchmarks/src/utils/disable_cpu_e_features.sh", action]
+    cmd = ["sudo", "./benchmarks/src/utils/set_cpu_e_features.sh", action]
     
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
