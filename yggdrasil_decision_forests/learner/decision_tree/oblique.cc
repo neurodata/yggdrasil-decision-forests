@@ -412,27 +412,33 @@ absl::StatusOr<SplitSearchResult> EvaluateProjection(
   SplitSearchResult result;
   if constexpr (is_same<LabelStats, ClassificationLabelStats>::value) {
 
+    // TODO better name
+    proto::DecisionTreeTrainingConfig new_dt_config = dt_config;
+
     // Histogram for big data, otherwise do Exact Splits
     // TODO make runtime argument
     if constexpr (ENABLE_DYNAMIC_HISTOGRAMMING) {
       if (projection_values.size() > 1536) { // Magic number - chosen empirically https://docs.google.com/spreadsheets/d/1k0Td119py6Z_crJPdpt6iggWten86KRtYqSrQmcHhJM/edit?usp=sharing        
+        new_dt_config.mutable_numerical_split()->set_type(yggdrasil_decision_forests::model::decision_tree::proto::NumericalSplit_Type_HISTOGRAM_RANDOM);
+        new_dt_config.mutable_numerical_split()->set_num_candidates(256); // TODO make this a user-defined argument
         ASSIGN_OR_RETURN(
             result,
             FindSplitLabelClassificationFeatureNumericalHistogram(
                 dense_example_idxs, selected_weights, projection_values,
                 selected_labels, label_stats.num_label_classes, na_replacement,
-                min_num_obs, dt_config, label_stats.label_distribution,
+                min_num_obs, new_dt_config, label_stats.label_distribution,
                 first_attribute_idx, random, condition, 
                 sort_time, scan_splits_time));
       }
       else {
+        new_dt_config.mutable_numerical_split()->set_type(yggdrasil_decision_forests::model::decision_tree::proto::NumericalSplit_Type_EXACT);
         ASSIGN_OR_RETURN(
         result,
         FindSplitLabelClassificationFeatureNumericalCart(
             dense_example_idxs, selected_weights,
             projection_values, // Ariel: vector?
             selected_labels, label_stats.num_label_classes, na_replacement,
-            min_num_obs, dt_config, label_stats.label_distribution,
+            min_num_obs, new_dt_config, label_stats.label_distribution,
             first_attribute_idx, effective_internal_config, condition, cache, sort_time, scan_splits_time));
       }
     }
