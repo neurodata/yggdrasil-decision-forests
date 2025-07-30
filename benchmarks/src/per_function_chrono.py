@@ -8,10 +8,9 @@ Produces one CSV per run:
 """
 
 from __future__ import annotations
-import argparse, csv, os, re, subprocess, time, signal, sys, atexit
+import argparse, csv, os, re, subprocess, time, sys
 from collections import defaultdict
-from typing import Callable
-import logging
+import utils
 import pandas as pd
 
 # Global flag to track if CPU configuration was modified
@@ -57,128 +56,6 @@ def get_args():
         print("Warning: --repeats is deprecated. Use --num_trees instead, which functions the same way for benchmarking.", file=sys.stderr)
     
     return args
-
-
-def build_binary(args):
-    """Build the binary using bazel. Returns True if successful, False otherwise."""
-
-    if args.enable_dynamic_histogramming:
-        build_cmd = [
-            'bazel', 'build', '-c', 'opt', 
-            '--config=fixed_1000_projections', 
-            '--config=chrono_profile', 
-            '--config=enable_dynamic_histogramming',
-            '//examples:train_oblique_forest'
-        ]
-    else:
-        build_cmd = [
-            'bazel', 'build', '-c', 'opt', 
-            '--config=fixed_1000_projections', 
-            '--config=chrono_profile', 
-            '//examples:train_oblique_forest'
-        ]
-    
-    print("Building binary...")
-    print(f"Running: {' '.join(build_cmd)}")
-    
-    try:
-        # Use the current environment and working directory
-        result = subprocess.run(
-            build_cmd, 
-            capture_output=False, 
-            text=True, 
-            check=True,
-            env=os.environ.copy(),  # Preserve current environment
-            cwd=os.getcwd()         # Explicitly set working directory
-        )
-        
-        print("✅ Build succeeded!")
-        if result.stdout:
-            logging.info(f"Build stdout:\n{result.stdout}")
-        if result.stderr:
-            logging.info(f"Build stderr:\n{result.stderr}")
-        return True
-        
-    except subprocess.CalledProcessError as e:
-        print("❌ Build failed!")
-        print(f"Return code: {e.returncode}")
-        if e.stdout:
-            print(f"Build stdout:\n{e.stdout}")
-        if e.stderr:
-            print(f"Build stderr:\n{e.stderr}")
-        return False
-    
-    except KeyboardInterrupt:
-        print("\n❌ Build interrupted by user")
-        return False
-    
-    except Exception as e:
-        print(f"❌ Unexpected error during build: {e}")
-        return False
-
-
-def configure_cpu_for_benchmarks(enable_pcore_only=True):
-    """
-    Configure CPU for benchmarking.
-    
-    Args:
-        enable_pcore_only: If True, disable HT/E-cores/turbo. If False, restore all.
-    """
-    global cpu_modified
-
-    print(os.getcwd())
-    
-    action = "--disable" if enable_pcore_only else "--enable"
-    cmd = ["sudo", "benchmarks/src/utils/set_cpu_e_features.sh", action]
-    
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        print(result.stdout)
-        if result.stderr:
-            print(result.stderr)
-        
-        # Update global flag based on action
-        cpu_modified = enable_pcore_only
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to configure CPU: {e}")
-        if e.stdout:
-            print(e.stdout)
-        if e.stderr:
-            print(e.stderr)
-        sys.exit(1)
-
-
-def get_cpu_model_proc():
-    """
-    Reads /proc/cpuinfo and returns the first 'model name' value.
-    """
-    try:
-        with open("/proc/cpuinfo", "r") as f:
-            for line in f:
-                if line.startswith("model name"):
-                    # split only on the first ':' → [key, value]
-                    return line.split(":", 1)[1].strip()
-    except FileNotFoundError:
-        return "Could not access /proc/cpuinfo to get CPU model name"
-
-
-def cleanup_and_exit(signum=None, frame=None):
-    """Cleanup function to restore CPU configuration before exiting"""
-    global cpu_modified
-    if cpu_modified:
-        print("\nCleaning up: Restoring CPU configuration...")
-        configure_cpu_for_benchmarks(False)  # This will set cpu_modified = False
-    if signum is not None:
-        print(f"\nReceived signal {signum}, exiting cleanly.")
-        sys.exit(0)
-
-
-def setup_signal_handlers():
-    """Setup signal handlers for graceful cleanup"""
-    signal.signal(signal.SIGINT, cleanup_and_exit)   # Ctrl+C
-    signal.signal(signal.SIGTERM, cleanup_and_exit)  # Termination signal
-    atexit.register(cleanup_and_exit)  # Fallback for other exit scenarios
 
 
 ORDER_EXACT = [
@@ -359,12 +236,12 @@ def write_csv(table: pd.DataFrame, params: dict[str, object], path: str):
 
 if __name__ == "__main__":
     # Setup signal handlers first
-    setup_signal_handlers()
+    utils.setup_signal_handlers()
 
     a = get_args()
 
     # Build the binary first - exit if build fails
-    if not build_binary(a):
+    if not utils.build_binary(a):
         print("\n❌ Cannot proceed with benchmarks - build failed!")
         sys.exit(1)
 
@@ -372,7 +249,7 @@ if __name__ == "__main__":
 
     out_dir = os.path.join(
         "benchmarks/results", "per_function_timing",
-        get_cpu_model_proc(), experiment_name, f"{a.rows}_x_{a.cols}"
+        utils.get_cpu_model_proc(), experiment_name, f"{a.rows}_x_{a.cols}"
     )
     os.makedirs(out_dir, exist_ok=True)
 
@@ -403,7 +280,7 @@ if __name__ == "__main__":
 
     try:
         # Configure CPU for benchmarking (P-cores only, no turbo)
-        configure_cpu_for_benchmarks(True)
+        utils.configure_cpu_for_benchmarks(True)
         
         t0 = time.perf_counter()
         log = subprocess.run(
@@ -435,4 +312,4 @@ if __name__ == "__main__":
         print(f"\nUnexpected error: {e}")
     finally:
         # Ensure cleanup happens regardless of how we exit
-        cleanup_and_exit()
+        utils.cleanup_and_exit()

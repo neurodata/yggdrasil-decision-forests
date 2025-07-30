@@ -5,157 +5,14 @@ import statistics
 import csv
 import argparse
 import logging
-import signal
 import sys
-import atexit
+import utils.utils as utils
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[logging.StreamHandler()]
 )
-
-# Global flag to track E-core state
-cpu_modified = False
-
-def configure_cpu_for_benchmarks(enable_pcore_only=True):
-    """
-    Configure CPU for benchmarking.
-    
-    Args:
-        enable_pcore_only: If True, disable HT/E-cores/turbo. If False, restore all.
-    """
-    global cpu_modified
-    
-    action = "--disable" if enable_pcore_only else "--enable"
-    cmd = ["sudo", "./benchmarks/src/utils/set_cpu_e_features.sh", action]
-    
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        print(result.stdout)
-        if result.stderr:
-            print(result.stderr)
-        
-        # Update global flag based on action
-        cpu_modified = enable_pcore_only
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to configure CPU: {e}")
-        if e.stdout:
-            print(e.stdout)
-        if e.stderr:
-            print(e.stderr)
-        return False
-
-def cleanup_and_exit(signum=None, frame=None):
-    """Cleanup function to restore CPU configuration before exiting"""
-    global cpu_modified
-    if cpu_modified:
-        print("\nCleaning up: Restoring CPU configuration...")
-        configure_cpu_for_benchmarks(False)  # This will set cpu_modified = False
-    if signum is not None:
-        print(f"\nReceived signal {signum}, exiting cleanly.")
-        sys.exit(1)
-
-
-def setup_signal_handlers():
-    """Setup signal handlers for graceful cleanup"""
-    signal.signal(signal.SIGINT, cleanup_and_exit)   # Ctrl+C
-    signal.signal(signal.SIGTERM, cleanup_and_exit)  # Termination signal
-    atexit.register(cleanup_and_exit)  # Fallback for other exit scenarios
-
-
-def build_binary(args):
-    """Build the binary using bazel. Returns True if successful, False otherwise."""
-    if args.enable_dynamic_histogramming:
-        build_cmd = [
-            'bazel', 'build', '-c', 'opt', 
-            '--config=fixed_1000_projections', 
-            '--config=chrono_profile', 
-            '--config=enable_dynamic_histogramming',
-            '//examples:train_oblique_forest'
-        ]
-    else:
-        build_cmd = [
-            'bazel', 'build', '-c', 'opt', 
-            '--config=fixed_1000_projections', 
-            '--config=chrono_profile', 
-            '//examples:train_oblique_forest'
-        ]
-    
-    print("Building binary...")
-    print(f"Running: {' '.join(build_cmd)}")
-    
-    try:
-        result = subprocess.run(
-            build_cmd, 
-            capture_output=False, 
-            text=True, 
-            check=True,
-            env=os.environ.copy(),  # Preserve current environment
-            cwd=os.getcwd()         # Explicitly set working directory
-        )
-        
-        print("✅ Build succeeded!")
-        if result.stdout:
-            logging.info(f"Build stdout:\n{result.stdout}")
-        if result.stderr:
-            logging.info(f"Build stderr:\n{result.stderr}")
-        return True
-        
-    except subprocess.CalledProcessError as e:
-        print("❌ Build failed!")
-        print(f"Return code: {e.returncode}")
-        if e.stdout:
-            print(f"Build stdout:\n{e.stdout}")
-        if e.stderr:
-            print(f"Build stderr:\n{e.stderr}")
-        return False
-    
-    except KeyboardInterrupt:
-        print("\n❌ Build interrupted by user")
-        return False
-    
-    except Exception as e:
-        print(f"❌ Unexpected error during build: {e}")
-        return False
-
-
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--input_mode", choices=["csv", "synthetic"], default="synthetic",
-                        help="Experiment mode: 'csv' to load data via train_forest, 'rng' to generate via train_forest synthetic")
-    parser.add_argument("--experiment_name", type=str, default="",
-                        help="Name for the experiment, used in the output CSV filename")
-    # Runtime params.
-    parser.add_argument("--num_threads", type=int, default=1,
-                        help="Number of threads to use. Use -1 for all logical CPUs.")
-    parser.add_argument("--threads_list", type=int, nargs="+", default=None,
-                        help="List of number of threads to test, e.g. --threads_list 1 2 4 8 16 32 64")
-    parser.add_argument("--rows_list", type=int, nargs="+", default=[128, 256, 512,1024],
-                        help="List of number of rows of the input matrix to test, e.g. --rows_list 128 256 512. Default: [128, 256, 512,1024]")
-    parser.add_argument("--cols_list", type=int, nargs="+", default=[128,256,512,1024],
-                        help="List of number of cols of the input matrix to test, e.g. --cols_list 128 256 512. Default: [128,256,512,1024]")
-    parser.add_argument("--repeats", type=int, default=1,
-                        help="Number of times to repeat & avg. experiments. Use at least 5 for publishable results. Default: 1, for speed")
-    
-    # Model params
-    parser.add_argument("--feature_split_type", type=str, choices=["Axis Aligned", "Oblique"], required=True,
-                    help="Whether to use Exact or Histogram splits")
-    parser.add_argument("--numerical_split_type", type=str, choices=["Exact", "Random", "Equal Width"], required=True,
-                    help="Whether to use Exact or Histogram splits")
-    parser.add_argument("--num_trees", type=int, default=50,
-                        help="Number of trees in the Random Forest. Default: 50")
-    parser.add_argument("--tree_depth", type=int, default=-1,
-                        help="Limit depth of trees in Random Forest. Default: -1 (Unlimited)")
-    parser.add_argument("--projection_density_factor", type=int, default=3,
-                    help="Number of nonzeros per projection. Default: 3")
-    parser.add_argument("--max_num_projections", type=int, default=1000,
-                    help="Maximum number of projections. WARNING: YDF doesn't always obey this! Default: 1000")
-    parser.add_argument("--enable_dynamic_histogramming", action="store_true",
-                        help="Toggle smart switching of Histogramming vs. Exact splits along the tree to maximize performance")
-
-    return parser.parse_args()
 
 
 def save_combined_matrix(avg_matrix, std_matrix, filepath, params=None):
@@ -207,41 +64,49 @@ def save_combined_matrix(avg_matrix, std_matrix, filepath, params=None):
                 writer.writerow(row)
 
 
-def get_cpu_model_proc():
-    """
-    Reads /proc/cpuinfo and returns the first 'model name' value.
-    """
-    try:
-        with open("/proc/cpuinfo", "r") as f:
-            for line in f:
-                if line.startswith("model name"):
-                    # split only on the first ':' → [key, value]
-                    return line.split(":", 1)[1].strip()
-    except FileNotFoundError:
-        return "Could not access /proc/cpuinfo to get CPU model name"
-
-
-def run_binary_with_cleanup(cmd):
-    """Run binary command without toggling E-cores (they should stay disabled)"""
-    try:
-        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
-        return out
-    except subprocess.CalledProcessError as e:
-        raise e
-    except KeyboardInterrupt:
-        # Handle Ctrl+C during subprocess execution
-        print("\nKeyboard interrupt received during binary execution...")
-        raise
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input_mode", choices=["csv", "synthetic"], default="synthetic",
+                        help="Experiment mode: 'csv' to load data via train_forest, 'rng' to generate via train_forest synthetic")
+    parser.add_argument("--experiment_name", type=str, default="",
+                        help="Name for the experiment, used in the output CSV filename")
+    # Runtime params.
+    parser.add_argument("--num_threads", type=int, default=1,
+                        help="Number of threads to use. Use -1 for all logical CPUs.")
+    parser.add_argument("--threads_list", type=int, nargs="+", default=None,
+                        help="List of number of threads to test, e.g. --threads_list 1 2 4 8 16 32 64")
+    parser.add_argument("--rows_list", type=int, nargs="+", default=[128, 256, 512,1024],
+                        help="List of number of rows of the input matrix to test, e.g. --rows_list 128 256 512. Default: [128, 256, 512,1024]")
+    parser.add_argument("--cols_list", type=int, nargs="+", default=[128,256,512,1024],
+                        help="List of number of cols of the input matrix to test, e.g. --cols_list 128 256 512. Default: [128,256,512,1024]")
+    parser.add_argument("--repeats", type=int, default=1,
+                        help="Number of times to repeat & avg. experiments. Use at least 5 for publishable results. Default: 1, for speed")
     
+    # Model params
+    parser.add_argument("--feature_split_type", type=str, choices=["Axis Aligned", "Oblique"], required=True,
+                    help="Whether to use Exact or Histogram splits")
+    parser.add_argument("--numerical_split_type", type=str, choices=["Exact", "Random", "Equal Width", "Dynamic Histogramming"], required=True,
+                    help="Whether to use Exact or Histogram splits. Dynamic Histogramming automatically switches between Random and Exact based on per-node data size")
+    parser.add_argument("--num_trees", type=int, default=50,
+                        help="Number of trees in the Random Forest. Default: 50")
+    parser.add_argument("--tree_depth", type=int, default=-1,
+                        help="Limit depth of trees in Random Forest. Default: -1 (Unlimited)")
+    parser.add_argument("--projection_density_factor", type=int, default=3,
+                    help="Number of nonzeros per projection. Default: 3")
+    parser.add_argument("--max_num_projections", type=int, default=1000,
+                    help="Maximum number of projections. WARNING: YDF doesn't always obey this! Default: 1000")
 
-def main():
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
     # Setup signal handlers first
-    setup_signal_handlers()
+    utils.setup_signal_handlers()
     
     args = get_args()
     
     # Build the binary first - exit if build fails
-    if not build_binary(args):
+    if not utils.build_binary(args, chrono_mode=False):
         print("\n❌ Cannot proceed with benchmarks - build failed!")
         sys.exit(1)
     
@@ -254,12 +119,12 @@ def main():
     else:
         threads_to_test = [args.num_threads]
 
-    base_results_dir = os.path.join("benchmarks/results", "runtime_heatmap", get_cpu_model_proc())
+    base_results_dir = os.path.join("benchmarks/results", "runtime_heatmap", utils.get_cpu_model_proc())
     os.makedirs(base_results_dir, exist_ok=True)
     binary = "./bazel-bin/examples/train_oblique_forest"
 
     # Disable E-cores once at the beginning. Only do it for my CPU with E-cores
-    configure_cpu_for_benchmarks(True)
+    utils.configure_cpu_for_benchmarks(True)
 
     try:
         for t in threads_to_test:
@@ -286,7 +151,7 @@ def main():
                 "feature_split_type": args.feature_split_type,
                 "numerical_split_type": args.numerical_split_type,
 
-                "cpu_model": get_cpu_model_proc(),
+                "cpu_model": utils.get_cpu_model_proc(),
                 "threads": str(t),
                 "repeats": args.repeats,
             }
@@ -318,7 +183,7 @@ def main():
                         for i in range(args.repeats):
                             cmd = [binary, "--input_mode=csv", f"--train_csv={path}", f"--feature_split_type={args.feature_split_type}"] + static_args
                             try:
-                                out = run_binary_with_cleanup(cmd)
+                                out = utils.run_binary_with_cleanup(cmd)
                                 
                                 m = time_rx.search(out)
                                 if m:
@@ -366,7 +231,7 @@ def main():
                         for i in range(args.repeats):
                             cmd = [binary, "--input_mode=synthetic", f"--rows={n}", f"--cols={d}"] + static_args
                             try:
-                                out = run_binary_with_cleanup(cmd)
+                                out = utils.run_binary_with_cleanup(cmd)
                                 
                                 m = time_rx.search(out)
                                 if m:
@@ -398,8 +263,4 @@ def main():
         print(f"\nUnexpected error: {e}")
     finally:
         # Ensure cleanup happens regardless of how we exit
-        cleanup_and_exit()
-
-
-if __name__ == "__main__":
-    main()
+        utils.cleanup_and_exit()
