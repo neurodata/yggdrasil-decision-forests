@@ -241,6 +241,16 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   std::chrono::duration<double> all_proj_sort_time{0};
   std::chrono::duration<double> all_proj_scan_splits_time{0};
 
+  proto::DecisionTreeTrainingConfig new_dt_config = dt_config; // TODO pick better name
+  
+  // Automatically swap betw. Histogramming and Sorting based on which is faster for given amount of data
+  if constexpr (ENABLE_DYNAMIC_HISTOGRAMMING) {
+    if (dense_example_idxs.size() > 1536) { // Magic number - chosen empirically https://docs.google.com/spreadsheets/d/1k0Td119py6Z_crJPdpt6iggWten86KRtYqSrQmcHhJM/edit?usp=sharing        
+      new_dt_config.mutable_numerical_split()->set_type(yggdrasil_decision_forests::model::decision_tree::proto::NumericalSplit_Type_HISTOGRAM_RANDOM);
+      new_dt_config.mutable_numerical_split()->set_num_candidates(256);
+    }
+  }
+
 
   for (int proj_idx = 0; proj_idx < num_projections; ++proj_idx) {
       int8_t monotonic = 0;
@@ -250,7 +260,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
       // 2a. SampleProjection timing
       if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) { start = std::chrono::high_resolution_clock::now(); }
 
-      SampleProjection(config_link.numerical_features(), dt_config,
+      SampleProjection(config_link.numerical_features(), new_dt_config,
                       train_dataset.data_spec(), config_link, projection_density,
                       &current_projection, &monotonic, random);
       
@@ -276,7 +286,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
 
       ASSIGN_OR_RETURN(
           const auto split_result,
-          EvaluateProjection(dt_config, label_stats, dense_example_idxs, selected_weights,
+          EvaluateProjection(new_dt_config, label_stats, dense_example_idxs, selected_weights,
                             selected_labels, projection_values, internal_config,
                             current_projection.front().attribute_idx,
                             constraints, monotonic,
@@ -300,7 +310,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   }
 
   if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
-    if (dt_config.numerical_split().type() == proto::NumericalSplit::EXACT) {
+    if (new_dt_config.numerical_split().type() == proto::NumericalSplit::EXACT) {
   std::cout << "\n=== Timing summary for " << num_projections << " projections ===\n"
             << "N. Samples:  " << selected_examples.size() << "\n"
             << "SampleProjection took:  " << total_sample_proj_time.count() << "s\n"
@@ -412,37 +422,7 @@ absl::StatusOr<SplitSearchResult> EvaluateProjection(
   SplitSearchResult result;
   if constexpr (is_same<LabelStats, ClassificationLabelStats>::value) {
 
-    // TODO better name
-    proto::DecisionTreeTrainingConfig new_dt_config = dt_config;
-
     // Histogram for big data, otherwise do Exact Splits
-    // TODO make runtime argument
-    if constexpr (ENABLE_DYNAMIC_HISTOGRAMMING) {
-      if (projection_values.size() > 1536) { // Magic number - chosen empirically https://docs.google.com/spreadsheets/d/1k0Td119py6Z_crJPdpt6iggWten86KRtYqSrQmcHhJM/edit?usp=sharing        
-        new_dt_config.mutable_numerical_split()->set_type(yggdrasil_decision_forests::model::decision_tree::proto::NumericalSplit_Type_HISTOGRAM_RANDOM);
-        new_dt_config.mutable_numerical_split()->set_num_candidates(256); // TODO make this a user-defined argument
-        ASSIGN_OR_RETURN(
-            result,
-            FindSplitLabelClassificationFeatureNumericalHistogram(
-                dense_example_idxs, selected_weights, projection_values,
-                selected_labels, label_stats.num_label_classes, na_replacement,
-                min_num_obs, new_dt_config, label_stats.label_distribution,
-                first_attribute_idx, random, condition, 
-                sort_time, scan_splits_time));
-      }
-      else {
-        new_dt_config.mutable_numerical_split()->set_type(yggdrasil_decision_forests::model::decision_tree::proto::NumericalSplit_Type_EXACT);
-        ASSIGN_OR_RETURN(
-        result,
-        FindSplitLabelClassificationFeatureNumericalCart(
-            dense_example_idxs, selected_weights,
-            projection_values, // Ariel: vector?
-            selected_labels, label_stats.num_label_classes, na_replacement,
-            min_num_obs, new_dt_config, label_stats.label_distribution,
-            first_attribute_idx, effective_internal_config, condition, cache, sort_time, scan_splits_time));
-      }
-    }
-    else {
     if (dt_config.numerical_split().type() == proto::NumericalSplit::EXACT) {
     ASSIGN_OR_RETURN(
         result,
@@ -453,7 +433,7 @@ absl::StatusOr<SplitSearchResult> EvaluateProjection(
             min_num_obs, dt_config, label_stats.label_distribution,
             first_attribute_idx, effective_internal_config, condition, cache, sort_time, scan_splits_time));
     }
-      else {
+    else {
       ASSIGN_OR_RETURN(
           result,
           FindSplitLabelClassificationFeatureNumericalHistogram(
@@ -463,7 +443,6 @@ absl::StatusOr<SplitSearchResult> EvaluateProjection(
               first_attribute_idx, random, condition, 
               sort_time, scan_splits_time));  // TODO add timings for sort and Scansplits as return value
     }
-  }
   }
 
   /* #region Non-Numerical Methods */
