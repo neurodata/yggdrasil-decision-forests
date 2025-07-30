@@ -65,13 +65,23 @@ def setup_signal_handlers():
     atexit.register(cleanup_and_exit)  # Fallback for other exit scenarios
 
 
-def build_binary():
+def build_binary(args):
     """Build the binary using bazel. Returns True if successful, False otherwise."""
-    build_cmd = [
-        'bazel', 'build', '-c', 'opt', 
-        '--config=fixed_1000_projections', 
-        '//examples:train_oblique_forest'
-    ]
+    if args.enable_dynamic_histogramming:
+        build_cmd = [
+            'bazel', 'build', '-c', 'opt', 
+            '--config=fixed_1000_projections', 
+            '--config=chrono_profile', 
+            '--config=enable_dynamic_histogramming',
+            '//examples:train_oblique_forest'
+        ]
+    else:
+        build_cmd = [
+            'bazel', 'build', '-c', 'opt', 
+            '--config=fixed_1000_projections', 
+            '--config=chrono_profile', 
+            '//examples:train_oblique_forest'
+        ]
     
     print("Building binary...")
     print(f"Running: {' '.join(build_cmd)}")
@@ -142,6 +152,8 @@ def get_args():
                     help="Number of nonzeros per projection. Default: 3")
     parser.add_argument("--max_num_projections", type=int, default=1000,
                     help="Maximum number of projections. WARNING: YDF doesn't always obey this! Default: 1000")
+    parser.add_argument("--enable_dynamic_histogramming", action="store_true",
+                        help="Toggle smart switching of Histogramming vs. Exact splits along the tree to maximize performance")
 
     return parser.parse_args()
 
@@ -229,7 +241,7 @@ def main():
     args = get_args()
     
     # Build the binary first - exit if build fails
-    if not build_binary():
+    if not build_binary(args):
         print("\n❌ Cannot proceed with benchmarks - build failed!")
         sys.exit(1)
     

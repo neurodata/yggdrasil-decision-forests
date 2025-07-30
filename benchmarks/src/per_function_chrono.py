@@ -25,6 +25,7 @@ def get_args():
     p.add_argument("--label_col", default="Cancer Status")
     p.add_argument("--experiment_name", type=str, default="",
                    help="Name for the experiment, used in the output directory path")
+    
     p.add_argument("--feature_split_type", type=str, 
                    choices=["Axis Aligned", "Oblique"], 
                    required=True,
@@ -33,6 +34,9 @@ def get_args():
                    choices=["Exact", "Random", "Equal Width"], 
                    default="Exact",
                    help="Numerical split type for the random forest")
+    p.add_argument("--tree_depth", type=int, default=-1)
+    p.add_argument("--enable_dynamic_histogramming", action="store_true",
+        help="Toggle smart switching of Histogramming vs. Exact splits along the tree to maximize performance")
     p.add_argument("--num_threads", type=int, default=1)
     p.add_argument("--rows", type=int, default=4096), # 524288)
     p.add_argument("--cols", type=int, default=4096), # 1024)
@@ -40,7 +44,6 @@ def get_args():
                    help="DEPRECATED: Use --num_trees instead. This argument is ignored.")
     p.add_argument("--num_trees", type=int, default=5,
                    help="Number of trees in the random forest (also serves as the repeat mechanism)")
-    p.add_argument("--tree_depth", type=int, default=-1)
     p.add_argument("--projection_density_factor", type=int, default=3)
     p.add_argument("--max_num_projections", type=int, default=1000)
     p.add_argument("--save_log", action="store_true")
@@ -59,12 +62,21 @@ def get_args():
 def build_binary(args):
     """Build the binary using bazel. Returns True if successful, False otherwise."""
 
-    build_cmd = [
-        'bazel', 'build', '-c', 'opt', 
-        '--config=fixed_1000_projections', 
-        '--config=chrono_profile', 
-        '//examples:train_oblique_forest'
-    ]
+    if args.enable_dynamic_histogramming:
+        build_cmd = [
+            'bazel', 'build', '-c', 'opt', 
+            '--config=fixed_1000_projections', 
+            '--config=chrono_profile', 
+            '--config=enable_dynamic_histogramming',
+            '//examples:train_oblique_forest'
+        ]
+    else:
+        build_cmd = [
+            'bazel', 'build', '-c', 'opt', 
+            '--config=fixed_1000_projections', 
+            '--config=chrono_profile', 
+            '//examples:train_oblique_forest'
+        ]
     
     print("Building binary...")
     print(f"Running: {' '.join(build_cmd)}")

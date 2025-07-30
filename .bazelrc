@@ -34,6 +34,7 @@ build:intel_profiler --cxxopt=-gno-split-dwarf
 build:chrono_profile --cxxopt="-DCHRONO_MEASUREMENTS_LOG_LEVEL_FLAG=1"
 build:chrono_profile_verbose --cxxopt="-DCHRONO_MEASUREMENTS_LOG_LEVEL_FLAG=2"
 build:fixed_1000_projections --cxxopt="-DHARD_CODE_1000_PROJECTIONS_FLAG=true"
+build:enable_dynamic_histogramming --cxxopt="-DENABLE_DYNAMIC_HISTOGRAMMING_FLAG=true"
 
 
 ###############################################################################

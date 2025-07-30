@@ -2256,12 +2256,26 @@ if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL) { start = std::chrono::high_resolut
 
 if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>=2) { start = std::chrono::high_resolution_clock::now(); }
 
+
+std::vector<float> bins;
 // Randomly select some threshold values. Takes very little time
+if (dt_config.numerical_split().type() != yggdrasil_decision_forests::model::decision_tree::proto::NumericalSplit_Type_EXACT) {
 ASSIGN_OR_RETURN(
-    const auto bins,
-    internal::GenHistogramBins(dt_config.numerical_split().type(),
-                               dt_config.numerical_split().num_candidates(),
-                               attributes, min_value, max_value, random));
+    bins,
+        internal::GenHistogramBins(dt_config.numerical_split().type(),
+                                  dt_config.numerical_split().num_candidates(),
+                                  attributes, min_value, max_value, random));
+}
+    else {
+      int breakpoint=1;
+      ASSIGN_OR_RETURN(
+    bins,
+    // TODO Dynamic Histogram hard-coded for RANDOM and 256 bins
+      internal::GenHistogramBins(yggdrasil_decision_forests::model::decision_tree::proto::NumericalSplit_Type_HISTOGRAM_RANDOM,
+                          256,
+                          attributes, min_value, max_value, random));
+      
+    }
 if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>=2) {
 end = std::chrono::high_resolution_clock::now();
 dur = end - start;
@@ -5289,8 +5303,8 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
     end = std::chrono::high_resolution_clock::now();
     dur = end - start;
-    if (enable_timing)
-    { std::cout << "\n NodeTrain Finalization took: " << dur.count() << "s" << std::endl; }
+    if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL_FLAG>=2)
+        { std::cout << "\n NodeTrain Finalization took: " << dur.count() << "s" << std::endl; }
 
     /**************** RECURSE LEFT & RIGHT ****************/
 

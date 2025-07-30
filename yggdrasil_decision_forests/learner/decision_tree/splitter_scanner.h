@@ -57,6 +57,10 @@
   #define HARD_CODE_1000_PROJECTIONS_FLAG false
 #endif
 
+#ifndef ENABLE_DYNAMIC_HISTOGRAMMING_FLAG
+  #define ENABLE_DYNAMIC_HISTOGRAMMING_FLAG false
+#endif
+
 #include <stddef.h>
 
 #include <algorithm>
@@ -92,6 +96,7 @@ namespace decision_tree {
 static constexpr int CHRONO_MEASUREMENTS_LOG_LEVEL = CHRONO_MEASUREMENTS_LOG_LEVEL_FLAG;
 // Normally, n_projections bounded by n_features. Override it to time cache hits w.r.t n_features
 static constexpr bool HARD_CODE_1000_PROJECTIONS = HARD_CODE_1000_PROJECTIONS_FLAG;
+static constexpr bool ENABLE_DYNAMIC_HISTOGRAMMING = ENABLE_DYNAMIC_HISTOGRAMMING_FLAG;
 
 
 // TODO: Explain the expected signature of FeatureBucket and LabelBucket.
