@@ -10,7 +10,7 @@ Produces one CSV per run:
 from __future__ import annotations
 import argparse, csv, os, re, subprocess, time, sys
 from collections import defaultdict
-import utils
+import utils.utils as utils
 import pandas as pd
 
 # Global flag to track if CPU configuration was modified
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     a = get_args()
 
     # Build the binary first - exit if build fails
-    if not utils.build_binary(a):
+    if not utils.build_binary(a, chrono_mode=True):
         print("\n❌ Cannot proceed with benchmarks - build failed!")
         sys.exit(1)
 
@@ -263,8 +263,12 @@ if __name__ == "__main__":
         f"--projection_density_factor={a.projection_density_factor}",
         f"--max_num_projections={a.max_num_projections}",
         f"--feature_split_type={a.feature_split_type}",
-        f"--numerical_split_type={a.numerical_split_type}",
     ]
+
+    if a.numerical_split_type == "Dynamic Histogramming":
+        cmd.append("--numerical_split_type=Exact")
+    else:
+        cmd.append(f"--numerical_split_type={a.numerical_split_type}")
 
     if a.input_mode == "synthetic":
         cmd += [

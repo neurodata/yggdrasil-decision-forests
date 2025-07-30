@@ -165,7 +165,6 @@ if __name__ == "__main__":
                     "--label_col=Target",
                     f"--projection_density_factor={args.projection_density_factor}.0",
                     f"--num_threads={thread_count}",
-                    f"--numerical_split_type={args.numerical_split_type}"
                 ]
                 time_rx = re.compile(r"Training time: ([\d.]+) seconds")
                 
@@ -220,8 +219,13 @@ if __name__ == "__main__":
                     f"--num_threads={thread_count}",
                     f"--max_num_projections={args.max_num_projections}",
                     f"--feature_split_type={args.feature_split_type}",
-                    f"--numerical_split_type={args.numerical_split_type}"
                 ]
+
+                if args.numerical_split_type == "Dynamic Histogramming":
+                    static_args.append("--numerical_split_type=Exact")
+                else:
+                    static_args.append(f"--numerical_split_type={args.numerical_split_type}")
+
                 time_rx = re.compile(r"Training wall-time: ([\d.]+)s")
 
                 for n in n_values:
