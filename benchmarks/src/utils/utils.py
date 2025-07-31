@@ -17,26 +17,29 @@ def configure_cpu_for_benchmarks(enable_pcore_only=True):
         enable_pcore_only: If True, disable HT/E-cores/turbo. If False, restore all.
     """
     global cpu_modified
-    
-    action = "--disable" if enable_pcore_only else "--enable"
-    cmd = ["sudo", "./benchmarks/src/utils/set_cpu_e_features.sh", action]
-    
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        print(result.stdout)
-        if result.stderr:
-            print(result.stderr)
+
+    if get_cpu_model_proc() == "Intel Core Ultra 9 185H":
+        action = "--disable" if enable_pcore_only else "--enable"
+        cmd = ["sudo", "./benchmarks/src/utils/set_cpu_e_features.sh", action]
         
-        # Update global flag based on action
-        cpu_modified = enable_pcore_only
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to configure CPU: {e}")
-        if e.stdout:
-            print(e.stdout)
-        if e.stderr:
-            print(e.stderr)
-        sys.exit(1)
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            print(result.stdout)
+            if result.stderr:
+                print(result.stderr)
+            
+            # Update global flag based on action
+            cpu_modified = enable_pcore_only
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to configure CPU: {e}")
+            if e.stdout:
+                print(e.stdout)
+            if e.stderr:
+                print(e.stderr)
+            sys.exit(1)
+    else:
+        print("Skipping changing CPU E-features. CPU not Intel Core Ultra 9 185H")
 
 def cleanup_and_exit(signum=None, frame=None):
     """Cleanup function to restore CPU configuration before exiting"""
