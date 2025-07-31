@@ -30,12 +30,10 @@ def get_args():
                    required=True,
                    help="Feature split type for the random forest: Axis Aligned or Oblique")
     p.add_argument("--numerical_split_type", type=str, 
-                   choices=["Exact", "Random", "Equal Width"], 
+                   choices=["Exact", "Random", "Equal Width", "Dynamic Histogramming"], 
                    default="Exact",
-                   help="Numerical split type for the random forest")
+                   help="Numerical split type for the random forest. Dynamic Histogramming toggles smart switching of Histogramming vs. Exact splits along the tree to maximize performance")
     p.add_argument("--tree_depth", type=int, default=-1)
-    p.add_argument("--enable_dynamic_histogramming", action="store_true",
-        help="Toggle smart switching of Histogramming vs. Exact splits along the tree to maximize performance")
     p.add_argument("--num_threads", type=int, default=1)
     p.add_argument("--rows", type=int, default=4096), # 524288)
     p.add_argument("--cols", type=int, default=4096), # 1024)
@@ -84,6 +82,26 @@ ORDER_HISTOGRAM = [
     # "Post-processing after Training all Trees", # only in Verbose
 ]
 
+
+ORDER_DYNAMIC = [
+    "Selecting Bootstrapped Samples",
+    "SampleProjection", 
+    "ApplyProjection",
+    "SortFeature",        # From Exact method
+    "Histogramming",      # From Histogram method
+    "ScanSplits",
+    "EvaluateProjection",
+]
+
+def get_column_order(numerical_split_type: str) -> list[str]:
+    """Get the appropriate column order based on split type."""
+    if numerical_split_type == "Dynamic Histogramming":
+        return ORDER_DYNAMIC
+    elif numerical_split_type in ["Random", "Equal Width", "Histogram"]:
+        return ORDER_HISTOGRAM
+    else:  # Exact
+        return ORDER_EXACT
+
 # RENAMES = {
 #     "Post-processing after Train": "Post-processing after Training all Trees",
 #     "FillExampleBucketSet (calls 3 above)": "FillExampleBucketSet (next 3 calls)",
@@ -108,7 +126,7 @@ def fast_parse_tree_depth(log: str, split_type: str = "Exact") -> pd.DataFrame:
     node_counts: defaultdict[tuple[int, int], int] = defaultdict(int)
     sample_counts: defaultdict[tuple[int, int], int] = defaultdict(int)
 
-    ORDER = ORDER_HISTOGRAM if split_type in ["Random", "Equal Width", "Histogram"] else ORDER_EXACT
+    ORDER = get_column_order(split_type)
 
     cur_tree = -1
     cur_depth: int | None = None
