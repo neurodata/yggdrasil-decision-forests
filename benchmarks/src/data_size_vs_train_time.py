@@ -66,8 +66,12 @@ def save_combined_matrix(avg_matrix, std_matrix, filepath, params=None):
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input_mode", choices=["csv", "synthetic"], default="synthetic",
-                        help="Experiment mode: 'csv' to load data via train_forest, 'rng' to generate via train_forest synthetic")
+    parser.add_argument("--input_mode", choices=["csv", "synthetic"], default="csv",
+                        help="Experiment mode: 'csv' to load data via train_forest, 'synthetic' to generate via train_forest synthetic")
+    parser.add_argument("--train_csv", default="ariel_test_data/processed_wise1_data.csv",
+                        help="Path to the CSV file to use for training")
+    parser.add_argument("--label_col", default="Cancer Status",
+                        help="Name of the label column in the CSV")
     parser.add_argument("--experiment_name", type=str, default="",
                         help="Name for the experiment, used in the output CSV filename")
     # Runtime params.
@@ -76,15 +80,15 @@ def get_args():
     parser.add_argument("--threads_list", type=int, nargs="+", default=None,
                         help="List of number of threads to test, e.g. --threads_list 1 2 4 8 16 32 64")
     parser.add_argument("--rows_list", type=int, nargs="+", default=[128, 256, 512,1024],
-                        help="List of number of rows of the input matrix to test, e.g. --rows_list 128 256 512. Default: [128, 256, 512,1024]")
+                        help="List of number of rows of the input matrix to test, e.g. --rows_list 128 256 512. Default: [128, 256, 512,1024] (ignored in CSV mode)")
     parser.add_argument("--cols_list", type=int, nargs="+", default=[128,256,512,1024],
-                        help="List of number of cols of the input matrix to test, e.g. --cols_list 128 256 512. Default: [128,256,512,1024]")
+                        help="List of number of cols of the input matrix to test, e.g. --cols_list 128 256 512. Default: [128,256,512,1024] (ignored in CSV mode)")
     parser.add_argument("--repeats", type=int, default=1,
                         help="Number of times to repeat & avg. experiments. Use at least 5 for publishable results. Default: 1, for speed")
     
     # Model params
     parser.add_argument("--feature_split_type", type=str, choices=["Axis Aligned", "Oblique"], required=True,
-                    help="Whether to use Exact or Histogram splits")
+                    help="Whether to use Axis Aligned or Oblique splits")
     parser.add_argument("--numerical_split_type", type=str, choices=["Exact", "Random", "Equal Width", "Dynamic Histogramming"], required=True,
                     help="Whether to use Exact or Histogram splits. Dynamic Histogramming automatically switches between Random and Exact based on per-node data size")
     parser.add_argument("--num_trees", type=int, default=50,
@@ -111,8 +115,14 @@ if __name__ == "__main__":
         sys.exit(1)
     
     global n_values, d_values
-    n_values = args.rows_list
-    d_values = args.cols_list
+    
+    # For CSV mode, we'll use dummy values since rows/cols are determined by the CSV
+    if args.input_mode == "csv":
+        n_values = ["CSV_rows"]  # Placeholder
+        d_values = ["CSV_cols"]  # Placeholder
+    else:
+        n_values = args.rows_list
+        d_values = args.cols_list
 
     if args.threads_list is not None:
         threads_to_test = args.threads_list
@@ -136,7 +146,7 @@ if __name__ == "__main__":
             else:
                 thread_count = t
 
-            combined_csv = os.path.join(base_results_dir, f"{args.feature_split_type} | {args.numerical_split_type} | {args.num_threads} thread(s) | {args.experiment_name}.csv")
+            combined_csv = os.path.join(base_results_dir, f"{args.feature_split_type} | {args.numerical_split_type} | {thread_count} thread(s) | {args.experiment_name}.csv")
 
             # Initialize matrices
             avg_matrix = {n: {d: "" for d in d_values} for n in n_values}
@@ -144,74 +154,80 @@ if __name__ == "__main__":
 
             params = {
                 "Benchmark": args.experiment_name,
-
+                "Input Mode": args.input_mode,
+                "Train CSV": args.train_csv if args.input_mode == "csv" else "N/A",
+                "Label Column": args.label_col if args.input_mode == "csv" else "N/A",
                 "Projection Density Factor": args.projection_density_factor,
                 "Trees": args.num_trees,
                 "depth": args.tree_depth,
                 "feature_split_type": args.feature_split_type,
                 "numerical_split_type": args.numerical_split_type,
-
                 "cpu_model": utils.get_cpu_model_proc(),
-                "threads": str(t),
+                "threads": str(thread_count),
                 "repeats": args.repeats,
             }
 
             if args.input_mode == "csv":
-                # Add max_num_projections to params for CSV mode if needed
-                params["max_num_projections"] = args.max_num_projections
-                
-                # CSV mode static args
+                # CSV mode - run with the provided CSV file
                 static_args = [
-                    "--label_col=Target",
+                    "--input_mode=csv",
+                    f"--train_csv={args.train_csv}",
+                    f"--label_col={args.label_col}",
                     f"--projection_density_factor={args.projection_density_factor}.0",
+                    f"--num_trees={args.num_trees}",
+                    f"--tree_depth={args.tree_depth}",
                     f"--num_threads={thread_count}",
+                    f"--max_num_projections={args.max_num_projections}",
+                    f"--feature_split_type={args.feature_split_type}",
                 ]
-                time_rx = re.compile(r"Training time: ([\d.]+) seconds")
-                
 
-                data_dir = "ariel_test_data/random_csvs"
-                for n in n_values:
-                    for d in d_values:
-                        filename = f"random_n={n}_d={d}.csv"
-                        path = os.path.join(data_dir, filename)
-                        if not os.path.exists(path):
-                            logging.warning(f"Skipping missing file: {filename}")
-                            continue
-                        print(f"\nRunning on: {filename}")
-                        times = []
-                        for i in range(args.repeats):
-                            cmd = [binary, "--input_mode=csv", f"--train_csv={path}", f"--feature_split_type={args.feature_split_type}"] + static_args
-                            try:
-                                out = utils.run_binary_with_cleanup(cmd)
-                                
-                                m = time_rx.search(out)
-                                if m:
-                                    t_measured = float(m.group(1))
-                                    times.append(t_measured)
-                                    print(f"  Run {i+1}: {t_measured:.4f} s")
-                                else:
-                                    logging.error(f"  Run {i+1}: parse fail")
-                            except subprocess.CalledProcessError as e:
-                                logging.error(f"  Run {i+1}: error\n{e.output}")
-                            except KeyboardInterrupt:
-                                print(f"\nKeyboard interrupt during run {i+1}")
-                                raise
-                        if times:
-                            avg = statistics.mean(times)
-                            std = statistics.stdev(times) if len(times) > 1 else 0.0
-                            avg_matrix[n][d] = f"{avg:.4f}"
-                            std_matrix[n][d] = f"{std:.4f}"
-                            print(f"  ➤ Avg: {avg:.4f}s | Std: {std:.4f}s")
+                if args.numerical_split_type == "Dynamic Histogramming":
+                    static_args.append("--numerical_split_type=Exact")
+                else:
+                    static_args.append(f"--numerical_split_type={args.numerical_split_type}")
+
+                time_rx = re.compile(r"Training wall-time: ([\d.]+)s")
+
+                # For CSV mode, we only have one "configuration" to test
+                n = "CSV_rows"
+                d = "CSV_cols"
+                print(f"\nRunning CSV mode with {args.train_csv}")
+                times = []
+                for i in range(args.repeats):
+                    cmd = [binary] + static_args
+                    try:
+                        out = utils.run_binary_with_cleanup(cmd)
+                        
+                        m = time_rx.search(out)
+                        if m:
+                            t_measured = float(m.group(1))
+                            times.append(t_measured)
+                            print(f"  Run {i+1}: {t_measured:.4f} s")
                         else:
-                            logging.critical("  ➤ All runs failed.")
+                            logging.error(f"  Run {i+1}: parse fail")
+                    except subprocess.CalledProcessError as e:
+                        logging.error(f"  Run {i+1}: error\n{e.output}")
+                    except KeyboardInterrupt:
+                        print(f"\nKeyboard interrupt during run {i+1}")
+                        raise
+                        
+                if times:
+                    avg = statistics.mean(times)
+                    std = statistics.stdev(times) if len(times) > 1 else 0.0
+                    avg_matrix[n][d] = f"{avg:.4f}"
+                    std_matrix[n][d] = f"{std:.4f}"
+                    print(f"  ➤ Avg: {avg:.4f}s | Std: {std:.4f}s")
+                else:
+                    logging.critical("  ➤ All runs failed.")
 
-                        # Save after each cell
-                        save_combined_matrix(avg_matrix, std_matrix, combined_csv, params)
+                # Save results
+                save_combined_matrix(avg_matrix, std_matrix, combined_csv, params)
 
             else:  # synthetic mode
                 params["max_num_projections"] = args.max_num_projections
                 
                 static_args = [
+                    "--input_mode=synthetic",
                     "--label_mod=2",
                     f"--projection_density_factor={args.projection_density_factor}.0",
                     f"--num_trees={args.num_trees}",
@@ -233,7 +249,7 @@ if __name__ == "__main__":
                         print(f"\nRunning: rows={n}, cols={d}")
                         times = []
                         for i in range(args.repeats):
-                            cmd = [binary, "--input_mode=synthetic", f"--rows={n}", f"--cols={d}"] + static_args
+                            cmd = [binary, f"--rows={n}", f"--cols={d}"] + static_args
                             try:
                                 out = utils.run_binary_with_cleanup(cmd)
                                 
