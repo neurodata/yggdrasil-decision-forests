@@ -20,7 +20,7 @@ def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--input_mode", choices=["synthetic", "csv"], default="synthetic")
     p.add_argument("--train_csv",
-                   default="ariel_test_data/processed_wise1_data.csv")
+                   default="benchmarks/data/processed_wise1_data.csv")
     p.add_argument("--label_col", default="Cancer Status")
     p.add_argument("--experiment_name", type=str, default="",
                    help="Name for the experiment, used in the output directory path")

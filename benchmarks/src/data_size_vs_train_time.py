@@ -68,7 +68,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_mode", choices=["csv", "synthetic"], default="csv",
                         help="Experiment mode: 'csv' to load data via train_forest, 'synthetic' to generate via train_forest synthetic")
-    parser.add_argument("--train_csv", default="ariel_test_data/processed_wise1_data.csv",
+    parser.add_argument("--train_csv", default="benchmarks/data/processed_wise1_data.csv",
                         help="Path to the CSV file to use for training")
     parser.add_argument("--label_col", default="Cancer Status",
                         help="Name of the label column in the CSV")
