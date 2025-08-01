@@ -155,7 +155,8 @@ absl::Status UpdateOOBPredictionsWithNewTree(
     const bool kernel_method,
     const decision_tree::DecisionTree& new_decision_tree,
     const std::optional<int> shuffled_attribute_idx, utils::RandomEngine* rnd,
-    std::vector<PredictionAccumulator>* oob_predictions);
+    std::vector<PredictionAccumulator>* oob_predictions,
+    int tree_idx);
 
 // Evaluates the OOB predictions. Examples without any tree predictions are
 // skipped.

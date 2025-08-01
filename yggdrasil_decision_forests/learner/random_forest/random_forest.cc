@@ -700,7 +700,7 @@ RandomForestLearner::TrainWithStatusImpl(
         // Note: This in the inverse of the Out-of-bag (OOB) set.
 
         // TODO: Cache.
-        std::vector<UnsignedExampleIdx> selected_examples;
+        std::vector<UnsignedExampleIdx> selected_examples; // examples that sampled
 
         auto& decision_tree = (*mdl->mutable_decision_trees())[tree_idx];
         if (rf_config.bootstrap_training_dataset()) {
@@ -844,7 +844,7 @@ RandomForestLearner::TrainWithStatusImpl(
               train_dataset, config_with_default, selected_examples,
               rf_config.winner_take_all_inference(),rf_config.kernel_method(),
                *decision_tree, {},
-              &random, &oob_predictions);
+              &random, &oob_predictions,tree_idx);
           if (!update_oob_status.ok()) {
             utils::concurrency::MutexLock lock(&concurrent_fields.mutex);
             concurrent_fields.status.Update(update_oob_status);
@@ -907,7 +907,7 @@ RandomForestLearner::TrainWithStatusImpl(
                         rf_config.winner_take_all_inference(), rf_config.kernel_method(),
                          *decision_tree,
                         feature_idx, &random,
-                        &oob_predictions_per_input_features[feature_idx]);
+                        &oob_predictions_per_input_features[feature_idx],tree_idx);
                 if (!update_oob_status.ok()) {
                   utils::concurrency::MutexLock lock(&concurrent_fields.mutex);
                   concurrent_fields.status.Update(update_oob_status);
@@ -1051,7 +1051,8 @@ absl::Status UpdateOOBPredictionsWithNewTree(
     const bool kernel_method,
     const decision_tree::DecisionTree& new_decision_tree,
     const std::optional<int> shuffled_attribute_idx, utils::RandomEngine* rnd,
-    std::vector<PredictionAccumulator>* oob_predictions) {
+    std::vector<PredictionAccumulator>* oob_predictions,
+    int tree_idx) {
   // "next_non_oob_example_idx" is the index in "sorted_non_oob_example_indices"
   // of the example, with the smallest index which is greater or equal to the
   // index of the example being iterator on in the following "for loop".
@@ -1062,6 +1063,8 @@ absl::Status UpdateOOBPredictionsWithNewTree(
 
   for (UnsignedExampleIdx example_idx = 0; example_idx < train_dataset.nrow();
        example_idx++) {
+
+    
     // Skip the example_idx in "sorted_non_oob_example_indices".
     while (next_non_oob_example_idx < sorted_non_oob_example_indices.size() &&
            sorted_non_oob_example_indices[next_non_oob_example_idx] <
@@ -1082,7 +1085,7 @@ absl::Status UpdateOOBPredictionsWithNewTree(
           train_dataset, example_idx, shuffled_attribute_idx.value(),
           random_example_idx);
     } else {
-      leaf = &new_decision_tree.GetLeaf(train_dataset, example_idx);
+      leaf = &new_decision_tree.GetLeaf(train_dataset, example_idx); //honest = true, example_idx = all - (J1 + J2)
     }
 
     // Accumulate the decision prediction to the oob accumulator.
@@ -1299,6 +1302,10 @@ absl::Status ExportOOBPredictions(
     const dataset::proto::DataSpecification& dataspec,
     const std::vector<PredictionAccumulator>& oob_predictions,
     absl::string_view typed_path) {
+  // Add training config for passing parameter
+  const auto& rf_config = config.GetExtension(
+    random_forest::proto::random_forest_config);
+
   // Create the dataspec that describes the exported prediction dataset.
   dataset::proto::DataSpecification pred_dataspec;
 
@@ -1314,7 +1321,12 @@ absl::Status ExportOOBPredictions(
       num_label_classes = label_spec.categorical().number_of_unique_values();
       for (int i = 1 /*skip the OOV*/; i < num_label_classes; i++) {
         auto* col = pred_dataspec.add_columns();
-        col->set_name(dataset::CategoricalIdxToRepresentation(label_spec, i));
+        if (rf_config.kernel_method()) {
+          col->set_name(absl::StrCat("raw_count_", 
+              dataset::CategoricalIdxToRepresentation(label_spec, i)));
+        } else {
+          col->set_name(dataset::CategoricalIdxToRepresentation(label_spec, i));
+        }
         col->set_type(dataset::proto::ColumnType::NUMERICAL);
         example.add_attributes()->set_numerical(0);
       }
@@ -1359,10 +1371,17 @@ absl::Status ExportOOBPredictions(
       case model::proto::Task::CLASSIFICATION:
         DCHECK_EQ(pred.classification.NumClasses(), num_label_classes);
         for (int i = 1 /*skip the OOV*/; i < num_label_classes; i++) {
-          example.mutable_attributes(i - 1)->set_numerical(
+          if (rf_config.kernel_method()) {
+            example.mutable_attributes(i - 1)->set_numerical(
+                pred.classification.NumObservations() > 0
+                    ? static_cast<float>(pred.classification.count(i))  // directly use raw count
+                    : 0);
+          } else {
+            example.mutable_attributes(i - 1)->set_numerical(
               pred.classification.NumObservations() > 0
                   ? pred.classification.SafeProportionOrMinusInfinity(i)
                   : 0);
+            }
         }
         break;
 

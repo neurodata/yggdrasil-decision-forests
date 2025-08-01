@@ -317,7 +317,8 @@ TEST_F(RandomForestOnAdult, Honest) {
   rf_config->mutable_decision_tree()->mutable_honest();
   rf_config->set_sampling_with_replacement(false);
   rf_config->set_bootstrap_size_ratio(0.5);
-
+  rf_config->set_kernel_method(true);
+// Final OOB metrics: accuracy:0.849862 logloss:0.375583 with kernel_method = true
   TrainAndEvaluateModel();
   EXPECT_NEAR(metric::Accuracy(evaluation_), 0.8504, 0.01);
   EXPECT_NEAR(metric::LogLoss(evaluation_), 0.333, 0.04);
@@ -1209,6 +1210,7 @@ TEST_F(RandomForestOnSimPTE, Honest) {
   rf_config->mutable_decision_tree()->mutable_honest();
   rf_config->set_sampling_with_replacement(false);
   rf_config->set_bootstrap_size_ratio(0.5);
+  rf_config->set_kernel_method(true);
 
   TrainAndEvaluateModel();
   EXPECT_NEAR(metric::Qini(evaluation_), 0.106705, 0.004);

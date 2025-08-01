@@ -1318,6 +1318,9 @@ absl::Status BuildROCCurve(const proto::EvaluationOptions& option,
     sorted_predictions.push_back(
         BinaryPrediction{predict_true, label_is_true, pred.weight()});
     (label_is_true ? sum_positive_label : sum_negative_label) += pred.weight();
+    // LOG(INFO) << "jooooo#"
+    //                 << pred.classification().distribution() << ".";
+
   }
   if (sum_positive_label == 0 || sum_negative_label == 0) {
     // Pure one-vs-other label i.e. all the labels are positive or negative.
@@ -1339,6 +1342,8 @@ absl::Status BuildROCCurve(const proto::EvaluationOptions& option,
   RETURN_IF_ERROR(BuildROCCurveFromSortedPredictions(
       sorted_predictions, std::vector<int>(), sum_positive_label,
       sum_negative_label, roc->mutable_curve()));
+
+  
 
   roc->set_auc(computeAUC(roc->curve()));
   roc->set_pr_auc(computePrAuc(roc->curve()));

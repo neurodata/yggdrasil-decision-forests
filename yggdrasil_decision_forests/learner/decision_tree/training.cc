@@ -4284,7 +4284,7 @@ absl::Status DecisionTreeTrain(
     }
   }
 
-  if (dt_config.has_honest()) {
+  if (dt_config.has_honest()) { // very important, used to return train samples and calib samples
     // Split the examples in two parts. One ("selected_examples_buffer") will be
     // used to infer the structure of the trees while the second
     // ("leaf_examples_buffer") will be used to determine the leaf values (i.e.
@@ -4304,7 +4304,7 @@ absl::Status DecisionTreeTrain(
 
     auto* effective_random = random;
     utils::RandomEngine fixed_random(12345678);
-    if (dt_config.honest().fixed_separation()) {
+    if (dt_config.honest().fixed_separation()) { // in MIGHT should be false
       effective_random = &fixed_random;
     }
 
