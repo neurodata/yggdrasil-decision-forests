@@ -87,9 +87,9 @@ def get_args():
                         help="Number of times to repeat & avg. experiments. Use at least 5 for publishable results. Default: 1, for speed")
     
     # Model params
-    parser.add_argument("--feature_split_type", type=str, choices=["Axis Aligned", "Oblique"], required=True,
+    parser.add_argument("--feature_split_type", type=str, choices=["Axis Aligned", "Oblique"], default="Oblique",
                     help="Whether to use Axis Aligned or Oblique splits")
-    parser.add_argument("--numerical_split_type", type=str, choices=["Exact", "Random", "Equal Width", "Dynamic Histogramming"], required=True,
+    parser.add_argument("--numerical_split_type", type=str, choices=["Exact", "Random", "Equal Width", "Dynamic Histogramming"], default="Exact",
                     help="Whether to use Exact or Histogram splits. Dynamic Histogramming automatically switches between Random and Exact based on per-node data size")
     parser.add_argument("--num_trees", type=int, default=50,
                         help="Number of trees in the Random Forest. Default: 50")

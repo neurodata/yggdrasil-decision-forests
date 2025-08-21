@@ -44,54 +44,58 @@ TRAIN_RX = re.compile(r"Training wall-time:\s*([0-9.eE+-]+)s")
 
 
 def parse_parallel_chrono(log: str) -> pd.DataFrame:
+    # -----------------------------
+    # 1. collect the rows
+    # -----------------------------
     rows = []
-    for line in log.splitlines():
-        m = TIMING_RX.search(line)
-        if not m:
-            continue
-        tid, tree, depth, nodes, samples, t_sp, t_pe, t_ep = m.groups()
-        rows.append((
-            int(tree), int(depth), int(tid), int(nodes), int(samples),
-            float(t_sp), float(t_pe), float(t_ep)
-        ))
+    for m in TIMING_RX.finditer(log):
+        tid, tree, depth, nodes, samples, sp, pe, ep = m.groups()
+        rows.append(dict(thread   = int(tid),
+                         tree     = int(tree),
+                         depth    = int(depth),
+                         nodes    = int(nodes),
+                         samples  = int(samples),
+                         SampleProjection   = float(sp),
+                         ProjectionEvaluate = float(pe),
+                         EvaluateProjection = float(ep)))
 
     if not rows:
-        raise ValueError("No parallel-chrono lines found in log")
+        raise ValueError('no parallel-chrono lines found')
 
-    df = pd.DataFrame(
-        rows,
-        columns=["tree", "depth", "thread",
-                 "nodes", "samples",
-                 "SampleProjection", "ProjectionEvaluate", "EvaluateProjection"]
-    )
+    df = pd.DataFrame(rows)
 
-    # combine duplicates (shouldn’t happen but safe)
-    df = (df.groupby(["tree", "depth", "thread"], as_index=False)
-            .sum(numeric_only=True))
+    # ---------------------------------------
+    # 2. build one table per thread
+    # ---------------------------------------
+    metrics = ['SampleProjection',
+               'ProjectionEvaluate',
+               'EvaluateProjection',
+               'samples']
 
-    # pivot on thread id
-    wide = (
-        df.pivot_table(index=["tree", "depth"],
-                       columns="thread",
-                       values=["SampleProjection",
-                               "ProjectionEvaluate",
-                               "EvaluateProjection",
-                               "samples"],   # per-thread sample count
-                       fill_value=0.0)
-          .sort_index(axis=1)
-    )
+    per_thread = []
+    for tid, g in df.groupby('thread', sort=True):
+        # move thread into the column names
+        g = (g.set_index(['tree', 'depth', 'nodes'])[metrics]
+               .rename(columns=lambda c, t=tid: f'{c}_thr{t}'))
+        per_thread.append(g)
 
-    # flatten multilevel columns  (('SampleProjection',1330) → 'SampleProjection_thr1330')
-    wide.columns = [f"{func}_thr{tid}" for func, tid in wide.columns]
+    # ---------------------------------------
+    # 3. outer-join the tables side by side
+    #    and insert a blank column in between
+    # ---------------------------------------
+    joined = per_thread[0]
+    for sub in per_thread[1:]:
+        gap = pd.DataFrame({'': [''] * len(joined)}, index=joined.index)
+        joined = pd.concat([joined, gap, sub], axis=1)
 
-    # ‘nodes’ column (identical for any thread) – take from first occurrence
-    nodes = (df.groupby(["tree", "depth"], as_index=False)
-               .first()[["tree", "depth", "nodes"]])
+    # ---------------------------------------
+    # 4. final cosmetic touches
+    # ---------------------------------------
+    joined = joined.reset_index()          # bring tree/depth/nodes back
+    joined.insert(0, 'thread', '')         # first column keeps its header
+    return joined
 
-    wide = nodes.merge(wide, on=["tree", "depth"]).sort_values(["tree", "depth"])
-    return wide.reset_index(drop=True)
 
-# --------------------------------------------------------------------------
 # CSV helper
 # --------------------------------------------------------------------------
 def write_csv(left: pd.DataFrame, params: dict[str, object], path: str):
@@ -142,8 +146,17 @@ if __name__ == "__main__":
     try:
         utils.configure_cpu_for_benchmarks(True)
         t0 = time.perf_counter()
-        proc = subprocess.run(cmd, text=True, check=True,
-                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        proc = subprocess.run(
+                cmd,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False)        #  <- ignore exceptions (e.g. segfault)
+        log = proc.stdout           # you always have the output
+
+        if proc.returncode < 0:     # killed by a signal (-11 == SIGSEGV)
+            print(f"binary died with signal {-proc.returncode}")
+
         dt = time.perf_counter() - t0
         log = proc.stdout
         print(f"\n▶ binary ran in {dt:.2f}s")
