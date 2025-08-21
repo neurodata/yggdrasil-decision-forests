@@ -18,7 +18,7 @@ def configure_cpu_for_benchmarks(enable_pcore_only=True):
     """
     global cpu_modified
 
-    if get_cpu_model_proc() == "Intel Core Ultra 9 185H":
+    if get_cpu_model_proc() == "Intel(R) Core(TM) Ultra 9 185H":
         action = "--disable" if enable_pcore_only else "--enable"
         cmd = ["sudo", "./benchmarks/src/utils/set_cpu_e_features.sh", action]
         
@@ -69,7 +69,7 @@ def build_binary(args, chrono_mode):
         finished_cmd.append('--config=enable_dynamic_histogramming')
     
     if chrono_mode:
-        finished_cmd.append('--config=chrono_profile')
+        finished_cmd.append('--config=multithreaded_chrono_profile')
     
     finished_cmd.append('//examples:train_oblique_forest')
 

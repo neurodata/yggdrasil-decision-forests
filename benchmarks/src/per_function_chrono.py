@@ -27,7 +27,7 @@ def get_args():
     
     p.add_argument("--feature_split_type", type=str, 
                    choices=["Axis Aligned", "Oblique"], 
-                   required=True,
+                   default="Oblique",
                    help="Feature split type for the random forest: Axis Aligned or Oblique")
     p.add_argument("--numerical_split_type", type=str, 
                    choices=["Exact", "Random", "Equal Width", "Dynamic Histogramming"], 
