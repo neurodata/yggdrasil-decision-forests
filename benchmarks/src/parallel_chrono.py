@@ -67,8 +67,8 @@ def parse_parallel_chrono(log: str) -> pd.DataFrame:
     # ------------------------------------------------------
     # 2. build one block per thread
     # ------------------------------------------------------
-    metrics = ["SampleProjection", "ProjectionEvaluate",
-               "EvaluateProjection", "samples"]
+    metrics = ["samples", "SampleProjection", "ProjectionEvaluate",
+               "EvaluateProjection"]
 
     blocks = []
 
