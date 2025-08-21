@@ -77,7 +77,7 @@ namespace yggdrasil_decision_forests
   #ifdef CHRONO_ENABLED
     #include "yggdrasil_decision_forests/utils/parallel_chrono.h"
     namespace yggdrasil_decision_forests::chrono_prof {
-      std::array<std::atomic<uint64_t>, kNumFuncs> global_stats{};
+      // std::array<std::atomic<uint64_t>, kNumFuncs> global_stats{};
     }  // namespace yggdrasil_decision_forests::chrono_prof
   #endif
 
@@ -1006,10 +1006,19 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
         // Print all Timing info after done MultiThreading
         #ifdef CHRONO_ENABLED
-          using yggdrasil_decision_forests::chrono_prof::global_stats;
-          using yggdrasil_decision_forests::chrono_prof::kTreeTrain;
-          LOG(INFO) << "\n\n==============Summary of Per-Thread CHRONO==============\n"
-                    << global_stats[kTreeTrain].load() * 1e-9 << " s";
+          // using yggdrasil_decision_forests::chrono_prof::global_stats;
+          using namespace yggdrasil_decision_forests::chrono_prof;
+          
+          LOG(INFO) << "\n\n==============Summary of Per-Thread CHRONO==============\n";
+                    // << global_stats[kTreeTrain].load() * 1e-9 << " s";
+
+          
+          LOG(INFO) << "SampleProjection   : "
+                    << global_stats[kSampleProjection].load() * 1e-9 << " s";
+          LOG(INFO) << "ProjectionEvaluate : "
+                    << global_stats[kProjectionEvaluate].load() * 1e-9 << " s";
+          LOG(INFO) << "EvaluateProjection : "
+                    << global_stats[kEvaluateProjection].load() * 1e-9 << " s";
           
           LOG(INFO) << "\n==========================================\n\n";
         #endif

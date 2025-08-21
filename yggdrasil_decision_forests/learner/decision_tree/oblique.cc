@@ -46,6 +46,7 @@
 #include "yggdrasil_decision_forests/model/decision_tree/decision_tree.pb.h"
 #include "yggdrasil_decision_forests/utils/logging.h"
 #include "yggdrasil_decision_forests/utils/random.h"
+#include "yggdrasil_decision_forests/utils/parallel_chrono.h"
 #include <fstream>
 #include <iomanip>
 
@@ -393,6 +394,7 @@ absl::StatusOr<SplitSearchResult> EvaluateProjection(
     utils::RandomEngine* random, 
     std::chrono::duration<double>* sort_time, 
     std::chrono::duration<double>* scan_splits_time) {
+  CHRONO_SCOPE(::yggdrasil_decision_forests::chrono_prof::kEvaluateProjection);
   InternalTrainConfig effective_internal_config = internal_config;
 
   // Choose sorting strategy
@@ -939,6 +941,8 @@ void SampleProjection(const absl::Span<const int>& features,
                       internal::Projection* projection,
                       int8_t* monotonic_direction,
                       utils::RandomEngine* random) {
+  CHRONO_SCOPE(
+    ::yggdrasil_decision_forests::chrono_prof::kSampleProjection);
   *monotonic_direction = 0;
   projection->clear();
   std::uniform_real_distribution<float> unif01;
@@ -1281,7 +1285,8 @@ absl::Status ProjectionEvaluator::Evaluate(
     std::vector<float>* values) const {
   RETURN_IF_ERROR(constructor_status_);
   values->resize(selected_examples.size());
-  // std::cout << "Projection vector: " << projection;
+  CHRONO_SCOPE(
+    ::yggdrasil_decision_forests::chrono_prof::kProjectionEvaluate);
 
   // TODO make these loops in a vector operation
   // TODO start w/ full dataE
