@@ -71,15 +71,10 @@
 #include "yggdrasil_decision_forests/utils/status_macros.h"
 #include "yggdrasil_decision_forests/utils/synchronization_primitives.h"
 #include "yggdrasil_decision_forests/utils/time.h"
+#include "yggdrasil_decision_forests/utils/parallel_chrono.h"
 
 namespace yggdrasil_decision_forests
 {
-  #ifdef CHRONO_ENABLED
-    #include "yggdrasil_decision_forests/utils/parallel_chrono.h"
-    namespace yggdrasil_decision_forests::chrono_prof {
-      // std::array<std::atomic<uint64_t>, kNumFuncs> global_stats{};
-    }  // namespace yggdrasil_decision_forests::chrono_prof
-  #endif
 
   namespace model
   {
