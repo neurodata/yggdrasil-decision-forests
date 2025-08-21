@@ -40,13 +40,13 @@ TIMING_RX = re.compile(
     r"ProjEval\s+([0-9.eE+-]+)s\s+"
     r"EvalProj\s+([0-9.eE+-]+)s"
 )
-TRAIN_RX = re.compile(r"Training wall-time:\s*([0-9.eE+-]+)s")
+# TRAIN_RX = re.compile(r"Training wall-time:\s*([0-9.eE+-]+)s")
 
 
 def parse_parallel_chrono(log: str) -> pd.DataFrame:
-    # -----------------------------
-    # 1. collect the rows
-    # -----------------------------
+    # ------------------------------------------------------
+    # 1. collect the information from the log
+    # ------------------------------------------------------
     rows = []
     for m in TIMING_RX.finditer(log):
         tid, tree, depth, nodes, samples, sp, pe, ep = m.groups()
@@ -60,41 +60,50 @@ def parse_parallel_chrono(log: str) -> pd.DataFrame:
                          EvaluateProjection = float(ep)))
 
     if not rows:
-        raise ValueError('no parallel-chrono lines found')
+        raise ValueError("no parallel-chrono lines found in log")
 
     df = pd.DataFrame(rows)
 
-    # ---------------------------------------
-    # 2. build one table per thread
-    # ---------------------------------------
-    metrics = ['SampleProjection',
-               'ProjectionEvaluate',
-               'EvaluateProjection',
-               'samples']
+    # ------------------------------------------------------
+    # 2. build one block per thread
+    # ------------------------------------------------------
+    metrics = ["SampleProjection", "ProjectionEvaluate",
+               "EvaluateProjection", "samples"]
 
-    per_thread = []
-    for tid, g in df.groupby('thread', sort=True):
-        # move thread into the column names
-        g = (g.set_index(['tree', 'depth', 'nodes'])[metrics]
-               .rename(columns=lambda c, t=tid: f'{c}_thr{t}'))
-        per_thread.append(g)
+    blocks = []
 
-    # ---------------------------------------
-    # 3. outer-join the tables side by side
-    #    and insert a blank column in between
-    # ---------------------------------------
-    joined = per_thread[0]
-    for sub in per_thread[1:]:
-        gap = pd.DataFrame({'': [''] * len(joined)}, index=joined.index)
-        joined = pd.concat([joined, gap, sub], axis=1)
+    for tid, g in df.groupby("thread", sort=True):
+        g = g.sort_values(["tree", "depth"]).reset_index(drop=True)
 
-    # ---------------------------------------
-    # 4. final cosmetic touches
-    # ---------------------------------------
-    joined = joined.reset_index()          # bring tree/depth/nodes back
-    joined.insert(0, 'thread', '')         # first column keeps its header
-    return joined
+        # rename every column except ‘thread’ so that they carry the tid
+        g = g.rename(
+            columns=lambda c, t=tid: c if c == "thread" else f"{c}_thr{t}")
 
+        # reorder columns so that they read nicely inside the block
+        order = ["thread",
+                 f"tree_thr{tid}",  f"depth_thr{tid}", f"nodes_thr{tid}",
+                *[f"{m}_thr{tid}" for m in metrics]]
+        g = g[order]
+
+        blocks.append(g)
+
+    # ------------------------------------------------------
+    # 3. concatenate blocks side-by-side, insert a blank
+    #    column between two successive blocks, align by row
+    #    index instead of by (tree,depth,nodes)
+    # ------------------------------------------------------
+    max_len = max(len(b) for b in blocks)
+    gap     = pd.DataFrame({"": [""] * max_len})       # empty col
+
+    padded  = []
+    for i, b in enumerate(blocks):
+        padded.append(b.reindex(range(max_len)))       # pad shorter block
+        if i + 1 < len(blocks):
+            padded.append(gap)
+
+    wide = pd.concat(padded, axis=1)
+
+    return wide
 
 # CSV helper
 # --------------------------------------------------------------------------
@@ -107,9 +116,7 @@ def write_csv(left: pd.DataFrame, params: dict[str, object], path: str):
                                     right.reindex(range(n)).fillna("")], axis=1))
      ).to_csv(path, index=False, quoting=csv.QUOTE_MINIMAL)
 
-# --------------------------------------------------------------------------
-# main
-# --------------------------------------------------------------------------
+
 if __name__ == "__main__":
     utils.setup_signal_handlers()
     a = get_args()
@@ -142,7 +149,6 @@ if __name__ == "__main__":
                 f"--train_csv={a.train_csv}",
                 f"--label_col={a.label_col}"]
 
-    # run --------------------------------------------------------------
     try:
         utils.configure_cpu_for_benchmarks(True)
         t0 = time.perf_counter()
@@ -151,24 +157,24 @@ if __name__ == "__main__":
                 text=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                check=False)        #  <- ignore exceptions (e.g. segfault)
-        log = proc.stdout           # you always have the output
+                check=False)
+        log = proc.stdout
 
-        if proc.returncode < 0:     # killed by a signal (-11 == SIGSEGV)
+        if proc.returncode < 0:
             print(f"binary died with signal {-proc.returncode}")
 
         dt = time.perf_counter() - t0
-        log = proc.stdout
-        print(f"\n▶ binary ran in {dt:.2f}s")
-
-        if a.save_log:
-            (out_dir / f"{exp}.log").write_text(log)
-
         log_plain = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', log)
         table = parse_parallel_chrono(log_plain)
-        wall = TRAIN_RX.search(log_plain).group(1)
-        write_csv(table, vars(a), out_dir / f"{wall}.csv")
-        print("CSV written to", out_dir)
+
+        # ------------------------------------------------------------------
+        #  >>>  NEW: build file name from arguments instead of wall-time
+        # ------------------------------------------------------------------
+        fname  = f"{a.feature_split_type}-{a.numerical_split_type}-{a.num_threads}Threads.csv"
+        out_fp = out_dir / fname
+
+        write_csv(table, vars(a), out_fp)
+        print("CSV written to", out_fp)
 
     except Exception as e:
         print("❌", e, file=sys.stderr)
