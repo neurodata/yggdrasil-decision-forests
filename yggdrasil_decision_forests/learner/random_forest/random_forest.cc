@@ -684,8 +684,10 @@ yggdrasil_decision_forests::chrono_prof::tree_thread_id.resize(rf_config.num_tre
           for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++) {
             
             pool.Schedule([&, tree_idx]() {
+              #ifdef CHRONO_ENABLED
               yggdrasil_decision_forests::chrono_prof::TreeScope tree_guard(tree_idx);
               CHRONO_SCOPE_TOP(yggdrasil_decision_forests::chrono_prof::kTreeTrain);   // measures whole task
+              #endif
 
                   if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL > 0) { std::cout << "\nStarting work for Tree " << tree_idx << ":\n"; }
 

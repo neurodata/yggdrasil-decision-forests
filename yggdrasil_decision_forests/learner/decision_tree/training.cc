@@ -5076,7 +5076,9 @@ return found_split ? SplitSearchResult::kBetterSplitFound
       SelectedExamplesRollingBuffer selected_examples,
       std::optional<SelectedExamplesRollingBuffer> leaf_examples)
   {
+    #ifdef CHRONO_ENABLED
       yggdrasil_decision_forests::chrono_prof::DepthScope depth_guard;
+    #endif
 
     bool enable_timing = false;
     auto nodetrain_start = std::chrono::high_resolution_clock::now();
