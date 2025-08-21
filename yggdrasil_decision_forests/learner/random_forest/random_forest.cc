@@ -74,6 +74,13 @@
 
 namespace yggdrasil_decision_forests
 {
+  #ifdef CHRONO_ENABLED
+    #include "yggdrasil_decision_forests/utils/parallel_chrono.h"
+    namespace yggdrasil_decision_forests::chrono_prof {
+      std::array<std::atomic<uint64_t>, kNumFuncs> global_stats{};
+    }  // namespace yggdrasil_decision_forests::chrono_prof
+  #endif
+
   namespace model
   {
     namespace random_forest
@@ -675,6 +682,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
           for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++) {
             
             pool.Schedule([&, tree_idx]() {
+              CHRONO_SCOPE_TOP(yggdrasil_decision_forests::chrono_prof::kTreeTrain);   // measures whole task
 
                   if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL > 0) { std::cout << "\nStarting work for Tree " << tree_idx << ":\n"; }
 
@@ -995,6 +1003,14 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
       );
           }
         }
+
+        // Print all Timing info after done MultiThreading
+        #ifdef CHRONO_ENABLED
+        using yggdrasil_decision_forests::chrono_prof::global_stats;
+        using yggdrasil_decision_forests::chrono_prof::kTreeTrain;
+        LOG(INFO) << "Total tree-building time: "
+                  << global_stats[kTreeTrain].load() * 1e-9 << " s";
+        #endif
 
         /* #endregion */
 

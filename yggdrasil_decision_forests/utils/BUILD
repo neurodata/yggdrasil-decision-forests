@@ -953,6 +953,13 @@ cc_library_ydf(
     ],
 )
 
+# Timing measurements for multi-threaded Random/Oblique Forest
+cc_library_ydf(
+    name = "parallel_chrono",
+    hdrs = ["parallel_chrono.h"],
+    visibility = ["//visibility:public"],
+)
+
 # Bzl Libraries
 # =============
 

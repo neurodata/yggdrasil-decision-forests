@@ -309,6 +309,7 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
       }
   }
 
+  
   if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
     if (new_dt_config.numerical_split().type() == proto::NumericalSplit::EXACT) {
   std::cout << "\n=== Timing summary for " << num_projections << " projections ===\n"
@@ -332,7 +333,6 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
 
   /* #endregion */
 
-  // start = std::chrono::high_resolution_clock::now();
   /* #region Post-Processing - unimportant for runtime */
 
   // Save projection matrix to file if desired
@@ -367,12 +367,6 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     // dur = end - start;
     // std::cout << "\nFindBestCondOblique::SetCond() took: " << dur.count() << "s" << std::endl;
     return true;
-  }
-
-  if constexpr (CHRONO_MEASUREMENTS_LOG_LEVEL>0) {
-    end = std::chrono::high_resolution_clock::now();
-    dur = end - start;
-    std::cout << "\n FindBestCondOblique - non-SetCond took: " << dur.count() << "s" << std::endl;
   }
   
   return false;
