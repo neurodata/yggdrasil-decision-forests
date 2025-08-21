@@ -6,6 +6,7 @@ enum FuncId { kTreeTrain = 0, kSampleProjection, kProjectionEvaluate,
               kEvaluateProjection, kNumFuncs };
 
 inline std::array<std::atomic<uint64_t>, kNumFuncs> global_stats{};
+inline std::vector<std::thread::id> tree_thread_id;   // size = num_trees
 
 // ── NEW: per-thread context ─────────────────────────────────────────
 struct TlsCtx {
@@ -52,7 +53,12 @@ class ScopedTimer {
 
 // ── light helpers to set tree / depth ───────────────────────────────
 struct TreeScope {
-  explicit TreeScope(int tree) { tls_ctx.cur_tree = tree; tls_ctx.cur_depth = -1; }
+  explicit TreeScope(int tree) {
+    tls_ctx.cur_tree = tree;
+    tls_ctx.cur_depth = -1;
+    if (tree >= 0 && tree < (int)tree_thread_id.size())
+      tree_thread_id[tree] = std::this_thread::get_id();
+  }
   ~TreeScope() { tls_ctx.cur_tree = -1; }
 };
 

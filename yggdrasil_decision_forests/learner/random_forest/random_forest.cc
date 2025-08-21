@@ -672,6 +672,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         #ifdef CHRONO_ENABLED
           yggdrasil_decision_forests::chrono_prof::time_ns
               .resize(rf_config.num_trees());
+yggdrasil_decision_forests::chrono_prof::tree_thread_id.resize(rf_config.num_trees());
         #endif
 
         /****** #region FINALLY, START TRAINING ******/
@@ -1015,9 +1016,11 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                     // << global_stats[kTreeTrain].load() * 1e-9 << " s";
 
 for (int t = 0; t < time_ns.size(); ++t) {
+    // LOG(INFO) << "tree " << t << " built by thread "
+    //         << tree_thread_id[t];
   for (int d = 0; d < time_ns[t].size(); ++d) {
     auto& arr = time_ns[t][d];          // elements are uint64_t now
-    LOG(INFO) << "tree " << t << " depth " << d
+    LOG(INFO) << "thread " << tree_thread_id[t] << " tree " << t << " depth " << d
               << " SampleProj " << arr[kSampleProjection]*1e-9 << "s"
               << "  ProjEval "   << arr[kProjectionEvaluate]*1e-9 << "s"
               << "  EvalProj "   << arr[kEvaluateProjection]*1e-9 << "s";
