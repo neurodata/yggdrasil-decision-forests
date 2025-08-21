@@ -65,6 +65,7 @@
 #include "yggdrasil_decision_forests/utils/logging.h"
 #include "yggdrasil_decision_forests/utils/random.h"
 #include "yggdrasil_decision_forests/utils/status_macros.h"
+#include "yggdrasil_decision_forests/utils/parallel_chrono.h"
 
 namespace yggdrasil_decision_forests::model::decision_tree
 {
@@ -5075,6 +5076,8 @@ return found_split ? SplitSearchResult::kBetterSplitFound
       SelectedExamplesRollingBuffer selected_examples,
       std::optional<SelectedExamplesRollingBuffer> leaf_examples)
   {
+      yggdrasil_decision_forests::chrono_prof::DepthScope depth_guard;
+
     bool enable_timing = false;
     auto nodetrain_start = std::chrono::high_resolution_clock::now();
 

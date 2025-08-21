@@ -668,6 +668,12 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         if constexpr (decision_tree::HARD_CODE_1000_PROJECTIONS) { LOG(WARNING) << "Num_projections Hard-coded to 1000!"; }
         LOG(INFO) << "num_threads being used: " << deployment().num_threads();
 
+
+        #ifdef CHRONO_ENABLED
+          yggdrasil_decision_forests::chrono_prof::time_ns
+              .resize(rf_config.num_trees());
+        #endif
+
         /****** #region FINALLY, START TRAINING ******/
         {
           utils::concurrency::ThreadPool pool(deployment().num_threads(), {.name_prefix = std::string("TrainRF")});
@@ -677,6 +683,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
           for (int tree_idx = 0; tree_idx < rf_config.num_trees(); tree_idx++) {
             
             pool.Schedule([&, tree_idx]() {
+              yggdrasil_decision_forests::chrono_prof::TreeScope tree_guard(tree_idx);
               CHRONO_SCOPE_TOP(yggdrasil_decision_forests::chrono_prof::kTreeTrain);   // measures whole task
 
                   if constexpr (decision_tree::CHRONO_MEASUREMENTS_LOG_LEVEL > 0) { std::cout << "\nStarting work for Tree " << tree_idx << ":\n"; }
@@ -1007,13 +1014,15 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
           LOG(INFO) << "\n\n==============Summary of Per-Thread CHRONO==============\n";
                     // << global_stats[kTreeTrain].load() * 1e-9 << " s";
 
-          
-          LOG(INFO) << "SampleProjection   : "
-                    << global_stats[kSampleProjection].load() * 1e-9 << " s";
-          LOG(INFO) << "ProjectionEvaluate : "
-                    << global_stats[kProjectionEvaluate].load() * 1e-9 << " s";
-          LOG(INFO) << "EvaluateProjection : "
-                    << global_stats[kEvaluateProjection].load() * 1e-9 << " s";
+for (int t = 0; t < time_ns.size(); ++t) {
+  for (int d = 0; d < time_ns[t].size(); ++d) {
+    auto& arr = time_ns[t][d];          // elements are uint64_t now
+    LOG(INFO) << "tree " << t << " depth " << d
+              << " SampleProj " << arr[kSampleProjection]*1e-9 << "s"
+              << "  ProjEval "   << arr[kProjectionEvaluate]*1e-9 << "s"
+              << "  EvalProj "   << arr[kEvaluateProjection]*1e-9 << "s";
+  }
+}
           
           LOG(INFO) << "\n==========================================\n\n";
         #endif
