@@ -126,7 +126,7 @@
       ]
     },
     {
-      "name": "Synthetic matrix 4096x4096",
+      "name": "Synthetic 4096x4096 Parallel",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
@@ -138,7 +138,9 @@
         "--rows",
         "4096",
         "--projection_density_factor",
-        "3"
+        "3",
+        "--num_threads=3",
+        "--num_trees=5"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

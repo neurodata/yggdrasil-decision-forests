@@ -5077,7 +5077,19 @@ return found_split ? SplitSearchResult::kBetterSplitFound
       std::optional<SelectedExamplesRollingBuffer> leaf_examples)
   {
     #ifdef CHRONO_ENABLED
-      yggdrasil_decision_forests::chrono_prof::DepthScope depth_guard;
+      using namespace yggdrasil_decision_forests::chrono_prof;
+      DepthScope depth_guard;
+
+      const int t = tls_ctx.cur_tree;
+      const int d = tls_ctx.cur_depth;
+      if (t >= 0) {
+        if (d >= node_cnt()[t].size()) {           // grow once if new depth
+          node_cnt()[t].resize(d + 1);
+          sample_cnt()[t].resize(d + 1);
+        }
+        node_cnt()[t][d]++;
+        sample_cnt()[t][d] += selected_examples.size();
+      }
     #endif
 
     bool enable_timing = false;

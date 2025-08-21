@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
-"""Run YDF with parallel-chrono, write per-tree-depth CSV."""
+"""Run YDF with parallel-chrono, write per-tree-depth CSV (thread-pivoted)."""
 
 from __future__ import annotations
 import argparse, csv, os, re, subprocess, sys, time
-from collections import defaultdict
+from pathlib import Path
 
 import pandas as pd
-import utils.utils as utils               # your local helper module
-
-# -----------------------------------------------------------------------------
-# 1. CLI
-# -----------------------------------------------------------------------------
+import utils.utils as utils      # your helper module
+# --------------------------------------------------------------------------
+# CLI
+# --------------------------------------------------------------------------
 def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--input_mode", choices=["synthetic", "csv"], default="synthetic")
@@ -31,28 +30,29 @@ def get_args():
     p.add_argument("--save_log", action="store_true")
     return p.parse_args()
 
-
-# -----------------------------------------------------------------------------
-# 2.  Parsing parallel-chrono output
-# -----------------------------------------------------------------------------
-TREELINE_RX = re.compile(
+# --------------------------------------------------------------------------
+# log parsing
+# --------------------------------------------------------------------------
+TIMING_RX = re.compile(
     r"thread\s+(\d+)\s+tree\s+(\d+)\s+depth\s+(\d+)\s+"
+    r"nodes\s+(\d+)\s+samples\s+(\d+)\s+"
     r"SampleProj\s+([0-9.eE+-]+)s\s+"
     r"ProjEval\s+([0-9.eE+-]+)s\s+"
     r"EvalProj\s+([0-9.eE+-]+)s"
 )
 TRAIN_RX = re.compile(r"Training wall-time:\s*([0-9.eE+-]+)s")
 
+
 def parse_parallel_chrono(log: str) -> pd.DataFrame:
     rows = []
     for line in log.splitlines():
-        m = TREELINE_RX.search(line)
+        m = TIMING_RX.search(line)
         if not m:
             continue
-        _, tree, depth, t_sp, t_pe, t_ep = m.groups()
+        tid, tree, depth, nodes, samples, t_sp, t_pe, t_ep = m.groups()
         rows.append((
-            int(tree), int(depth),
-            float(t_sp), float(t_pe), float(t_ep),
+            int(tree), int(depth), int(tid), int(nodes), int(samples),
+            float(t_sp), float(t_pe), float(t_ep)
         ))
 
     if not rows:
@@ -60,66 +60,75 @@ def parse_parallel_chrono(log: str) -> pd.DataFrame:
 
     df = pd.DataFrame(
         rows,
-        columns=[
-            "tree", "depth",
-            "SampleProjection", "ProjectionEvaluate", "EvaluateProjection"
-        ],
-    ).sort_values(["tree", "depth"])
+        columns=["tree", "depth", "thread",
+                 "nodes", "samples",
+                 "SampleProjection", "ProjectionEvaluate", "EvaluateProjection"]
+    )
 
-    # placeholder columns (kept for backward compatibility)
-    df["nodes"] = 0
-    df["total_samples"] = 0
+    # combine duplicates (shouldn’t happen but safe)
+    df = (df.groupby(["tree", "depth", "thread"], as_index=False)
+            .sum(numeric_only=True))
 
-    df = df[[
-        "tree", "depth", "nodes", "total_samples",
-        "SampleProjection", "ProjectionEvaluate", "EvaluateProjection"
-    ]]
-    return df
+    # pivot on thread id
+    wide = (
+        df.pivot_table(index=["tree", "depth"],
+                       columns="thread",
+                       values=["SampleProjection",
+                               "ProjectionEvaluate",
+                               "EvaluateProjection",
+                               "samples"],   # per-thread sample count
+                       fill_value=0.0)
+          .sort_index(axis=1)
+    )
 
+    # flatten multilevel columns  (('SampleProjection',1330) → 'SampleProjection_thr1330')
+    wide.columns = [f"{func}_thr{tid}" for func, tid in wide.columns]
 
-# -----------------------------------------------------------------------------
-# 3.  Convenience: CSV writer with params block on the right
-# -----------------------------------------------------------------------------
-def write_csv(table: pd.DataFrame, params: dict[str, object], path: str):
-    p_df = pd.DataFrame(list(params.items()), columns=["Parameter", "Value"])
-    n = max(len(table), len(p_df))
+    # ‘nodes’ column (identical for any thread) – take from first occurrence
+    nodes = (df.groupby(["tree", "depth"], as_index=False)
+               .first()[["tree", "depth", "nodes"]])
+
+    wide = nodes.merge(wide, on=["tree", "depth"]).sort_values(["tree", "depth"])
+    return wide.reset_index(drop=True)
+
+# --------------------------------------------------------------------------
+# CSV helper
+# --------------------------------------------------------------------------
+def write_csv(left: pd.DataFrame, params: dict[str, object], path: str):
+    right = pd.DataFrame(list(params.items()), columns=["Parameter", "Value"])
+    n = max(len(left), len(right))
     gap = pd.DataFrame({"": [""] * n, "  ": [""] * n})
-    (table.reindex(range(n)).fillna("")
-         .pipe(lambda left: pd.concat([left, gap, p_df.reindex(range(n)).fillna("")],
-                                      axis=1))
-         ).to_csv(path, index=False, quoting=csv.QUOTE_MINIMAL)
+    (left.reindex(range(n)).fillna("")
+         .pipe(lambda l: pd.concat([l, gap,
+                                    right.reindex(range(n)).fillna("")], axis=1))
+     ).to_csv(path, index=False, quoting=csv.QUOTE_MINIMAL)
 
-
-# -----------------------------------------------------------------------------
-# 4.  Main
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# main
+# --------------------------------------------------------------------------
 if __name__ == "__main__":
     utils.setup_signal_handlers()
     a = get_args()
 
-    # Build with chrono mode
     if not utils.build_binary(a, chrono_mode=True):
-        print("❌ Build failed", file=sys.stderr)
+        print("❌ build failed", file=sys.stderr)
         sys.exit(1)
 
-    exp_name = f"{a.feature_split_type} | {a.numerical_split_type} | {a.num_threads}t | {a.experiment_name}"
-    out_dir = os.path.join(
-        "benchmarks/results", "per_function_timing",
-        utils.get_cpu_model_proc(), exp_name, f"{a.rows}_x_{a.cols}"
-    )
-    os.makedirs(out_dir, exist_ok=True)
+    exp = f"{a.feature_split_type} | {a.numerical_split_type} | {a.num_threads}t | {a.experiment_name}"
+    out_dir = Path("benchmarks/results/per_function_timing") / utils.get_cpu_model_proc() / exp / f"{a.rows}_x_{a.cols}"
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    # ----- assemble cmd -------------------------------------------------------
+    # command ----------------------------------------------------------
     cmd = ["./bazel-bin/examples/train_oblique_forest",
            f"--num_trees={a.num_trees}",
            f"--tree_depth={a.tree_depth}",
            f"--num_threads={a.num_threads}",
            f"--projection_density_factor={a.projection_density_factor}",
            f"--max_num_projections={a.max_num_projections}",
-           f"--feature_split_type={a.feature_split_type}",
-           ]
+           f"--feature_split_type={a.feature_split_type}"]
 
-    cmd.append("--numerical_split_type=Exact" if a.numerical_split_type == "Dynamic Histogramming"
+    cmd.append("--numerical_split_type=Exact"
+               if a.numerical_split_type == "Dynamic Histogramming"
                else f"--numerical_split_type={a.numerical_split_type}")
 
     if a.input_mode == "synthetic":
@@ -129,26 +138,26 @@ if __name__ == "__main__":
                 f"--train_csv={a.train_csv}",
                 f"--label_col={a.label_col}"]
 
-    # ----- run ----------------------------------------------------------------
+    # run --------------------------------------------------------------
     try:
         utils.configure_cpu_for_benchmarks(True)
         t0 = time.perf_counter()
-        log = subprocess.run(cmd, text=True, check=True,
-                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
+        proc = subprocess.run(cmd, text=True, check=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         dt = time.perf_counter() - t0
-        print(f"\n▶ binary ran in {dt:.3f}s")
+        log = proc.stdout
+        print(f"\n▶ binary ran in {dt:.2f}s")
 
         if a.save_log:
-            with open(os.path.join(out_dir, f"{exp_name}.log"), "w") as f:
-                f.write(log)
+            (out_dir / f"{exp}.log").write_text(log)
 
-        log_plain = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', log)   # strip ANSI
+        log_plain = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', log)
         table = parse_parallel_chrono(log_plain)
         wall = TRAIN_RX.search(log_plain).group(1)
-        write_csv(table, vars(a), os.path.join(out_dir, f"{wall}.csv"))
-        print("CSV written.")
+        write_csv(table, vars(a), out_dir / f"{wall}.csv")
+        print("CSV written to", out_dir)
 
     except Exception as e:
-        print(f"\nUnexpected error: {e}", file=sys.stderr)
+        print("❌", e, file=sys.stderr)
     finally:
         utils.cleanup_and_exit()

@@ -670,9 +670,12 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
 
         #ifdef CHRONO_ENABLED
-          yggdrasil_decision_forests::chrono_prof::time_ns
-              .resize(rf_config.num_trees());
-yggdrasil_decision_forests::chrono_prof::tree_thread_id.resize(rf_config.num_trees());
+        using namespace yggdrasil_decision_forests::chrono_prof;
+
+        time_ns().resize(rf_config.num_trees());
+        tree_thread_id().resize(rf_config.num_trees());
+        node_cnt().resize(rf_config.num_trees());
+        sample_cnt().resize(rf_config.num_trees());
         #endif
 
         /****** #region FINALLY, START TRAINING ******/
@@ -1011,26 +1014,24 @@ yggdrasil_decision_forests::chrono_prof::tree_thread_id.resize(rf_config.num_tre
 
         // Print all Timing info after done MultiThreading
         #ifdef CHRONO_ENABLED
-          // using yggdrasil_decision_forests::chrono_prof::global_stats;
-          using namespace yggdrasil_decision_forests::chrono_prof;
-          
-          LOG(INFO) << "\n\n==============Summary of Per-Thread CHRONO==============\n";
-                    // << global_stats[kTreeTrain].load() * 1e-9 << " s";
+        using namespace yggdrasil_decision_forests::chrono_prof;
 
-for (int t = 0; t < time_ns.size(); ++t) {
-    // LOG(INFO) << "tree " << t << " built by thread "
-    //         << tree_thread_id[t];
-  for (int d = 0; d < time_ns[t].size(); ++d) {
-    auto& arr = time_ns[t][d];          // elements are uint64_t now
-    LOG(INFO) << "thread " << tree_thread_id[t] << " tree " << t << " depth " << d
-              << " SampleProj " << arr[kSampleProjection]*1e-9 << "s"
-              << "  ProjEval "   << arr[kProjectionEvaluate]*1e-9 << "s"
-              << "  EvalProj "   << arr[kEvaluateProjection]*1e-9 << "s";
-  }
-}
-          
-          LOG(INFO) << "\n==========================================\n\n";
+        for (int t = 0; t < static_cast<int>(time_ns().size()); ++t) {
+          for (int d = 0; d < static_cast<int>(time_ns()[t].size()); ++d) {
+            auto& arr = time_ns()[t][d];
+            LOG(INFO) << "thread "   << tree_thread_id()[t]
+                      << " tree "    << t
+                      << " depth "   << d
+                      << " nodes "   << node_cnt()[t][d]
+                      << " samples " << sample_cnt()[t][d]
+                      << " SampleProj " << arr[kSampleProjection]   * 1e-9 << "s"
+                      << " ProjEval "   << arr[kProjectionEvaluate] * 1e-9 << "s"
+                      << " EvalProj "   << arr[kEvaluateProjection] * 1e-9 << "s";
+          }
+        }
+        LOG(INFO) << "\n==========================================\n\n";
         #endif
+          
 
         /* #endregion */
 
