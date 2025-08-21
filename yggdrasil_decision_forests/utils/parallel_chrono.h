@@ -2,6 +2,10 @@
 #include <atomic>
 #include <chrono>
 
+// Token concatenation helpers.
+#define YDF_PP_CAT_INNER(a, b) a##b
+#define YDF_PP_CAT(a, b) YDF_PP_CAT_INNER(a, b)
+
 // TODO Replace this back with CHRONO_MEASUREMENTS_LOG_LEVEL
 #ifdef CHRONO_ENABLED
 namespace yggdrasil_decision_forests::chrono_prof {
@@ -25,9 +29,9 @@ class ScopedTimerTop {
   std::chrono::steady_clock::time_point start_;
 };
 
-#define CHRONO_SCOPE_TOP(ID) \
-  yggdrasil_decision_forests::chrono_prof::ScopedTimerTop \
-      CONCAT(__timer__, __LINE__)(ID)
+#define CHRONO_SCOPE_TOP(ID)                                              \
+  yggdrasil_decision_forests::chrono_prof::ScopedTimerTop                 \
+      YDF_PP_CAT(_chrono_timer_, __LINE__)(ID)
 }  // namespace yggdrasil_decision_forests::chrono_prof
 #else
 #define CHRONO_SCOPE_TOP(ID)

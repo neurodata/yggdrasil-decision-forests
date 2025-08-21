@@ -675,7 +675,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
         /****** #region FINALLY, START TRAINING ******/
         {
-          yggdrasil_decision_forests::utils::concurrency::ThreadPool pool(deployment().num_threads(), {.name_prefix = std::string("TrainRF")});
+          utils::concurrency::ThreadPool pool(deployment().num_threads(), {.name_prefix = std::string("TrainRF")});
 
 
           pool.StartWorkers();
@@ -1006,10 +1006,12 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
         // Print all Timing info after done MultiThreading
         #ifdef CHRONO_ENABLED
-        using yggdrasil_decision_forests::chrono_prof::global_stats;
-        using yggdrasil_decision_forests::chrono_prof::kTreeTrain;
-        LOG(INFO) << "Total tree-building time: "
-                  << global_stats[kTreeTrain].load() * 1e-9 << " s";
+          using yggdrasil_decision_forests::chrono_prof::global_stats;
+          using yggdrasil_decision_forests::chrono_prof::kTreeTrain;
+          LOG(INFO) << "\n\n==============Summary of Per-Thread CHRONO==============\n"
+                    << global_stats[kTreeTrain].load() * 1e-9 << " s";
+          
+          LOG(INFO) << "\n==========================================\n\n";
         #endif
 
         /* #endregion */
