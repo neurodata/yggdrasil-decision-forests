@@ -15,17 +15,19 @@ else
 fi
 
 # So it's found when script is run as sudo
-benchmarks/.venv/bin/python benchmarks/src/parallel_chrono.py --num_threads=32  --train_csv=benchmarks/data/trunk_data/10000x4096.csv --label_col=target --tree_depth=8 --num_trees=64
+benchmarks/.venv/bin/python benchmarks/src/parallel_chrono.py --num_threads=48  --train_csv=benchmarks/data/trunk_data/100000x4096.csv --label_col=target --tree_depth=-1 --num_trees=512
 
-benchmarks/.venv/bin/python benchmarks/src/parallel_chrono.py --num_threads=16 --train_csv=benchmarks/data/trunk_data/10000x4096.csv --label_col=target --tree_depth=8 --num_trees=64
+benchmarks/.venv/bin/python benchmarks/src/parallel_chrono.py --num_threads=32  --train_csv=benchmarks/data/trunk_data/100000x4096.csv --label_col=target --tree_depth=-1 --num_trees=512
 
-benchmarks/.venv/bin/python benchmarks/src/parallel_chrono.py --num_threads=8 --train_csv=benchmarks/data/trunk_data/10000x4096.csv --label_col=target --tree_depth=8 --num_trees=64
+benchmarks/.venv/bin/python benchmarks/src/parallel_chrono.py --num_threads=16 --train_csv=benchmarks/data/trunk_data/100000x4096.csv --label_col=target --tree_depth=-1 --num_trees=512
 
-benchmarks/.venv/bin/python benchmarks/src/parallel_chrono.py --num_threads=4 --train_csv=benchmarks/data/trunk_data/10000x4096.csv --label_col=target --tree_depth=8 --num_trees=64
+benchmarks/.venv/bin/python benchmarks/src/parallel_chrono.py --num_threads=8 --train_csv=benchmarks/data/trunk_data/100000x4096.csv --label_col=target --tree_depth=-1 --num_trees=512
 
-benchmarks/.venv/bin/python benchmarks/src/parallel_chrono.py --num_threads=2 --train_csv=benchmarks/data/trunk_data/10000x4096.csv --label_col=target --tree_depth=8 --num_trees=64
+benchmarks/.venv/bin/python benchmarks/src/parallel_chrono.py --num_threads=4 --train_csv=benchmarks/data/trunk_data/100000x4096.csv --label_col=target --tree_depth=-1 --num_trees=512
 
-benchmarks/.venv/bin/python benchmarks/src/parallel_chrono.py --num_threads=1 --train_csv=benchmarks/data/trunk_data/10000x4096.csv --label_col=target --tree_depth=8 --num_trees=64
+benchmarks/.venv/bin/python benchmarks/src/parallel_chrono.py --num_threads=2 --train_csv=benchmarks/data/trunk_data/100000x4096.csv --label_col=target --tree_depth=-1 --num_trees=512
+
+benchmarks/.venv/bin/python benchmarks/src/parallel_chrono.py --num_threads=1 --train_csv=benchmarks/data/trunk_data/100000x4096.csv --label_col=target --tree_depth=-1 --num_trees=512
 
 # Only kill the keepalive process if it exists
 if [ ! -z "${SUDO_KEEPALIVE_PID}" ]; then
