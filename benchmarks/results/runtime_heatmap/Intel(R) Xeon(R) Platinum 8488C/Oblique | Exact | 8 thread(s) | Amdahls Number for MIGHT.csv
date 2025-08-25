@@ -1,0 +1,13 @@
+n,CSV_cols,,,,,,CSV_cols_std,,,Parameter,Value
+CSV_rows,901.7610,,,,,,0.0000,,,Benchmark,Amdahls Number for MIGHT
+,,,,,,,,,,Input Mode,csv
+,,,,,,,,,,Train CSV,benchmarks/data/processed_wise1_data.csv
+,,,,,,,,,,Label Column,Cancer Status
+,,,,,,,,,,Projection Density Factor,3
+,,,,,,,,,,Trees,100000
+,,,,,,,,,,depth,-1
+,,,,,,,,,,feature_split_type,Oblique
+,,,,,,,,,,numerical_split_type,Exact
+,,,,,,,,,,cpu_model,Intel(R) Xeon(R) Platinum 8488C
+,,,,,,,,,,threads,8
+,,,,,,,,,,repeats,1
