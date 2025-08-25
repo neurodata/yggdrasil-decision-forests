@@ -134,7 +134,15 @@ if __name__ == "__main__":
         sys.exit(1)
 
     exp = f"{a.feature_split_type} | {a.numerical_split_type} | {a.num_threads}t | {a.experiment_name}"
-    out_dir = Path("benchmarks/results/per_function_timing") / utils.get_cpu_model_proc() / exp / f"{a.rows}_x_{a.cols}"
+    
+    # Use CSV filename (without extension) if using CSV input, otherwise use matrix dimensions
+    if a.input_mode == "csv":
+        csv_filename = Path(a.train_csv).stem  # Gets filename without extension
+        dataset_name = csv_filename
+    else:
+        dataset_name = f"{a.rows}_x_{a.cols}"
+    
+    out_dir = Path("benchmarks/results/per_function_timing") / utils.get_cpu_model_proc() / exp / dataset_name
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # command ----------------------------------------------------------
