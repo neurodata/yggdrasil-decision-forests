@@ -1,10 +1,18 @@
+#!/bin/bash
+
 source benchmarks/.venv/bin/activate
 
-# Ask for the password once.
-sudo -v
-# Keep the timestamp fresh so it never expires.
-while true; do sudo -n true ; sleep 60 ; done &
-SUDO_KEEPALIVE_PID=$!
+# Check if we need a password for sudo
+if sudo -n true 2>/dev/null; then
+    # No password needed, we're good to go
+    echo "Passwordless sudo detected"
+else
+    # Password needed, so ask for it and keep it alive
+    sudo -v
+    # Keep the timestamp fresh so it never expires.
+    while true; do sudo -n true ; sleep 60 ; done &
+    SUDO_KEEPALIVE_PID=$!
+fi
 
 # So it's found when script is run as sudo
 benchmarks/.venv/bin/python benchmarks/src/parallel_chrono.py --num_threads=32  --input_csv=benchmarks/data/trunk_data/10000x4096.csv --target_col=Target --tree_depth=8 --num_trees=64
@@ -19,4 +27,7 @@ benchmarks/.venv/bin/python benchmarks/src/parallel_chrono.py --num_threads=2 --
 
 benchmarks/.venv/bin/python benchmarks/src/parallel_chrono.py --num_threads=1 --input_csv=benchmarks/data/trunk_data/10000x4096.csv --target_col=Target --tree_depth=8 --num_trees=64
 
-kill "${SUDO_KEEPALIVE_PID}"
+# Only kill the keepalive process if it exists
+if [ ! -z "${SUDO_KEEPALIVE_PID}" ]; then
+    kill "${SUDO_KEEPALIVE_PID}"
+fi
