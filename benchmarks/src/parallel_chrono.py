@@ -62,37 +62,40 @@ def parse_parallel_chrono(log: str) -> pd.DataFrame:
     # ------------------------------------------------------
     # 2. build one block per thread
     # ------------------------------------------------------
-    metrics = ["samples", "SampleProjection", "ProjectionEvaluate",
-               "EvaluateProjection"]
-
     blocks = []
 
     for tid, g in df.groupby("thread", sort=True):
         g = g.sort_values(["tree", "depth"]).reset_index(drop=True)
-
-        # rename every column except ‘thread’ so that they carry the tid
-        g = g.rename(
-            columns=lambda c, t=tid: c if c == "thread" else f"{c}_thr{t}")
-
-        # reorder columns so that they read nicely inside the block
-        order = ["thread",
-                 f"tree_thr{tid}",  f"depth_thr{tid}", f"nodes_thr{tid}",
-                *[f"{m}_thr{tid}" for m in metrics]]
-        g = g[order]
-
-        blocks.append(g)
+        
+        # Rename columns
+        g = g.rename(columns={
+            "samples": "Active Samples",
+            "ProjectionEvaluate": "ApplyProjection"
+        })
+        
+        # Drop the thread column
+        g = g.drop(columns=["thread"])
+        
+        # Create a DataFrame with thread ID in first row, column names in second row
+        thread_header = pd.DataFrame([[f"Thread {tid}"] + [""] * (len(g.columns) - 1)], 
+                                   columns=g.columns)
+        col_names = pd.DataFrame([g.columns.tolist()], columns=g.columns)
+        
+        # Stack: thread header, column names, then data
+        g_with_headers = pd.concat([thread_header, col_names, g], ignore_index=True)
+        
+        blocks.append(g_with_headers)
 
     # ------------------------------------------------------
     # 3. concatenate blocks side-by-side, insert a blank
-    #    column between two successive blocks, align by row
-    #    index instead of by (tree,depth,nodes)
+    #    column between two successive blocks
     # ------------------------------------------------------
     max_len = max(len(b) for b in blocks)
-    gap     = pd.DataFrame({"": [""] * max_len})       # empty col
+    gap = pd.DataFrame({"": [""] * max_len})
 
-    padded  = []
+    padded = []
     for i, b in enumerate(blocks):
-        padded.append(b.reindex(range(max_len)))       # pad shorter block
+        padded.append(b.reindex(range(max_len)).fillna(""))
         if i + 1 < len(blocks):
             padded.append(gap)
 
@@ -100,15 +103,26 @@ def parse_parallel_chrono(log: str) -> pd.DataFrame:
 
     return wide
 
-# CSV helper
+
 def write_csv(left: pd.DataFrame, params: dict[str, object], path: str):
     right = pd.DataFrame(list(params.items()), columns=["Parameter", "Value"])
     n = max(len(left), len(right))
     gap = pd.DataFrame({"": [""] * n, "  ": [""] * n})
+    
+    # Add headers for the params section
+    params_with_headers = pd.concat([
+        pd.DataFrame([["", "", "Parameter", "Value"]], columns=["", "  ", "Parameter", "Value"]),
+        right
+    ], ignore_index=True)
+    
+    # Adjust n to account for the extra header row
+    n = max(len(left), len(params_with_headers))
+    gap = pd.DataFrame({"": [""] * n, "  ": [""] * n})
+    
     (left.reindex(range(n)).fillna("")
          .pipe(lambda l: pd.concat([l, gap,
-                                    right.reindex(range(n)).fillna("")], axis=1))
-     ).to_csv(path, index=False, quoting=csv.QUOTE_MINIMAL)
+                                    params_with_headers.reindex(range(n)).fillna("")], axis=1))
+     ).to_csv(path, index=False, header=False, quoting=csv.QUOTE_MINIMAL)  # header=False
 
 
 if __name__ == "__main__":
