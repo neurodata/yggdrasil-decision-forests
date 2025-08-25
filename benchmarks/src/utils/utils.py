@@ -86,7 +86,7 @@ def setup_signal_handlers():
 def build_binary(args, chrono_mode):
     """Build the binary using bazel. Returns True if successful, False otherwise."""
     
-    base_cmd = ['bazel', 'build', '-c', 'opt', '--config=fixed_1000_projections']
+    base_cmd = ['bazel', 'build', '--ui_event_filters=-warning', '-c', 'opt', '--config=fixed_1000_projections']
     finished_cmd = base_cmd
 
     if args.numerical_split_type == "Dynamic Histogramming":
