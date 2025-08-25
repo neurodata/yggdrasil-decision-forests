@@ -152,7 +152,8 @@ if __name__ == "__main__":
            f"--num_threads={a.num_threads}",
            f"--projection_density_factor={a.projection_density_factor}",
            f"--max_num_projections={a.max_num_projections}",
-           f"--feature_split_type={a.feature_split_type}"]
+           f"--feature_split_type={a.feature_split_type}",
+           f"--compute_oob_performances=true"]
 
     cmd.append("--numerical_split_type=Exact"
                if a.numerical_split_type == "Dynamic Histogramming"
