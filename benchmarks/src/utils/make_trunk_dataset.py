@@ -1,9 +1,15 @@
+import argparse
 from treeple.datasets import make_trunk_classification
 import pandas as pd
 
+# Set up argument parser
+parser = argparse.ArgumentParser(description='Generate trunk classification dataset')
+parser.add_argument('--rows', type=int, required=True, help='Number of rows to generate')
 
-X, y = make_trunk_classification(100000, seed=1)
+# Parse arguments
+args = parser.parse_args()
 
+X, y = make_trunk_classification(args.rows, seed=1)
 
 feature_names = [f'feature_{i}' for i in range(X.shape[1])]
 
