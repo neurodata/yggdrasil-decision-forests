@@ -7,32 +7,27 @@ from pathlib import Path
 
 import pandas as pd
 import utils.utils as utils      # your helper module
-# --------------------------------------------------------------------------
-# CLI
-# --------------------------------------------------------------------------
+
+
 def get_args():
-    p = argparse.ArgumentParser()
-    p.add_argument("--input_mode", choices=["synthetic", "csv"], default="synthetic")
-    p.add_argument("--train_csv", default="benchmarks/data/processed_wise1_data.csv")
-    p.add_argument("--label_col", default="Cancer Status")
-    p.add_argument("--experiment_name", default="")
-    p.add_argument("--feature_split_type", default="Oblique",
-                   choices=["Axis Aligned", "Oblique"])
-    p.add_argument("--numerical_split_type", default="Exact",
-                   choices=["Exact", "Random", "Equal Width", "Dynamic Histogramming"])
-    p.add_argument("--tree_depth", type=int, default=-1)
-    p.add_argument("--num_threads", type=int, default=1)
+    # Get base parser as parent
+    parent_parser = utils.get_base_parser()
+    
+    # Create this script's parser with the base as parent
+    p = argparse.ArgumentParser(parents=[parent_parser])
+    
+    # Add script-specific arguments
     p.add_argument("--rows", type=int, default=4096)
     p.add_argument("--cols", type=int, default=4096)
-    p.add_argument("--num_trees", type=int, default=5)
-    p.add_argument("--projection_density_factor", type=int, default=3)
-    p.add_argument("--max_num_projections", type=int, default=1000)
     p.add_argument("--save_log", action="store_true")
+    
+    # Override defaults if needed
+    p.set_defaults(num_trees=5)  # This script uses 5 trees by default
+    
     return p.parse_args()
 
-# --------------------------------------------------------------------------
+
 # log parsing
-# --------------------------------------------------------------------------
 TIMING_RX = re.compile(
     r"thread\s+(\d+)\s+tree\s+(\d+)\s+depth\s+(\d+)\s+"
     r"nodes\s+(\d+)\s+samples\s+(\d+)\s+"
@@ -106,7 +101,6 @@ def parse_parallel_chrono(log: str) -> pd.DataFrame:
     return wide
 
 # CSV helper
-# --------------------------------------------------------------------------
 def write_csv(left: pd.DataFrame, params: dict[str, object], path: str):
     right = pd.DataFrame(list(params.items()), columns=["Parameter", "Value"])
     n = max(len(left), len(right))

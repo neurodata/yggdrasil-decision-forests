@@ -15,6 +15,24 @@ logging.basicConfig(
 )
 
 
+def get_args():
+    # Get base parser as parent
+    parent_parser = utils.get_base_parser()
+    
+    # Create this script's parser with the base as parent
+    p = argparse.ArgumentParser(parents=[parent_parser])
+    
+    # Add script-specific arguments
+    p.add_argument("--rows", type=int, default=4096)
+    p.add_argument("--cols", type=int, default=4096)
+    p.add_argument("--save_log", action="store_true")
+    
+    # Override defaults if needed
+    p.set_defaults(num_trees=5)  # This script uses 5 trees by default
+    
+    return p.parse_args()
+
+
 def save_combined_matrix(avg_matrix, std_matrix, filepath, params=None):
     """Save results with parameters to the right (after 2 blanks), similar to chrono parsing code."""
     
@@ -62,45 +80,6 @@ def save_combined_matrix(avg_matrix, std_matrix, filepath, params=None):
             # No parameters, just write results
             for row in results_data:
                 writer.writerow(row)
-
-
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--input_mode", choices=["csv", "synthetic"], default="csv",
-                        help="Experiment mode: 'csv' to load data via train_forest, 'synthetic' to generate via train_forest synthetic")
-    parser.add_argument("--train_csv", default="benchmarks/data/processed_wise1_data.csv",
-                        help="Path to the CSV file to use for training")
-    parser.add_argument("--label_col", default="Cancer Status",
-                        help="Name of the label column in the CSV")
-    parser.add_argument("--experiment_name", type=str, default="",
-                        help="Name for the experiment, used in the output CSV filename")
-    # Runtime params.
-    parser.add_argument("--num_threads", type=int, default=1,
-                        help="Number of threads to use. Use -1 for all logical CPUs.")
-    parser.add_argument("--threads_list", type=int, nargs="+", default=None,
-                        help="List of number of threads to test, e.g. --threads_list 1 2 4 8 16 32 64")
-    parser.add_argument("--rows_list", type=int, nargs="+", default=[128, 256, 512,1024],
-                        help="List of number of rows of the input matrix to test, e.g. --rows_list 128 256 512. Default: [128, 256, 512,1024] (ignored in CSV mode)")
-    parser.add_argument("--cols_list", type=int, nargs="+", default=[128,256,512,1024],
-                        help="List of number of cols of the input matrix to test, e.g. --cols_list 128 256 512. Default: [128,256,512,1024] (ignored in CSV mode)")
-    parser.add_argument("--repeats", type=int, default=1,
-                        help="Number of times to repeat & avg. experiments. Use at least 5 for publishable results. Default: 1, for speed")
-    
-    # Model params
-    parser.add_argument("--feature_split_type", type=str, choices=["Axis Aligned", "Oblique"], default="Oblique",
-                    help="Whether to use Axis Aligned or Oblique splits")
-    parser.add_argument("--numerical_split_type", type=str, choices=["Exact", "Random", "Equal Width", "Dynamic Histogramming"], default="Exact",
-                    help="Whether to use Exact or Histogram splits. Dynamic Histogramming automatically switches between Random and Exact based on per-node data size")
-    parser.add_argument("--num_trees", type=int, default=50,
-                        help="Number of trees in the Random Forest. Default: 50")
-    parser.add_argument("--tree_depth", type=int, default=-1,
-                        help="Limit depth of trees in Random Forest. Default: -1 (Unlimited)")
-    parser.add_argument("--projection_density_factor", type=int, default=3,
-                    help="Number of nonzeros per projection. Default: 3")
-    parser.add_argument("--max_num_projections", type=int, default=1000,
-                    help="Maximum number of projections. WARNING: YDF doesn't always obey this! Default: 1000")
-
-    return parser.parse_args()
 
 
 if __name__ == "__main__":
