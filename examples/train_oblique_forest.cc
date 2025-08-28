@@ -30,7 +30,7 @@
 ABSL_FLAG(std::string, input_mode, "",
           "Data input mode: csv, synthetic, or tfrecord.");
 // CSV mode flags
-ABSL_FLAG(std::string, train_csv, "/home/ariel/prog/yggdrasil-decision-forests/benchmarks/data/processed_wise1_data.csv",
+ABSL_FLAG(std::string, train_csv, "/home/ariel/prog/yggdrasil-oblique-forests/benchmarks/data/processed_wise1_data.csv",
           "Path to training CSV file (for csv mode). Must include --label_col.");
 // TFRecord mode flags
 ABSL_FLAG(std::string, ds_path, "",
@@ -42,7 +42,7 @@ ABSL_FLAG(std::string, model_out_dir, "",
           "Path to output trained model directory (optional)."
           " If empty, model is not saved.");
 ABSL_FLAG(int, num_threads, 1, "Number of threads to use.");
-ABSL_FLAG(int, num_trees, 50, "Number of trees in the random forest.");
+ABSL_FLAG(int, num_trees, 1000, "Number of trees in the random forest.");
 ABSL_FLAG(int, tree_depth, -1,
           "Maximum depth of trees (-1 for unlimited).");
 
@@ -52,12 +52,12 @@ ABSL_FLAG(std::string, feature_split_type, "Oblique",
 // Oblique split parameters (only used when feature_split_type = "Oblique")
 ABSL_FLAG(int, max_num_projections, 1000,
           "Maximum number of projections for oblique splits.");
-ABSL_FLAG(float, projection_density_factor, 3.0f,
+ABSL_FLAG(float, projection_density_factor, 1.5f,
           "Projection density factor.");
-ABSL_FLAG(int, num_projections_exponent, 1,
+ABSL_FLAG(float, num_projections_exponent, .5,
           "Exponent to determine number of projections.");
 
-ABSL_FLAG(bool, compute_oob_performances, false,
+ABSL_FLAG(bool, compute_oob_performances, true,
           "Whether to compute out-of-bag performances (only for csv mode).");
 
 // Synthetic mode flags
@@ -272,6 +272,13 @@ int main(int argc, char** argv) {
   rf.set_bootstrap_training_dataset(true);
   rf.set_bootstrap_size_ratio(1.0);
 
+  rf.set_winner_take_all_inference(false);
+
+  rf.mutable_decision_tree()->mutable_growing_strategy_best_first_global()->set_max_num_nodes(-1);
+
+  rf.mutable_decision_tree()->mutable_growing_strategy_best_first_global();
+  rf.mutable_decision_tree()->set_min_examples(1);
+
   /* #region Conditional Feature Split Type Configuration */
   const std::string feature_split_type = absl::GetFlag(FLAGS_feature_split_type);
   
@@ -322,6 +329,11 @@ int main(int argc, char** argv) {
               << ". Use 'Exact', 'Random', or 'Equal Width'.\n";
     return 1;
   }
+
+
+
+
+  // -----------Done Configuring Model. Start Training-----------
 
   std::unique_ptr<model::AbstractLearner> learner;
   CHECK_OK(model::GetLearner(train_config, &learner, deploy_config));
