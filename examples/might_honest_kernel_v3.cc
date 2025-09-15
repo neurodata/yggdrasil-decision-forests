@@ -23,6 +23,12 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include <iostream>
+#include <string>
+#include <chrono>
+#include <memory>
+#include <random>
+#include <thread>
 
 #include "absl/flags/flag.h"
 #include "absl/log/log.h"
@@ -49,9 +55,22 @@ ABSL_FLAG(int, num_trees, 1000, "Number of trees (B in MIGHT paper)");
 ABSL_FLAG(float, bootstrap_ratio, 1.6f, "Bootstrap ratio (β in MIGHT paper)");
 ABSL_FLAG(float, honest_ratio, 0.367f, "Honest ratio (s in MIGHT paper)");
 ABSL_FLAG(float, target_specificity, 0.98f, "Target specificity for S@specificity");
-//Oblique setting
-ABSL_FLAG(float, num_projections_exponent, 1.5,
+// Common Flags
+ABSL_FLAG(int, tree_depth, -1,
+          "Maximum depth of trees (-1 for unlimited).");
+ABSL_FLAG(int, num_threads, 6, "Number of threads to use.");
+
+
+// Oblique split parameters (only used when feature_split_type = "Oblique")
+ABSL_FLAG(int, max_num_projections, 1000,
+          "Maximum number of projections for oblique splits.");
+ABSL_FLAG(float, projection_density_factor, 1.5f,
+          "Projection density factor.");
+ABSL_FLAG(float, num_projections_exponent, .5,
           "Exponent to determine number of projections.");
+
+
+
 
 ABSL_FLAG(int, random_seed, 42, "Base random seed");
 ABSL_FLAG(int, num_runs, 10, "Number of runs with different random seeds");
@@ -103,54 +122,89 @@ std::vector<float> ConvertToPosteriorsFromOOBFile(const std::vector<std::vector<
 }
 
 
+
+
 float ComputeSensitivityAtSpecificity(
-    const std::vector<float>& posteriors,
+    const std::vector<float>& posteriors,                   
     const ydf::dataset::VerticalDataset* dataset,
     int label_col_idx,
-    float target_specificity = 0.98f) {
-    
-    const auto* label_column = dataset->ColumnWithCast<
-        ydf::dataset::VerticalDataset::CategoricalColumn>(label_col_idx);
-    
-    std::vector<std::pair<float, int>> score_label_pairs;
-    score_label_pairs.reserve(posteriors.size());
-    
-    // Build score-label pairs
-    for (size_t i = 0; i < posteriors.size(); ++i) {
-        if (i < label_column->values().size()) {
-            int true_label = label_column->values()[i] - 1;  // Convert to 0/1
-            score_label_pairs.emplace_back(posteriors[i], true_label);
-        }
+    float target_specificity /* = 0.98f */) {
+
+    using CatCol = ydf::dataset::VerticalDataset::CategoricalColumn;
+    const auto* label_col = dataset->ColumnWithCast<CatCol>(label_col_idx);
+    const auto& yvals = label_col->values();
+
+    const size_t n = std::min(posteriors.size(), yvals.size());
+    if (n == 0) return 0.f;
+
+    bool has0 = false, hasNeg1 = false;
+    int min_id = INT_MAX, max_id = INT_MIN;
+    std::unordered_set<int> uniq;
+    uniq.reserve(4);
+    for (size_t i = 0; i < n; ++i) {
+        const int y = yvals[i];
+        uniq.insert(y);
+        if (y == 0) has0 = true;
+        if (y == -1) hasNeg1 = true;
+        if (y < min_id) min_id = y;
+        if (y > max_id) max_id = y;
     }
-    
-    std::sort(score_label_pairs.begin(), score_label_pairs.end(),
-              [](const auto& a, const auto& b) { return a.first > b.first; });
-    
+    int pos_label;
+    if (has0 || hasNeg1) pos_label = 1;
+    else if (uniq.count(1) && uniq.count(2) && uniq.size() == 2) pos_label = 2;
+    else pos_label = max_id;  
+
+   
+    std::vector<std::pair<float,int>> pairs;
+    pairs.reserve(n);
+    for (size_t i = 0; i < n; ++i) {
+        const float s = posteriors[i];
+        if (std::isnan(s)) continue;
+        const int y01 = (yvals[i] == pos_label) ? 1 : 0;
+        pairs.emplace_back(s, y01);
+    }
+    if (pairs.empty()) return 0.f;
+
+    std::stable_sort(pairs.begin(), pairs.end(),
+                    [](const auto& a, const auto& b){ return a.first > b.first; });
+
     int P = 0, N = 0;
-    for (const auto& pair : score_label_pairs) {
-        if (pair.second == 1) P++;
-        else N++;
-    }
+    for (const auto& pr : pairs) (pr.second == 1 ? ++P : ++N);
+    if (P == 0) return 0.f;     
+    if (N == 0) return 1.f;   
+
     
-    // Find best sensitivity at target specificity
+    double best_sens = 0.0;
+    const double max_fpr = 1.0 - static_cast<double>(target_specificity);
+
     int TP = 0, FP = 0;
-    float best_sensitivity = 0.0f;
-    
-    for (const auto& pair : score_label_pairs) {
-        if (pair.second == 1) TP++;
-        else FP++;
-        
-        float specificity = (N > 0) ? (float)(N - FP) / N : 1.0f;
-        if (specificity >= target_specificity) {
-            float sensitivity = (P > 0) ? (float)TP / P : 0.0f;
-            best_sensitivity = sensitivity;
-        } else {
-            break;
+    if (max_fpr >= 0.0) best_sens = 0.0;
+
+    size_t i = 0;
+    while (i < pairs.size()) {
+        const float score = pairs[i].first;
+        size_t j = i;
+        while (j < pairs.size() && pairs[j].first == score) ++j;
+
+        for (size_t k = i; k < j; ++k) {
+        if (pairs[k].second == 1) ++TP; else ++FP;
         }
+
+        const double fpr = static_cast<double>(FP) / N;
+        const double tpr = static_cast<double>(TP) / P;
+
+        if (fpr <= max_fpr && tpr > best_sens) best_sens = tpr;
+
+        i = j;
     }
-    
-    return best_sensitivity;
+
+    if (best_sens < 0.0) best_sens = 0.0;
+    if (best_sens > 1.0) best_sens = 1.0;
+    return static_cast<float>(best_sens);
 }
+
+
+
 
 
 
@@ -194,11 +248,39 @@ float RunSingleMIGHTAnalysis(int run_id, int seed) {
     train_config.set_label(label_col);
     train_config.set_random_seed(seed);  
 
+    ydf::model::proto::DeploymentConfig deploy_config;
+
+    /* #region Handle num_threads */
+    int num_threads_flag = absl::GetFlag(FLAGS_num_threads);
+    if (num_threads_flag > 0) {
+        std::cout << "\nRunning with " << num_threads_flag << " threads, as requested.\n";
+        deploy_config.set_num_threads(num_threads_flag);
+
+    } else if (num_threads_flag == -1) {
+        // Automatically detect number of CPUs
+        unsigned int cpu_count = std::thread::hardware_concurrency();
+        if (cpu_count == 0) {
+        cpu_count = 1;  // fallback if detection fails
+        }
+        std::cout << "-1 (automatic) threads requested. "
+                << cpu_count << " threads set.\n";
+        deploy_config.set_num_threads(cpu_count);
+
+    } else {
+        std::cerr << "Invalid value for --num_threads: "
+                << num_threads_flag
+                << ". Must be >0 for fixed threads or -1 for automatic.\n";
+        return 1;
+    }
+    /* #endregion */
+
     auto& rf_config = *train_config.MutableExtension(
         ydf::model::random_forest::proto::random_forest_config);
     
     // MIGHT Core Settings 
     rf_config.set_num_trees(absl::GetFlag(FLAGS_num_trees));
+    rf_config.mutable_decision_tree()->set_max_depth(
+      absl::GetFlag(FLAGS_tree_depth));
     rf_config.set_bootstrap_training_dataset(true);
     rf_config.set_bootstrap_size_ratio(absl::GetFlag(FLAGS_bootstrap_ratio));
     rf_config.set_kernel_method(true);
@@ -206,9 +288,20 @@ float RunSingleMIGHTAnalysis(int run_id, int seed) {
     rf_config.set_compute_oob_performances(true);
     rf_config.set_export_oob_prediction_path("csv:" + oob_predictions_path);
 
+    //rf_config.mutable_decision_tree()->mutable_growing_strategy_best_first_global()->set_max_num_nodes(-1);
+
+    //rf_config.mutable_decision_tree()->mutable_growing_strategy_best_first_global();
+    // honest trees are not (yet) supported with growing_strategy_best_first_global strategy
+    rf_config.mutable_decision_tree()->set_min_examples(1);
+
     // Oblique and Honest settings
     auto* sos = rf_config.mutable_decision_tree()->mutable_sparse_oblique_split();
-    sos->set_num_projections_exponent(absl::GetFlag(FLAGS_num_projections_exponent));
+    sos->set_max_num_projections(
+        absl::GetFlag(FLAGS_max_num_projections));
+    sos->set_projection_density_factor(
+        absl::GetFlag(FLAGS_projection_density_factor));
+    sos->set_num_projections_exponent(
+        absl::GetFlag(FLAGS_num_projections_exponent));
     
     auto* dt_config = rf_config.mutable_decision_tree();
     auto* honest_config = dt_config->mutable_honest();
@@ -217,14 +310,14 @@ float RunSingleMIGHTAnalysis(int run_id, int seed) {
 
     // Train model
     std::unique_ptr<ydf::model::AbstractLearner> learner;
-    if (!ydf::model::GetLearner(train_config, &learner).ok()) {
+    if (!ydf::model::GetLearner(train_config, &learner, deploy_config).ok()) {
         LOG(ERROR) << "Failed to create learner for run " << run_id;
         return 0.0f;
     }
     
     auto model_result = learner->TrainWithStatus("csv:" + train_path, data_spec);
     if (!model_result.ok()) {
-        LOG(ERROR) << "Training failed for run " << run_id;
+        LOG(ERROR) << "Training failed for run " << run_id << model_result.status().message() << std::endl;
         return 0.0f;
     }
     
@@ -249,7 +342,7 @@ float RunSingleMIGHTAnalysis(int run_id, int seed) {
     LOG(INFO) << "Run " << (run_id + 1) << " S@" 
               << absl::GetFlag(FLAGS_target_specificity) * 100 
               << "%: " << s_at_target;
-    
+
     return s_at_target;
 }
 
@@ -352,13 +445,8 @@ int main(int argc, char** argv) {
         }
         QCHECK_OK(file::SetContent(csv_path, csv.str()));
         LOG(INFO) << "CSV data saved to: " << csv_path;
-        
-    } else {
-        LOG(ERROR) << "No successful runs completed";
-        return 1;
-    }
-
-    LOG(INFO) << "MIGHT Multiple Runs Analysis Completed";
+    } 
     return 0;
 }
+
 
