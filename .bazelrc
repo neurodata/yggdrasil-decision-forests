@@ -181,3 +181,23 @@ build:wasm --host_cxxopt="-fno-exceptions"
 # Optional. Just to make it compatible with dynamic linking and TensorFlow.
 # build --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0"
 # build --host_cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0"
+
+
+
+########### ZOE dual-pipeline profiles (C++ vs Python) for kernel method compilation  ###########
+
+# C++ 
+build:cc --output_base=~/.cache/bazel/ydf_cc
+build:cc --config=linux_cpp17
+build:cc --features=-fully_static_link
+build:cc --deleted_packages=yggdrasil_decision_forests/port/python
+
+# Python 
+build:py --config=linux_cpp17
+build:py --features=-fully_static_link
+build:py --cxxopt=-std=c++17
+build:py --host_cxxopt=-std=c++17
+
+
+build:arm_crc --copt=-march=armv8-a+crc
+build:arm_crc --host_copt=-march=armv8-a+crc

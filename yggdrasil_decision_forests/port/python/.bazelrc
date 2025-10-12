@@ -80,3 +80,9 @@ build:windows --materialize_param_files
 build:windows --features=compiler_param_file
 build:windows --verbose_failures
 build:windows --experimental_strict_action_env=true
+
+
+
+######
+build:arm_crc --copt=-march=armv8-a+crc
+build:arm_crc --host_copt=-march=armv8-a+crc

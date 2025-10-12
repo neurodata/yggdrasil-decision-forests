@@ -102,6 +102,24 @@ class RandomForestModel(decision_forest_model.DecisionForestModel):
     function is arbitrary and does not influence model inference.
     """
     return self._model.winner_takes_all()
+  
+  def kernel_method(self) -> bool:
+    """Returns if the model uses kernel weight for posterior calculation after classification.
+
+    This parameter determines how to aggregate individual tree votes during
+    inference in a classification random forest. It is defined by the
+    `kernel_method` Random Forest learner hyper-parameter,
+    
+    When kernel_method is true, `winner_takes_all` should be false, otherwise return errors. 
+    
+    If true, each tree outputs unnormalized class count vectors from selected leaves, and 
+    a single normalization step is applied after aggregating counts from all trees. If false, each tree 
+    outputs a probability distribution across all classes.
+    
+    If the model is not a classification model, the return value of this
+    function is arbitrary and does not influence model inference.
+    """
+    return self._model.kernel_method()
 
   def self_evaluation(self) -> Optional[metric.Evaluation]:
     """Returns the model's self-evaluation.

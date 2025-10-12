@@ -109,3 +109,144 @@ cc_binary(
     ],
     features = ["c++17"],
 )
+
+
+
+# Add more examples
+
+cc_binary(
+    name = "train_oblique_forest2",
+    srcs = ["train_oblique_forest2.cc"],
+    copts = ["-pg"], # Ariel - for profiling
+    linkopts = ["-pg"],
+    features = ["c++17"],
+    deps = [
+        "//yggdrasil_decision_forests/learner/random_forest:random_forest",
+        "//yggdrasil_decision_forests/learner:learner_library",
+
+        "//yggdrasil_decision_forests/model/random_forest:random_forest",
+        "//yggdrasil_decision_forests/learner/random_forest:random_forest_cc_proto",
+
+        "//yggdrasil_decision_forests/metric:report",
+        "//yggdrasil_decision_forests/model:model_library",
+        "//yggdrasil_decision_forests/dataset:data_spec",
+        "//yggdrasil_decision_forests/dataset:csv_example_reader",
+        "//yggdrasil_decision_forests/utils:logging",
+        "//yggdrasil_decision_forests/utils:distribution",
+        "@com_google_absl//absl/log",
+
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+
+cc_binary(
+    name = "might_honest_kernel_v3",
+    srcs = ["might_honest_kernel_v3.cc"],
+    deps = [
+        "//yggdrasil_decision_forests/dataset:data_spec",
+        "//yggdrasil_decision_forests/dataset:data_spec_inference",
+        "//yggdrasil_decision_forests/dataset:vertical_dataset_io",
+        "//yggdrasil_decision_forests/dataset:csv_example_reader",
+        "//yggdrasil_decision_forests/dataset:csv_example_writer",
+        "//yggdrasil_decision_forests/dataset:example_writer",
+        "//yggdrasil_decision_forests/learner:learner_library",
+        "//yggdrasil_decision_forests/learner/random_forest:random_forest_cc_proto",
+        "//yggdrasil_decision_forests/learner/random_forest:random_forest",
+        "//yggdrasil_decision_forests/model:model_library",
+        "//yggdrasil_decision_forests/model/decision_tree",
+        "//yggdrasil_decision_forests/model/random_forest",
+        "//yggdrasil_decision_forests/utils:distribution",
+        "//yggdrasil_decision_forests/utils:filesystem",
+        "//yggdrasil_decision_forests/utils:logging",
+        "//yggdrasil_decision_forests/utils:random",
+        "//yggdrasil_decision_forests/utils:status_macros",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+
+cc_binary(
+    name = "train_honest_kernel_forest",
+    srcs = ["train_honest_kernel_forest.cc"],
+    deps = [
+        "//yggdrasil_decision_forests/dataset:data_spec",
+        "//yggdrasil_decision_forests/dataset:data_spec_inference",
+        "//yggdrasil_decision_forests/dataset:csv_example_reader",
+        "//yggdrasil_decision_forests/dataset:vertical_dataset",
+        "//yggdrasil_decision_forests/dataset:vertical_dataset_io",
+        "//yggdrasil_decision_forests/model/random_forest:random_forest",
+        "//yggdrasil_decision_forests/learner:all_learners",
+        "//yggdrasil_decision_forests/learner:learner_library",
+
+        "//yggdrasil_decision_forests/learner/random_forest:random_forest_cc_proto",
+
+        "//yggdrasil_decision_forests/metric:report",
+        "//yggdrasil_decision_forests/model:model_library",
+        "//yggdrasil_decision_forests/utils:filesystem",
+        "//yggdrasil_decision_forests/utils:logging",
+        "//yggdrasil_decision_forests/utils:distribution",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_binary(
+    name = "honest_kernel_test",
+    srcs = ["honest_kernel_test.cc"],
+    deps = [
+        "//yggdrasil_decision_forests/dataset:data_spec",
+        "//yggdrasil_decision_forests/dataset:data_spec_inference",
+        "//yggdrasil_decision_forests/dataset:csv_example_reader",
+        "//yggdrasil_decision_forests/dataset:vertical_dataset",
+        "//yggdrasil_decision_forests/dataset:vertical_dataset_io",
+        "//yggdrasil_decision_forests/model/random_forest:random_forest",
+        "//yggdrasil_decision_forests/learner:all_learners",
+        "//yggdrasil_decision_forests/learner:learner_library",
+
+        "//yggdrasil_decision_forests/learner/random_forest:random_forest_cc_proto",
+
+        "//yggdrasil_decision_forests/metric:report",
+        "//yggdrasil_decision_forests/model:model_library",
+        "//yggdrasil_decision_forests/utils:filesystem",
+        "//yggdrasil_decision_forests/utils:logging",
+        "//yggdrasil_decision_forests/utils:distribution",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+
+
+cc_binary(
+    name = "kernel_tests",
+    srcs = ["kernel_tests.cc"],
+    deps = [
+        "//yggdrasil_decision_forests/dataset:data_spec",
+        "//yggdrasil_decision_forests/dataset:data_spec_inference",
+        "//yggdrasil_decision_forests/dataset:csv_example_reader",
+        "//yggdrasil_decision_forests/dataset:vertical_dataset",
+        "//yggdrasil_decision_forests/dataset:vertical_dataset_io",
+        "//yggdrasil_decision_forests/model/random_forest:random_forest",
+        "//yggdrasil_decision_forests/learner:all_learners",
+        "//yggdrasil_decision_forests/learner:learner_library",
+
+        "//yggdrasil_decision_forests/learner/random_forest:random_forest_cc_proto",
+
+        "//yggdrasil_decision_forests/metric:report",
+        "//yggdrasil_decision_forests/model:model_library",
+        "//yggdrasil_decision_forests/utils:filesystem",
+        "//yggdrasil_decision_forests/utils:logging",
+        "//yggdrasil_decision_forests/utils:distribution",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
+    ],
+)

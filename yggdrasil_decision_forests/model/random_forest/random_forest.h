@@ -61,6 +61,9 @@ class RandomForestModel : public AbstractModel, public DecisionForestInterface {
   static constexpr char kVariableImportanceMeanIncreaseInRmse[] =
       "MEAN_INCREASE_IN_RMSE";
 
+  // add virtual kernel method
+  bool kernel_method() const override { return kernel_method_; }
+
   RandomForestModel() : AbstractModel(kRegisteredName) {}
   absl::Status Save(absl::string_view directory,
                     const ModelIOOptions& io_options) const override;
@@ -177,6 +180,10 @@ class RandomForestModel : public AbstractModel, public DecisionForestInterface {
 
   bool winner_take_all_inference() const { return winner_take_all_inference_; }
 
+  void set_kernel_method(bool value) {
+    kernel_method_ = value;
+  }
+
   std::vector<proto::OutOfBagTrainingEvaluations>*
   mutable_out_of_bag_evaluations() {
     return &out_of_bag_evaluations_;
@@ -254,6 +261,9 @@ class RandomForestModel : public AbstractModel, public DecisionForestInterface {
   // Whether the vote of individual trees are distributions or winner-take-all.
   bool winner_take_all_inference_ = true;
 
+  // Whether the vote of individual trees are raw class counts or class distributions.
+  bool kernel_method_ = false;
+
   // Evaluation of the model computed during training on the out of bag
   // examples.
   std::vector<proto::OutOfBagTrainingEvaluations> out_of_bag_evaluations_;
@@ -296,12 +306,14 @@ std::string EvaluationSnippet(
 
 void AddClassificationLeafToAccumulator(
     const bool winner_take_all_inference,
+    const bool kernel_method,
     const decision_tree::proto::Node& node,
     utils::IntegerDistribution<float>* accumulator);
 
 void FinalizeClassificationLeafToAccumulator(
-    const utils::IntegerDistribution<float>& accumulator,
-    model::proto::Prediction* prediction);
+    utils::IntegerDistribution<float>& accumulator,
+    model::proto::Prediction* prediction,
+    bool kernel_method);
 
 // Add a node prediction to a prediction accumulator for regression.
 void AddRegressionLeafToAccumulator(const decision_tree::proto::Node& node,

@@ -129,6 +129,14 @@ namespace yggdrasil_decision_forests
           }
         }
         {
+          const auto hparam = generic_hyper_params->Get(kHParamKernelMethod);
+          if (hparam.has_value()) {
+            rf_config->set_kernel_method(
+                hparam.value().value().categorical() == "false");
+          }
+        }
+        LOG(INFO) << "Kernel method: " << kHParamKernelMethod;
+        {
           const auto hparam = generic_hyper_params->Get(
               kHParamAdaptBootstrapSizeRatioForMaximumTrainingDuration);
           if (hparam.has_value())
@@ -284,6 +292,18 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
               R"(Control how classification trees vote. If true, each tree votes for one class. If false, each tree vote for a distribution of classes. winner_take_all_inference=false is often preferable.)");
         }
         {
+          auto& param = hparam_def.mutable_fields()->operator[](kHParamKernelMethod);
+          param.mutable_categorical()->set_default_value(
+            rf_config.kernel_method() ? "true" : "false");
+          param.mutable_categorical()->add_possible_values("true");
+          param.mutable_categorical()->add_possible_values("false");
+          param.mutable_documentation()->set_proto_path(proto_path);
+          param.mutable_documentation()->set_proto_field("kernel_method");
+
+          param.mutable_documentation()->set_description(
+            R"(Use raw class counts instead of normalized counts at leaf. Set kernel_method=false at default)");
+        }
+        {
           auto &param = hparam_def.mutable_fields()->operator[](
               kHParamAdaptBootstrapSizeRatioForMaximumTrainingDuration);
           param.mutable_categorical()->set_default_value(
@@ -380,13 +400,20 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         RETURN_IF_ERROR(AbstractLearner::CheckConfiguration(data_spec, config,
                                                             config_link, deployment));
         // Check that the decision tree will contain prediction weighting is needed.
-        if (!rf_config.winner_take_all_inference())
-        {
-          if (!rf_config.decision_tree().store_detailed_label_distribution())
-            return absl::InvalidArgumentError(
-                "store_detailed_label_label_distribution should be true if "
-                "winner_take_all is false. The decision trees need to contain the "
-                "detailed label distributions.");
+        // if (!rf_config.winner_take_all_inference())
+        // {
+        //   if (!rf_config.decision_tree().store_detailed_label_distribution())
+        //     return absl::InvalidArgumentError(
+        //         "store_detailed_label_label_distribution should be true if "
+        //         "winner_take_all is false. The decision trees need to contain the "
+        //         "detailed label distributions.");
+        // }
+        if ((rf_config.kernel_method() || !rf_config.winner_take_all_inference()) &&
+            !rf_config.decision_tree().store_detailed_label_distribution()) {
+          return absl::InvalidArgumentError(
+              "store_detailed_label_distribution should be true if "
+              "\"winner_take_all_inference=false\" or \"kernel_method=true\". The decision trees need to contain the "
+              "detailed label distributions");
         }
         return absl::OkStatus();
       }
@@ -930,7 +957,8 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                     // Update the prediction accumulator.
                     auto update_oob_status = internal::UpdateOOBPredictionsWithNewTree(
                         train_dataset, config_with_default, selected_examples,
-                        rf_config.winner_take_all_inference(), *decision_tree, {},
+                        rf_config.winner_take_all_inference(),rf_config.kernel_method(),
+                        *decision_tree, {},
                         &random, &oob_predictions);
                     if (!update_oob_status.ok()) {
                       utils::concurrency::MutexLock lock(&concurrent_fields.mutex);
@@ -957,7 +985,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                       last_oob_computation_num_trees = current_num_trained_trees;
                       proto::OutOfBagTrainingEvaluations evaluation;
                       evaluation.set_number_of_trees(current_num_trained_trees);
-                      auto evaluation_or = internal::EvaluateOOBPredictions(
+                      auto evaluation_or = internal::EvaluateOOBPredictions(training_config(),
                           train_dataset, mdl->task(), mdl->label_col_idx(),
                           mdl->uplift_treatment_col_idx(), mdl->weights(),
                           oob_predictions,
@@ -991,7 +1019,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
                           const auto update_oob_status =
                               internal::UpdateOOBPredictionsWithNewTree(
                                   train_dataset, config_with_default, selected_examples,
-                                  rf_config.winner_take_all_inference(), *decision_tree,
+                                  rf_config.winner_take_all_inference(),rf_config.kernel_method(), *decision_tree,
                                   feature_idx, &random,
                                   &oob_predictions_per_input_features[feature_idx]);
                           if (!update_oob_status.ok()) {
@@ -1104,7 +1132,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
         if (compute_oob_variable_importances)
         {
-          RETURN_IF_ERROR(ComputeVariableImportancesFromAccumulatedPredictions(
+          RETURN_IF_ERROR(ComputeVariableImportancesFromAccumulatedPredictions(training_config(),
               oob_predictions, oob_predictions_per_input_features, train_dataset,
               deployment().num_threads(), mdl.get()));
         }
@@ -1193,6 +1221,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
             const model::proto::TrainingConfig &config,
             std::vector<UnsignedExampleIdx> sorted_non_oob_example_indices,
             const bool winner_take_all_inference,
+            const bool kernel_method,
             const decision_tree::DecisionTree &new_decision_tree,
             const std::optional<int> shuffled_attribute_idx, utils::RandomEngine *rnd,
             std::vector<PredictionAccumulator> *oob_predictions)
@@ -1233,7 +1262,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
             }
             else
             {
-              leaf = &new_decision_tree.GetLeaf(train_dataset, example_idx);
+              leaf = &new_decision_tree.GetLeaf(train_dataset, example_idx); //honest = true, example_idx = all - (J1 + J2)
             }
 
             // Accumulate the decision prediction to the oob accumulator.
@@ -1242,7 +1271,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
             switch (config.task())
             {
             case model::proto::Task::CLASSIFICATION:
-              AddClassificationLeafToAccumulator(winner_take_all_inference, *leaf,
+              AddClassificationLeafToAccumulator(winner_take_all_inference,kernel_method, *leaf,
                                                  &accumulator.classification);
               break;
             case model::proto::Task::REGRESSION:
@@ -1262,13 +1291,17 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         }
 
         absl::StatusOr<metric::proto::EvaluationResults> EvaluateOOBPredictions(
+            const model::proto::TrainingConfig& training_config,
             const dataset::VerticalDataset &train_dataset,
             const model::proto::Task task, const int label_col_idx,
             const int uplift_treatment_col_idx,
             const std::optional<dataset::proto::LinkedWeightDefinition> &weight_links,
             const std::vector<PredictionAccumulator> &oob_predictions,
-            const bool for_permutation_importance)
-        {
+            const bool for_permutation_importance) {
+          // Add training config for passing parameter
+          const auto& rf_config = training_config.GetExtension(
+            random_forest::proto::random_forest_config);
+        
           // Configure the evaluation options.
           metric::proto::EvaluationOptions eval_options;
           eval_options.set_task(task);
@@ -1319,10 +1352,12 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
 
             switch (task)
             {
-            case model::proto::Task::CLASSIFICATION:
+            case model::proto::Task::CLASSIFICATION:{
+              auto acc = prediction_accumulator.classification;
               FinalizeClassificationLeafToAccumulator(
-                  prediction_accumulator.classification, &prediction);
+                  acc, &prediction, rf_config.kernel_method());
               break;
+            }
             case model::proto::Task::REGRESSION:
               prediction.mutable_regression()->set_value(
                   prediction_accumulator.regression /
@@ -1363,6 +1398,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
         }
 
         absl::Status ComputeVariableImportancesFromAccumulatedPredictions(
+            const model::proto::TrainingConfig& training_config,
             const std::vector<internal::PredictionAccumulator> &oob_predictions,
             const std::vector<std::vector<internal::PredictionAccumulator>> &
                 oob_predictions_per_input_features,
@@ -1373,7 +1409,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
           // other expensive evaluation metrics.
           ASSIGN_OR_RETURN(
               const auto base_evaluation,
-              EvaluateOOBPredictions(dataset, model->task(), model->label_col_idx(),
+              EvaluateOOBPredictions(training_config,dataset, model->task(), model->label_col_idx(),
                                      model->uplift_treatment_col_idx(),
                                      model->weights(), oob_predictions,
                                      /*for_permutation_importance=*/true));
@@ -1386,7 +1422,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
               return std::optional<metric::proto::EvaluationResults>{};
             }
             ASSIGN_OR_RETURN(auto eval,
-                             EvaluateOOBPredictions(
+                             EvaluateOOBPredictions(training_config,
                                  dataset, model->task(), model->label_col_idx(),
                                  model->uplift_treatment_col_idx(), model->weights(),
                                  oob_predictions_per_input_features[feature_idx],
@@ -1410,6 +1446,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
           const auto &rf_config =
               training_config.GetExtension(random_forest::proto::random_forest_config);
           model->set_winner_take_all_inference(rf_config.winner_take_all_inference());
+          model->set_kernel_method(rf_config.kernel_method());
         }
 
         void SampleTrainingExamples(const UnsignedExampleIdx num_examples,
@@ -1462,6 +1499,9 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
             const std::vector<PredictionAccumulator> &oob_predictions,
             absl::string_view typed_path)
         {
+          // Add training config for passing parameter
+          const auto& rf_config = config.GetExtension(
+            random_forest::proto::random_forest_config);
           // Create the dataspec that describes the exported prediction dataset.
           dataset::proto::DataSpecification pred_dataspec;
 
@@ -1480,7 +1520,13 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
             for (int i = 1 /*skip the OOV*/; i < num_label_classes; i++)
             {
               auto *col = pred_dataspec.add_columns();
-              col->set_name(dataset::CategoricalIdxToRepresentation(label_spec, i));
+              //col->set_name(dataset::CategoricalIdxToRepresentation(label_spec, i));
+              if (rf_config.kernel_method()) {
+                col->set_name(absl::StrCat("raw_count_", 
+                    dataset::CategoricalIdxToRepresentation(label_spec, i)));
+              } else {
+                col->set_name(dataset::CategoricalIdxToRepresentation(label_spec, i));
+              }
               col->set_type(dataset::proto::ColumnType::NUMERICAL);
               example.add_attributes()->set_numerical(0);
             }
@@ -1536,10 +1582,18 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
               DCHECK_EQ(pred.classification.NumClasses(), num_label_classes);
               for (int i = 1 /*skip the OOV*/; i < num_label_classes; i++)
               {
-                example.mutable_attributes(i - 1)->set_numerical(
+                //example.mutable_attributes(i - 1)->set_numerical(
+                if (rf_config.kernel_method()) {
+                  example.mutable_attributes(i - 1)->set_numerical(
+                      pred.classification.NumObservations() > 0
+                          ? static_cast<float>(pred.classification.count(i))  // directly use raw count
+                          : 0);
+                } else {
+                  example.mutable_attributes(i - 1)->set_numerical(
                     pred.classification.NumObservations() > 0
                         ? pred.classification.SafeProportionOrMinusInfinity(i)
                         : 0);
+                }
               }
               break;
 

@@ -100,6 +100,20 @@ class RandomForestModelTest(absltest.TestCase):
     model = model_lib.load_model(model_path)
 
     self.assertTrue(model.winner_takes_all())
+  
+  def test_kernel_method_false(self):
+    self.assertFalse(self.adult_binary_class_rf.kernel_method())
+  
+  def test_kernel_method_true(self):
+    model_path = os.path.join(
+        test_utils.ydf_test_data_path(),
+        "golden",
+        "rf_adult_base",
+    )
+    model = model_lib.load_model(model_path)
+    
+    self.assertTrue(model.kernel_method())
+    
 
 
 if __name__ == "__main__":

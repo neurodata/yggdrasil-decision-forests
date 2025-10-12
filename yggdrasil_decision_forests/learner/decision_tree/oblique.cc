@@ -1014,7 +1014,7 @@ void SampleProjection(const absl::Span<const int>& features,
   std::binomial_distribution<size_t> binom(features.size(), projection_density);
 
   // Expectation[Binomial(p,projection_density)] = num_selected_features
-  const size_t num_selected_features = binom(*random);
+  const size_t num_selected_features = binom(*random); // set to be fixed in treeple, in treeple its deterministic
 
   // TODO: Try std::bitmap
   absl::btree_set<size_t> picked_idx;

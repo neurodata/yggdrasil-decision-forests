@@ -98,6 +98,13 @@ static constexpr int CHRONO_MEASUREMENTS_LOG_LEVEL = CHRONO_MEASUREMENTS_LOG_LEV
 static constexpr bool HARD_CODE_1000_PROJECTIONS = HARD_CODE_1000_PROJECTIONS_FLAG;
 static constexpr bool ENABLE_DYNAMIC_HISTOGRAMMING = ENABLE_DYNAMIC_HISTOGRAMMING_FLAG;
 
+// Generic fallback NormalizeScore helper
+template <typename InitializerT>
+auto NormalizeScore(const InitializerT& initializer, double score)
+    -> decltype(initializer.NormalizeScore(score)) {
+  return initializer.NormalizeScore(score);
+}
+
 
 // TODO: Explain the expected signature of FeatureBucket and LabelBucket.
 template <typename FeatureBucket, typename LabelBucket>
@@ -741,10 +748,14 @@ ABSL_ATTRIBUTE_ALWAYS_INLINE double Score(const Initializer& initializer,
 
   if constexpr (LabelScoreAccumulator::kNormalizeByWeight) {
     const double ratio_pos = pos.WeightedNumExamples() / weighted_num_examples;
-    return initializer.NormalizeScore(score_pos * ratio_pos +
+    // return initializer.NormalizeScore(score_pos * ratio_pos +
+    //                                   score_neg * (1. - ratio_pos));
+    return NormalizeScore(initializer,score_pos * ratio_pos +
                                       score_neg * (1. - ratio_pos));
+
   } else {
-    return initializer.NormalizeScore(score_pos + score_neg);
+    //return initializer.NormalizeScore(score_pos + score_neg);
+    return NormalizeScore(initializer,score_pos + score_neg);
   }
 }
 

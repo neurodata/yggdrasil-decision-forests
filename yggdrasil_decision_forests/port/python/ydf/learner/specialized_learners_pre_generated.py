@@ -427,6 +427,11 @@ class RandomForestLearner(generic_learner.GenericCCLearner):
       votes for one class. If false, each tree vote for a distribution of
       classes. winner_take_all_inference=false is often preferable. Default:
       True.
+    kernel_method: Control how to aggregate individual tree votes during
+    inference in a classification random forest. If true, each tree outputs 
+    unnormalized class count, and apply normalization after aggregating counts
+    from all trees. If false, each tree vote for a distribution of classes.
+    kernel_method=false is often preferable. Default: True.
     working_dir: Path to a directory available for the learning algorithm to
       store intermediate computation results. Depending on the learning
       algorithm and parameters, the working_dir might be optional, required, or
@@ -520,6 +525,7 @@ class RandomForestLearner(generic_learner.GenericCCLearner):
       uplift_min_examples_in_treatment: int = 5,
       uplift_split_score: str = "KULLBACK_LEIBLER",
       winner_take_all: bool = True,
+      kernel_method: bool = False,
       working_dir: Optional[str] = None,
       num_threads: Optional[int] = None,
       tuner: Optional[tuner_lib.AbstractTuner] = None,
@@ -608,6 +614,7 @@ class RandomForestLearner(generic_learner.GenericCCLearner):
         "uplift_min_examples_in_treatment": uplift_min_examples_in_treatment,
         "uplift_split_score": uplift_split_score,
         "winner_take_all": winner_take_all,
+        "kernel_method": kernel_method,
     }
     if explicit_args is None:
       raise ValueError("`explicit_args` must not be set by the user")
@@ -735,7 +742,8 @@ class RandomForestLearner(generic_learner.GenericCCLearner):
                 "A configuration that is generally better than the default"
                 " parameters without being more expensive."
             ),
-            parameters={"winner_take_all": True},
+            parameters={"winner_take_all": True,
+                        "kernel_method": False,},
         ),
         "benchmark_rank1v1": hyperparameters.HyperparameterTemplate(
             name="benchmark_rank1",
@@ -746,6 +754,7 @@ class RandomForestLearner(generic_learner.GenericCCLearner):
             ),
             parameters={
                 "winner_take_all": True,
+                "kernel_method": False,
                 "categorical_algorithm": "RANDOM",
                 "split_axis": "SPARSE_OBLIQUE",
                 "sparse_oblique_normalization": "MIN_MAX",

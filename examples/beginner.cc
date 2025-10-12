@@ -80,9 +80,9 @@ int main(int argc, char** argv) {
   //
   // Note: The prefix (e.g."csv:") indicates the format of the dataset.
   const auto train_path =
-      absl::StrCat("csv:", file::JoinPath(dataset_dir, "adult_train.csv"));
+      absl::StrCat("csv:", file::JoinPath(dataset_dir, "fold1_train.csv"));
   const auto test_path =
-      absl::StrCat("csv:", file::JoinPath(dataset_dir, "adult_test.csv"));
+      absl::StrCat("csv:", file::JoinPath(dataset_dir, "fold1_test.csv"));
 
   // Create output directory.
   QCHECK_OK(file::RecursivelyCreateDir(output_dir, file::Defaults()));

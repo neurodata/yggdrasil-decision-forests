@@ -207,6 +207,22 @@ class RandomForestOnAdult : public utils::TrainAndTestTester {
   }
 };
 
+// kernel method
+TEST_F(RandomForestOnAdult, KernelMethodSlowEngineOnly) {
+  auto* rf_config = train_config_.MutableExtension(
+      model::random_forest::proto::random_forest_config);
+  rf_config->set_kernel_method(true);
+  rf_config->set_winner_take_all_inference(false);
+
+  PrepareDataset();
+  TrainModel();
+  CHECK_OK(PostTrainingChecks()); // no fast engine
+
+  EXPECT_NEAR(metric::Accuracy(evaluation_), 0.850, 0.01);
+  EXPECT_NEAR(metric::LogLoss(evaluation_), 0.350, 0.05);
+
+}
+
 // Train and test a model on the adult dataset.
 TEST_F(RandomForestOnAdult, Base) {
   auto* rf_config = train_config_.MutableExtension(
