@@ -1355,7 +1355,7 @@ It is probably the most well-known of the Decision Forest training algorithms.)"
             case model::proto::Task::CLASSIFICATION:{
               auto acc = prediction_accumulator.classification;
               FinalizeClassificationLeafToAccumulator(
-                  acc, &prediction, rf_config.kernel_method());
+                  acc, &prediction);
               break;
             }
             case model::proto::Task::REGRESSION:

@@ -84,9 +84,6 @@ class AbstractModel {
   virtual absl::Status Load(absl::string_view directory,
                             const ModelIOOptions& io_options) = 0;
 
-  // add kernel method
-  // add virtual method for kernel method
-  virtual bool kernel_method() const { return false; }
 
   // Creates an inference engine able to run the model more efficiently
   // than by calling "Predict". Once the inference engine created, the model

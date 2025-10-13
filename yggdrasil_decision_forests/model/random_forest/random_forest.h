@@ -61,9 +61,6 @@ class RandomForestModel : public AbstractModel, public DecisionForestInterface {
   static constexpr char kVariableImportanceMeanIncreaseInRmse[] =
       "MEAN_INCREASE_IN_RMSE";
 
-  // add virtual kernel method
-  bool kernel_method() const override { return kernel_method_; }
-
   RandomForestModel() : AbstractModel(kRegisteredName) {}
   absl::Status Save(absl::string_view directory,
                     const ModelIOOptions& io_options) const override;
@@ -312,8 +309,7 @@ void AddClassificationLeafToAccumulator(
 
 void FinalizeClassificationLeafToAccumulator(
     utils::IntegerDistribution<float>& accumulator,
-    model::proto::Prediction* prediction,
-    bool kernel_method);
+    model::proto::Prediction* prediction);
 
 // Add a node prediction to a prediction accumulator for regression.
 void AddRegressionLeafToAccumulator(const decision_tree::proto::Node& node,

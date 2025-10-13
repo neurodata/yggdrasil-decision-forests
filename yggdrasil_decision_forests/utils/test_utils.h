@@ -251,7 +251,6 @@ class TrainAndTestTester : public ::testing::Test {
 // Tests the prediction of the (slow) generic engine and the fast generic
 // engine. If the model does not implement a fast generic engine, the model
 // succeed.
-// Add kernel method fallback
 void TestGenericEngine(const model::AbstractModel& model,
                        const dataset::VerticalDataset& dataset);
 

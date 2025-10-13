@@ -310,6 +310,77 @@ inline void PredictHelper(const Model& model,
   }
 }
 
+
+// Add Two Binary Class Classification with kernel posterior support
+template <typename Model,
+          float (*FinalTransform)(const Model&, const float) = Idendity<Model>>
+inline void PredictHelperKernelBinaryNum(
+    const Model& model, const std::vector<typename Model::ValueType>& examples,
+    int num_examples, std::vector<float>* predictions) {
+  utils::usage::OnInference(num_examples, model.metadata);
+  const int num_features = model.features().fixed_length_features().size();
+  predictions->resize(num_examples);
+  const typename Model::ValueType* sample = examples.data();
+  for (int example_idx = 0; example_idx < num_examples; ++example_idx) {
+    for (const auto root_node_idx : model.root_offsets) {
+      float numerator_sum = 0.f;
+      float denominator_sum = 0.f;
+      float output = 0.f;
+      const auto* node = &model.nodes[root_node_idx];
+      while (node->right_idx) {
+          node += EvalCondition(node, sample) ? node->right_idx : 1;
+        } // Out of while -> sample reach leaf
+      numerator_sum += node->num_ct;
+      denominator_sum += node->den_ct;
+      if (denominator_sum != 0.f){
+        output = numerator_sum/denominator_sum;
+      } else {
+        return absl::InvalidArgumentError(
+          "Cannot have denominator is zero");
+      }
+    }
+
+    (*predictions)[example_idx] = FinalTransform(model, output);
+    sample += num_features;
+  }
+}
+
+template <typename Model,
+          float (*FinalTransform)(const Model&, const float) /*= Idendity*/>
+inline void PredictHelperKernelBinaryNumAndCat(const Model& model,
+                                              const typename Model::ExampleSet& examples,
+                                              int num_examples, std::vector<float>* predictions) {
+
+  utils::usage::OnInference(num_examples, model.metadata);
+  predictions->resize(num_examples);
+  for (int example_idx = 0; example_idx < num_examples; ++example_idx) {
+    for (const auto root_node_idx : model.root_offsets) {
+      float numerator_sum = 0.f;
+      float denominator_sum = 0.f;
+      float output = 0.f;
+      const auto* node = &model.nodes[root_node_idx];
+      while (node->right_idx) {
+        node += EvalCondition(node, examples, example_idx, model)
+                    ? node->right_idx
+                    : 1;
+      } // sample reach leaf per tree
+      numerator_sum += node->num_ct;
+      denominator_sum += node->den_ct;
+      if (denominator_sum != 0.f){
+        output = numerator_sum/denominator_sum;
+      } else {
+        return absl::InvalidArgumentError(
+          "Cannot have denominator is zero");
+      }
+    }
+    (*predictions)[example_idx] = FinalTransform(model, output);
+  }
+}
+
+
+
+
+
 template <typename Model,
           float (*FinalTransform)(const Model&, const float) /*= Idendity*/>
 inline void PredictHelperMultiDimensionTrees(

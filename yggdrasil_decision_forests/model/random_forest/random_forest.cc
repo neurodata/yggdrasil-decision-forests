@@ -376,7 +376,7 @@ void RandomForestModel::Predict(const dataset::proto::Example& example,
   }
 }
 
-void RandomForestModel::PredictClassification(
+void RandomForestModel::PredictClassification( 
     const dataset::VerticalDataset& dataset,
     dataset::VerticalDataset::row_t row_idx,
     model::proto::Prediction* prediction) const {
@@ -384,12 +384,13 @@ void RandomForestModel::PredictClassification(
       data_spec_.columns(label_col_idx_)
           .categorical()
           .number_of_unique_values());
+  std::cerr << "[DEBUG] Entered PredictClassification1111111. kernel_method_: " << kernel_method_ << std::endl;
   CallOnAllLeafs(dataset, row_idx,
                  [&accumulator, this](const decision_tree::proto::Node& node) {
                    internal::AddClassificationLeafToAccumulator(
                        winner_take_all_inference_, kernel_method_, node, &accumulator);
                  });
-  internal::FinalizeClassificationLeafToAccumulator(accumulator, prediction, kernel_method_);
+  internal::FinalizeClassificationLeafToAccumulator(accumulator, prediction);
 }
 
 void RandomForestModel::PredictRegression(
@@ -429,7 +430,7 @@ void RandomForestModel::PredictUplift(
       accumulator.begin(), accumulator.end()};
 }
 
-void RandomForestModel::PredictClassification(
+void RandomForestModel::PredictClassification( 
     const dataset::proto::Example& example,
     model::proto::Prediction* prediction) const {
   utils::IntegerDistribution<float> accumulator(
@@ -443,7 +444,7 @@ void RandomForestModel::PredictClassification(
                    internal::AddClassificationLeafToAccumulator(
                        winner_take_all_inference_, kernel_method_, node, &accumulator);
                  });
-  internal::FinalizeClassificationLeafToAccumulator(accumulator, prediction, kernel_method_);
+  internal::FinalizeClassificationLeafToAccumulator(accumulator, prediction);
 }
 
 void RandomForestModel::PredictRegression(
@@ -794,12 +795,13 @@ void AddClassificationLeafToAccumulator(
     utils::IntegerDistribution<float>* accumulator) {
   if (winner_take_all_inference) {
     accumulator->Add(node.classifier().top_value());
+    std::cout << "[Add] Winner-take-all mode: added class " 
+              << node.classifier().top_value() << std::endl;
   } else {
     DCHECK(node.classifier().has_distribution());
     if (kernel_method) {
       accumulator->AddProto(node.classifier().distribution());
     } else {
-      std::cout << "enter AddNormalizedProto!!!!!!!!! ";  
       accumulator->AddNormalizedProto(node.classifier().distribution());
     }
   }
@@ -808,14 +810,7 @@ void AddClassificationLeafToAccumulator(
 
 void FinalizeClassificationLeafToAccumulator(
     utils::IntegerDistribution<float>& accumulator,
-    model::proto::Prediction* prediction,
-    bool kernel_method) {
-  if (kernel_method) {
-    //std::cerr << "[DEBUG] Sum BEFORE Normalize: " << accumulator.sum_ << std::endl;
-    accumulator.Normalize();  
-    //std::cerr << "[DEBUG] Sum AFTER Normalize: " << accumulator.sum_ << std::endl;
-    }
-
+    model::proto::Prediction* prediction) {
   prediction->mutable_classification()->set_value(accumulator.TopClass());
   accumulator.Save(
       prediction->mutable_classification()->mutable_distribution());

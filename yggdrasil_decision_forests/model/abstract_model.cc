@@ -543,10 +543,7 @@ absl::Status AbstractModel::AppendEvaluation(
   if (!option.force_slow_engine()) {
     engine_or_status = BuildFastEngine();
   }
-  //if (engine_or_status.ok()) {
-  std::cout << "[DEBUG] Enter append evaluation function" << std::endl;
-  if (false) {
-
+  if (engine_or_status.ok()) {
     RETURN_IF_ERROR(AppendEvaluationWithEngine(dataset, option, weight_links,
                                                *engine_or_status.value(), rnd,
                                                predictions, eval));
@@ -592,8 +589,6 @@ absl::Status AbstractModel::AppendEvaluationOverrideType(
 
   auto engine_or_status = BuildFastEngine();
   if (engine_or_status.ok()) {
-  LOG(INFO) << "[DEBUG] >>> kernel_method: " << (this->kernel_method() ? "true" : "false");
-  std::cout << "[DEBUG] kernel_method: " << this->kernel_method() << std::endl;
     RETURN_IF_ERROR(AppendEvaluationWithEngineOverrideType(
         dataset, option, override_task, override_label_col_idx,
         override_group_col_idx, weight_links, *engine_or_status.value(), rnd,

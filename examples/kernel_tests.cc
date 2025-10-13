@@ -104,7 +104,8 @@ int main(int argc, char** argv) {
   
   rf_config.set_num_trees(absl::GetFlag(FLAGS_num_trees));
   rf_config.set_winner_take_all_inference(absl::GetFlag(FLAGS_winner_take_all));
-  rf_config.set_bootstrap_training_dataset(false);
+  // NO Bootstrap, each sample would enter every tree in the forest, for testing
+  rf_config.set_bootstrap_training_dataset(false); 
 
   if (absl::GetFlag(FLAGS_enable_kernel)) {
     LOG(INFO) << "Enabling Kernel Method";
@@ -129,17 +130,33 @@ int main(int argc, char** argv) {
   const auto model_path = file::JoinPath(output_dir, "model");
   QCHECK_OK(ydf::model::SaveModel(model_path, *model));
 
-  // Show details about model 
-  std::string model_description = model->DescriptionAndStatistics();
-  LOG(INFO) << "Model:\n" << model_description;
-  QCHECK_OK(
-      file::SetContent(absl::StrCat(model_path, ".txt"), model_description));
 
-      
+  // Evaluate model 
+  LOG(INFO) << "Evaluate model";
+  ydf::dataset::VerticalDataset test_dataset;
+  QCHECK_OK(ydf::dataset::LoadVerticalDataset(test_path, model->data_spec(),
+                                              &test_dataset));
 
-  LOG(INFO) << "===  Kernel Method completed successfully! ===";
+  // The effective evaluation 
+  ydf::utils::RandomEngine rnd;
+  const auto evaluation = model->Evaluate(test_dataset, {}, &rnd);
+
+  // Test kernel engine
+  auto engine_or = model->BuildFastEngine();
+  LOG(INFO) << "Do we use fast engine on this inference? " << engine_or.ok();
+
+
+  // Save the raw evaluation 
+  std::string evaluation_path = file::JoinPath(output_dir, "evaluation.pbtxt");
+  QCHECK_OK(file::SetTextProto(evaluation_path, evaluation, file::Defaults()));
+
+  // Save the evaluation in a text file 
+  std::string evaluation_report = ydf::metric::TextReport(evaluation).value();
+  QCHECK_OK(file::SetContent(absl::StrCat(evaluation_path, ".txt"),
+                             evaluation_report));
+  LOG(INFO) << "Evaluation:\n" << evaluation_report;
+
   LOG(INFO) << "The results are available in " << output_dir;
-
-  return 0;
+  return 0; 
 }
 

@@ -57,8 +57,9 @@ absl::Status AppendEvaluation(const AbstractModel& model,
   }
 
   auto engine_or_status = model.BuildFastEngine();
-  //if (engine_or_status.ok()) {
+  LOG(INFO) << "Disable fast engine for debugging : " ;
   if (false) {
+  //if (engine_or_status.ok()) {
     const auto engine = std::move(engine_or_status.value());
     // Extract the shards from the dataset path.
     std::string path, prefix;
