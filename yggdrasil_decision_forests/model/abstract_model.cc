@@ -417,8 +417,9 @@ void ProtoToFloatPrediction(const proto::Prediction& src_prediction,
       const auto& classification = src_prediction.classification();
       if (num_prediction_dimensions == 1) {
         // Binary classification, only need the probability of class 2
-        float proba_class2 = classification.distribution().counts(2) /
-                             classification.distribution().sum();
+        float proba_class2 = 1000 * classification.distribution().sum() + 
+                             classification.distribution().counts(2);// /
+                             // classification.distribution().sum(); // SLOW KERNEL
         dst_prediction[0] = proba_class2;
       } else {
         // Multi-class classification, copy all probabilities

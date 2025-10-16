@@ -863,9 +863,9 @@ template <typename P>
 void IntegerDistribution<T>::AddNormalizedProto(const P& v) {
   DCHECK_EQ(NumClasses(), v.counts_size());
   if (v.sum() == 0) return;
-  sum_++;
+  sum_+=v.sum(); // SLOW KERNEL
   for (int i = 0; i < counts_.size(); i++) {
-    counts_[i] += v.counts(i) / v.sum();
+    counts_[i] += v.counts(i) ; // SLOW KERNEL
   }
 }
 
