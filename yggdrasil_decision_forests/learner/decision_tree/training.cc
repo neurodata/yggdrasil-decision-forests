@@ -29,9 +29,10 @@
 #include <random>
 #include <string>
 #include <tuple>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
-#include <cmath>
 
 #include "absl/base/optimization.h"
 #include "absl/log/log.h"
@@ -1575,7 +1576,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
 
 
     /* #region Irrelevant Code & Post-Processing */
-    
+
     /***This executes after FindCondOblique, but only finalizes***/
 
     // Get the indices of the attributes to test.
@@ -1597,7 +1598,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
       // Ariel - I think this is a single memory access. How often does the loop run?
       const int32_t attribute_idx =
           candidate_attributes[candidate_attribute_idx_in_candidate_list++];
-      
+
       SplitSearchResult result;
 
       switch (config.task())
@@ -1618,7 +1619,7 @@ namespace yggdrasil_decision_forests::model::decision_tree
                                      attribute_idx, constraints, best_condition,
                                      random, &cache->splitter_cache_list[0]));
       }
-      
+
       break;
       case model::proto::Task::REGRESSION:
         if (internal_config.hessian_score)
@@ -2347,16 +2348,16 @@ const bool use_equal_width_fast_path =
     // TODO Ariel create unweighted & unbranched version
     const float weight = weights.empty() ? 1.f : weights[example_idx];
     const float attribute = attributes[example_idx];
-  
+
     // Ariel no need for isnan check here - done in ApplyProjection
-  
+
     // Return 1st element of candidate_splits > attribute
-    
+
     // TODO Ariel condition this on only Equal Width binning! Testin this for vectorization
     if (use_equal_width_fast_path) {
       const int idx = EqualWidthThresholdIndex(
       attribute, *min_value, *max_value, candidate_splits.size());
-      
+
       // Matches the original behavior when upper_bound(...) == begin()
       if (idx < 0) { continue; }
 
@@ -2384,7 +2385,7 @@ const bool use_equal_width_fast_path =
     auto it_split = std::upper_bound(
     candidate_splits.begin(), candidate_splits.end(), attribute,
     [](const float a, const CandidateSplit& b) { return a < b.threshold; });
-    
+
     if (it_split == candidate_splits.begin()) { continue; }
 
     --it_split;
@@ -2421,7 +2422,7 @@ bool found_split = false;
    CHRONO_SCOPE(::yggdrasil_decision_forests::chrono_prof::kSelectBestThresholdHistogram);
 for (auto &candidate_split : candidate_splits)
 {
- 
+
   if (selected_examples.size() -
               candidate_split.num_positive_examples_without_weights <
           min_num_obs ||
@@ -2488,7 +2489,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
     const auto sorting_strategy = EffectiveStrategy(dt_config, selected_examples.size(), internal_config);
 
-    
+
     if (num_label_classes == 3) { // Binary classification.
     // "Why ==3" ?
     // Categorical attributes always have one class reserved for
@@ -4989,26 +4990,41 @@ return found_split ? SplitSearchResult::kBetterSplitFound
       // the predictions).
 
       const float leaf_rate = dt_config.honest().ratio_leaf_examples();
-      std::uniform_real_distribution<float> dist_01;
 
       // Reduce the risk of std::vector re-allocations.
       const float error_margin = 1.1f;
       leaf_examples = std::vector<UnsignedExampleIdx>();
-      auto &leaf_examples_value = leaf_examples.value();
+      auto& leaf_examples_value = leaf_examples.value();
       leaf_examples_value.reserve(selected_examples.size() * leaf_rate *
                                   error_margin);
       working_selected_examples.reserve(selected_examples.size() *
                                         (1.f - leaf_rate) * error_margin);
 
-      auto *effective_random = random;
-      utils::RandomEngine fixed_random(12345678);
-      
-      if (dt_config.honest().fixed_separation()) { effective_random = &fixed_random; }
+      // Collect unique IDs (keys) in insertion order.
+      std::unordered_set<UnsignedExampleIdx> seen;
+      std::vector<UnsignedExampleIdx> unique_ids;
+      unique_ids.reserve(selected_examples.size());
+      for (const auto& ex : selected_examples) {
+        if (seen.insert(ex).second) unique_ids.push_back(ex);
+      }
 
-      for (const auto &example : selected_examples)
-      {
-        if (dist_01(*effective_random) < leaf_rate) { leaf_examples_value.push_back(example); }
-        else { working_selected_examples.push_back(example); }
+      // Shuffle unique IDs for unbiased assignment.
+      std::shuffle(unique_ids.begin(), unique_ids.end(), *random);
+
+      // Choose how many unique IDs go to leaf side.
+      const size_t U = unique_ids.size();
+      const size_t num_leaf_unique = static_cast<size_t>(U * leaf_rate);  // floor
+      std::unordered_set<UnsignedExampleIdx> leaf_set;
+      leaf_set.reserve(num_leaf_unique * error_margin);
+      for (size_t i = 0; i < num_leaf_unique; ++i) leaf_set.insert(unique_ids[i]);
+
+      // Stream original array; keep all duplicates on their side.
+      for (const auto& ex : selected_examples) {
+        if (leaf_set.count(ex)) {
+          leaf_examples_value.push_back(ex);
+        } else {
+          working_selected_examples.push_back(ex);
+        }
       }
     }
     else // non-Honest
@@ -5025,12 +5041,12 @@ return found_split ? SplitSearchResult::kBetterSplitFound
                                  : std::nullopt;
 
     SplitterConcurrencySetup splitter_concurrency_setup;
-    
+
     // Single-Threaded
     if (internal_config.num_threads <= 1)
     {
       splitter_concurrency_setup.concurrent_execution = false;
-      
+
       return DecisionTreeCoreTrain(
           train_dataset, config, config_link, dt_config, deployment,
           splitter_concurrency_setup, weights, random, internal_config, dt,
@@ -5166,7 +5182,7 @@ return found_split ? SplitSearchResult::kBetterSplitFound
     /* #region Exit Conditions */
     if (selected_examples.empty())
       { return absl::InternalError("No examples fed to the node trainer"); }
-    
+
     // Where is it decided whether samples are weighed?
     node->mutable_node()->set_num_pos_training_examples_without_weight(
         selected_examples.size());
