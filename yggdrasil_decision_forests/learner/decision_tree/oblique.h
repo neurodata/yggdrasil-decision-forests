@@ -186,8 +186,8 @@ class ProjectionEvaluator {
   absl::Status Evaluate(const Projection& projection,
                         absl::Span<const UnsignedExampleIdx> selected_examples,
                         std::vector<float>* values,
-                          /* NEW */ float* min_value,
-    /* NEW */ float* max_value) const;
+                        /* NEW */ float* min_value = 0,
+                        /* NEW */ float* max_value = 0) const;
 
   absl::Status ExtractAttribute(
       int attribute_idx, absl::Span<const UnsignedExampleIdx> selected_examples,
