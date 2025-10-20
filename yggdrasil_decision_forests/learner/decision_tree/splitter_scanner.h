@@ -48,13 +48,20 @@
 #ifndef YGGDRASIL_DECISION_FORESTS_LEARNER_DECISION_TREE_SPLITTER_SCANNER_H_
 #define YGGDRASIL_DECISION_FORESTS_LEARNER_DECISION_TREE_SPLITTER_SCANNER_H_
 
+// If these aren't defined, go with regular/fastest setup
+#ifndef HARD_CODE_1000_PROJECTIONS_FLAG
+  #define HARD_CODE_1000_PROJECTIONS_FLAG false
+#endif
+
+#ifndef ENABLE_DYNAMIC_HISTOGRAMMING_FLAG
+  #define ENABLE_DYNAMIC_HISTOGRAMMING_FLAG 0 // 0 - Disabled. 1 - Equal Width, 2 - Random Dynamic Hist.
+#endif
+
 #include <stddef.h>
 
 #include <algorithm>
 #include <functional>
-#include <iterator>
 #include <limits>
-#include <random>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -62,19 +69,24 @@
 #include "absl/base/attributes.h"
 #include "absl/types/span.h"
 #include "yggdrasil_decision_forests/dataset/types.h"
-#include "yggdrasil_decision_forests/dataset/vertical_dataset.h"
+
 #include "yggdrasil_decision_forests/learner/decision_tree/preprocessing.h"
 #include "yggdrasil_decision_forests/learner/decision_tree/splitter_accumulator.h"
 #include "yggdrasil_decision_forests/learner/decision_tree/uplift.h"
 #include "yggdrasil_decision_forests/learner/decision_tree/utils.h"
 #include "yggdrasil_decision_forests/model/decision_tree/decision_tree.pb.h"
-#include "yggdrasil_decision_forests/utils/compatibility.h"
 #include "yggdrasil_decision_forests/utils/logging.h"
 #include "yggdrasil_decision_forests/utils/random.h"
+#include "yggdrasil_decision_forests/utils/parallel_chrono.h"
 
 namespace yggdrasil_decision_forests {
 namespace model {
 namespace decision_tree {
+
+// Normally, n_projections bounded by n_features. Override it to time cache hits w.r.t n_features
+static constexpr bool HARD_CODE_1000_PROJECTIONS = HARD_CODE_1000_PROJECTIONS_FLAG;
+static constexpr int ENABLE_DYNAMIC_HISTOGRAMMING = ENABLE_DYNAMIC_HISTOGRAMMING_FLAG;
+
 
 // TODO: Explain the expected signature of FeatureBucket and LabelBucket.
 template <typename FeatureBucket, typename LabelBucket>
@@ -98,6 +110,8 @@ struct ExampleBucket {
   };
 };
 
+
+// Just a std::vector<Buckets>
 template <typename ExampleBucket>
 struct ExampleBucketSet {
   std::vector<ExampleBucket> items;
@@ -106,6 +120,8 @@ struct ExampleBucketSet {
   using FeatureBucketType = typename ExampleBucket::FeatureBucketType;
   using LabelBucketType = typename ExampleBucket::LabelBucketType;
 };
+
+/* #region Templated ExampleBucket() */
 
 // Used bucket sets.
 
@@ -602,58 +618,93 @@ auto* GetCachedLabelScoreAccumulator(const bool side, PerThreadCacheV2* cache) {
   }
 }
 
+/* #endregion */
+
+
 template <typename ExampleBucketSet, bool require_label_sorting>
 void FillExampleBucketSet(
     absl::Span<const UnsignedExampleIdx> selected_examples,
     const typename ExampleBucketSet::FeatureBucketType::Filler& feature_filler,
     const typename ExampleBucketSet::LabelBucketType::Filler& label_filler,
     ExampleBucketSet* example_bucket_set, PerThreadCacheV2* cache) {
-  // Allocate the buckets.
-  example_bucket_set->items.resize(feature_filler.NumBuckets());
+  // Ariel: IDK what the Cache does
+  CHRONO_SCOPE(::yggdrasil_decision_forests::chrono_prof::kSortFillExampleBucketSet);
 
-  // Initialize the buckets.
-  int bucket_idx = 0;
-  for (auto& bucket : example_bucket_set->items) {
-    feature_filler.InitializeAndZero(bucket_idx, &bucket.feature);
-    label_filler.InitializeAndZero(&bucket.label);
-    bucket_idx++;
+
+  /* #region Allocate the buckets | takes practically 0 time */
+  {
+    CHRONO_SCOPE(::yggdrasil_decision_forests::chrono_prof::kSortInitBuckets);
+    // Init. takes practically 0 time - time logic removed
+    // Allocate the buckets.
+    example_bucket_set->items.resize(feature_filler.NumBuckets());
+
+    // Initialize and Zero the buckets.
+    // Initially n_buckets = n. samples in bag
+    // Ariel: also practically takes 0 time. prints removed
+    int bucket_idx = 0;
+    for (auto& bucket : example_bucket_set->items) {
+      feature_filler.InitializeAndZero(bucket_idx, &bucket.feature);
+      label_filler.InitializeAndZero(&bucket.label);
+      bucket_idx++;
+    }
   }
 
-  // Fill the buckets.
-  const auto num_selected_examples = selected_examples.size();
-  for (size_t select_idx = 0; select_idx < num_selected_examples;
-       select_idx++) {
+  /* #endregion */
+
+  // Fill the buckets. Also takes practically 0 time
+  {
+    CHRONO_SCOPE(::yggdrasil_decision_forests::chrono_prof::kSortFillBuckets);
+  for (size_t select_idx = 0; select_idx < selected_examples.size(); select_idx++) {
+    // Ariel TODO is example_idx always = select_idx?
     const UnsignedExampleIdx example_idx = selected_examples[select_idx];
+
     const size_t item_idx =
         feature_filler.GetBucketIndex(select_idx, example_idx);
+
     auto& bucket = example_bucket_set->items[item_idx];
+
+    // ConsumeExample == isnan(attributes_[example_idx])
     feature_filler.ConsumeExample(example_idx, &bucket.feature);
     label_filler.ConsumeExample(example_idx, &bucket.label);
   }
+  }
 
-  // Finalize the buckets.
+  // Finalize the buckets. Takes essentially 0 time
+  {
+    CHRONO_SCOPE(::yggdrasil_decision_forests::chrono_prof::kSortFinalizeBuckets);
   for (auto& bucket : example_bucket_set->items) {
     label_filler.Finalize(&bucket.label);
   }
+  }
 
-  //  Sort the buckets.
   static_assert(!(ExampleBucketSet::FeatureBucketType::kRequireSorting &&
                   require_label_sorting),
                 "Bucket require sorting");
 
+  //  Sort the buckets.
   if constexpr (ExampleBucketSet::FeatureBucketType::kRequireSorting) {
+    {
+      CHRONO_SCOPE(::yggdrasil_decision_forests::chrono_prof::kSortFeatures);
+    // Ariel: Sorting done here!
     std::sort(example_bucket_set->items.begin(),
               example_bucket_set->items.end(),
               typename ExampleBucketSet::ExampleBucketType::SortFeature());
+    }
   }
 
+  // Time whole function in parent instead. Sort takes ~98% of this fn
+
   if constexpr (require_label_sorting) {
+    CHRONO_SCOPE(::yggdrasil_decision_forests::chrono_prof::kSortLabels);
     std::sort(example_bucket_set->items.begin(),
               example_bucket_set->items.end(),
               typename ExampleBucketSet::ExampleBucketType::SortLabel());
   }
 }
 
+
+//  If not Weighted: Return preponderance of Binary labels
+//  Else, scale by Weight
 template <typename LabelScoreAccumulator, typename Initializer>
 ABSL_ATTRIBUTE_ALWAYS_INLINE double Score(const Initializer& initializer,
                                           const double weighted_num_examples,
@@ -683,8 +734,12 @@ SplitSearchResult ScanSplits(
     const SignedExampleIdx num_examples, const int min_num_obs,
     const int attribute_idx, proto::NodeCondition* condition,
     PerThreadCacheV2* cache) {
+      
+  CHRONO_SCOPE(::yggdrasil_decision_forests::chrono_prof::kSortScanSplits);
+
   using FeatureBucketType = typename ExampleBucketSet::FeatureBucketType;
 
+  /* #region Check Validity, Initialize */
   if (example_bucket_set.items.size() <= 1) {
     return SplitSearchResult::kInvalidAttribute;
   }
@@ -705,13 +760,14 @@ SplitSearchResult ScanSplits(
   initializer.InitEmpty(&neg);
   initializer.InitFull(&pos);
 
-  // Running statistics.
   SignedExampleIdx num_pos_examples = num_examples;
   SignedExampleIdx num_neg_examples = 0;
   bool tried_one_split = false;
 
   const double weighted_num_examples = pos.WeightedNumExamples();
   const int end_bucket_idx = example_bucket_set.items.size() - 1;
+
+  /* #endregion */
 
   double best_score =
       std::max<double>(condition->split_score(), initializer.MinimumScore());
@@ -730,7 +786,10 @@ SplitSearchResult ScanSplits(
             << " weighted_num_examples:" << weighted_num_examples;
 #endif
 
+  // Loop over buckets
+  // This fn. takes no time = don't care
   for (int bucket_idx = 0; bucket_idx < end_bucket_idx; bucket_idx++) {
+    // Ariel: this assumes example_bucket_set are sorted - we can simply try indices here
     const auto& item = example_bucket_set.items[bucket_idx];
 
 #ifdef YDF_DEBUG_PRINT_SPLIT
@@ -738,6 +797,7 @@ SplitSearchResult ScanSplits(
               << "\n\tlabel: " << item.label;
 #endif
 
+    // Ariel: I think this is for missing data. Skipping for now
     if constexpr (bucket_interpolation) {
       if (no_new_examples_since_last_new_best_split && item.label.count > 0) {
         best_bucket_interpolation_idx = bucket_idx;
@@ -745,8 +805,7 @@ SplitSearchResult ScanSplits(
       }
     }
 
-    // Remove the bucket from the positive accumulator and add it to the
-    // negative accumulator.
+    // Remove the bucket from the positive accumulator and add it to the negative accumulator.
     item.label.AddToScoreAcc(&neg);
     item.label.SubToScoreAcc(&pos);
 
@@ -761,6 +820,7 @@ SplitSearchResult ScanSplits(
       continue;
     }
 
+    /* #region Check some conditions e.g. have enough examples? */
     // Enough examples?
     if (num_pos_examples < min_num_obs) {
 #ifdef YDF_DEBUG_PRINT_SPLIT
@@ -783,6 +843,9 @@ SplitSearchResult ScanSplits(
       continue;
     }
 
+    /* #endregion */
+
+    // Get chosen splitting function
     const auto score = Score<>(initializer, weighted_num_examples, pos, neg);
     tried_one_split = true;
 
@@ -790,14 +853,13 @@ SplitSearchResult ScanSplits(
     LOG(INFO) << "\tscore: " << score;
 #endif
 
-    if (score > best_score) {
+    if (score > best_score) { // Memorize the split.
 #ifdef YDF_DEBUG_PRINT_SPLIT
       LOG(INFO) << "Score:" << std::setprecision(16) << score
                 << " Best_score: " << best_score;
       LOG(INFO) << "\tnew best split";
 #endif
 
-      // Memorize the split.
       best_bucket_idx = bucket_idx;
       best_score = score;
       condition->set_num_pos_training_examples_without_weight(num_pos_examples);
@@ -816,8 +878,7 @@ SplitSearchResult ScanSplits(
             << "\n\tlabel: " << example_bucket_set.items.back().label;
 #endif
 
-  if (best_bucket_idx != -1) {
-    // Finalize the best found split.
+  if (best_bucket_idx != -1) { // Finalize the best found split.
 
     if constexpr (bucket_interpolation) {
       if (best_bucket_interpolation_idx != -1 &&
@@ -846,6 +907,9 @@ SplitSearchResult ScanSplits(
   }
 }
 
+
+/* #region Irrelevant (to Ariel) ScanSplits alternatives */
+
 // Scans the buckets (similarly to "ScanSplits"), but in the order specified by
 // "bucket_order[i].second" (instead of the bucket order).
 template <typename ExampleBucketSet, typename LabelScoreAccumulator,
@@ -860,6 +924,7 @@ SplitSearchResult ScanSplitsCustomOrder(
     PerThreadCacheV2* cache) {
   using FeatureBucketType = typename ExampleBucketSet::FeatureBucketType;
 
+  /* #region Sanity Checks */
   if (example_bucket_set.items.size() <= 1) {
     return SplitSearchResult::kInvalidAttribute;
   }
@@ -869,6 +934,7 @@ SplitSearchResult ScanSplitsCustomOrder(
           example_bucket_set.items.back().feature)) {
     return SplitSearchResult::kInvalidAttribute;
   }
+  /* #endregion */
 
   // Initialize the accumulators.
   // Initially, all the buckets are in the positive accumulators.
@@ -984,9 +1050,8 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
     const typename ExampleBucketSet::LabelBucketType::Initializer& initializer,
     const int min_num_obs, const int attribute_idx,
     proto::NodeCondition* condition, PerThreadCacheV2* cache) {
-  if (selected_examples.size() <= 1) {
-    return SplitSearchResult::kInvalidAttribute;
-  }
+
+      if (selected_examples.size() <= 1) { return SplitSearchResult::kInvalidAttribute; }
 
   // Compute a mask (duplicate_examples=false) or count
   // (duplicate_examples=true) of the selected examples.
@@ -1012,22 +1077,20 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
       return selected_examples_mask;
     }
   };
+
+  // TODO Ariel how does this mask look like?
   const auto& selected_examples_mask = get_mask();
 
-  // Initialize the accumulators. Initially, all the buckets are in the positive
-  // accumulators.
-  LabelScoreAccumulator& neg =
-      *GetCachedLabelScoreAccumulator<LabelScoreAccumulator>(false, cache);
-  LabelScoreAccumulator& pos =
-      *GetCachedLabelScoreAccumulator<LabelScoreAccumulator>(true, cache);
+  // Initialize the accumulators. Initially, all the buckets are in the positive accumulators.
+  LabelScoreAccumulator& neg = *GetCachedLabelScoreAccumulator<LabelScoreAccumulator>(false, cache);
+  LabelScoreAccumulator& pos = *GetCachedLabelScoreAccumulator<LabelScoreAccumulator>(true, cache);
 
   initializer.InitEmpty(&neg);
   initializer.InitFull(&pos);
 
   // Running statistics.
   SignedExampleIdx num_pos_examples = selected_examples.size();
-  SignedExampleIdx max_num_pos_examples =
-      selected_examples.size() - min_num_obs;
+  SignedExampleIdx max_num_pos_examples = selected_examples.size() - min_num_obs;
 
   // At least one split was tested.
   bool tried_one_split = false;
@@ -1044,8 +1107,7 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
   SignedExampleIdx best_sorted_example_idx = -1;
   SignedExampleIdx best_previous_sorted_example_idx = -1;
 
-  // A new (i.e. different) attribute value was observed in the scan since the
-  // last score test.
+  // A new (i.e. different) attribute value was observed in the scan since the last score test.
   bool new_attribute_value = false;
 
   // Index of the nearest previous example with a  value different from the
@@ -1053,11 +1115,12 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
   SparseItemMeta::ExampleIdx previous_sorted_example_idx = 0;
 
   // Iterate over the attribute values in increasing order.
+
+  // TODO Ariel - Randal would find this interesting
   // Note: For some reasons, the iterator for-loop is faster than the
   // for(auto:sorted_attributes) for loop (test on 10 different compiled
   // binaries).
-  for (SparseItemMeta::ExampleIdx sorted_example_idx = 0;
-       sorted_example_idx < sorted_attributes.size(); sorted_example_idx++) {
+  for (SparseItemMeta::ExampleIdx sorted_example_idx = 0; sorted_example_idx < sorted_attributes.size(); sorted_example_idx++) {
     const auto& sorted_attribute = sorted_attributes[sorted_example_idx];
 
     auto example_idx = sorted_attribute & SparseItemMeta::kMaskExampleIdx;
@@ -1082,20 +1145,21 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
     if (new_attribute_value) {
       if (num_pos_examples >= min_num_obs &&
           num_pos_examples <= max_num_pos_examples &&
-          initializer.IsValidSplit(neg, pos)) {
+          initializer.IsValidSplit(neg, pos)
+        ) {
         // Compute the split's score.
-        const auto score =
-            Score<>(initializer, weighted_num_examples, pos, neg);
+
+        // ***** TODO Ariel - Scoring function *****
+        const auto score = Score<>(initializer, weighted_num_examples, pos, neg);
         tried_one_split = true;
 
+        // A better split was found. Memorize the split.
         if (score > best_score) {
-          // A better split was found. Memorize the split.
           best_sorted_example_idx = sorted_example_idx;
           best_previous_sorted_example_idx = previous_sorted_example_idx;
           best_score = score;
           best_num_pos_training_examples_without_weight = num_pos_examples;
-          best_num_pos_training_examples_with_weight =
-              pos.WeightedNumExamples();
+          best_num_pos_training_examples_with_weight = pos.WeightedNumExamples();
           found_split = true;
         }
       }
@@ -1106,7 +1170,7 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
     // Update positive and negative accumulators.
     // Remove the bucket from the positive accumulator and add it to the
     // negative accumulator.
-    if constexpr (duplicate_examples) {
+    if constexpr (duplicate_examples) { // Ariel: evaluated at compile time
       const int count = selected_examples_mask[example_idx];
       label_filler.AddDirectToScoreAccWithDuplicates(example_idx, count, &neg);
       label_filler.SubDirectToScoreAccWithDuplicates(example_idx, count, &pos);
@@ -1118,6 +1182,7 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
     }
   }
 
+  // If a better split than existing was found - update existing temps
   if (found_split) {
     // Finalize the best found split.
     const auto best_previous_feature_value = feature_filler.GetValue(
@@ -1126,14 +1191,12 @@ SplitSearchResult ScanSplitsPresortedSparseDuplicateExampleTemplate(
     const auto best_feature_value =
         feature_filler.GetValue(sorted_attributes[best_sorted_example_idx] &
                                 SparseItemMeta::kMaskExampleIdx);
-    // TODO: Experiment with random splits in ]best_previous_feature_value,
-    // best_feature_value[.
 
-    feature_filler.SetConditionFinalFromThresholds(
-        best_previous_feature_value, best_feature_value, condition);
+    // TODO Ariel: Experiment with random splits in ]best_previous_feature_value, best_feature_value[.
+
+    feature_filler.SetConditionFinalFromThresholds(best_previous_feature_value, best_feature_value, condition);
     condition->set_attribute(attribute_idx);
-    condition->set_num_training_examples_without_weight(
-        selected_examples.size());
+    condition->set_num_training_examples_without_weight(selected_examples.size());
     condition->set_num_training_examples_with_weight(weighted_num_examples);
     condition->set_split_score(best_score);
 
@@ -1164,6 +1227,8 @@ SplitSearchResult ScanSplitsPresortedSparse(
     const int min_num_obs, const int attribute_idx,
     const bool duplicate_examples, proto::NodeCondition* condition,
     PerThreadCacheV2* cache) {
+
+  // Are these bagged samples?
   if (duplicate_examples) {
     return ScanSplitsPresortedSparseDuplicateExampleTemplate<
         ExampleBucketSet, LabelScoreAccumulator, true>(
@@ -1195,6 +1260,8 @@ SplitSearchResult ScanSplitsRandomBuckets(
     utils::RandomEngine* random) {
   using FeatureBucketType = typename ExampleBucketSet::FeatureBucketType;
 
+  /* #region Check Conditions & Initialize */
+
   if (example_bucket_set.items.size() <= 1) {
     // Not enough examples.
     return SplitSearchResult::kInvalidAttribute;
@@ -1222,6 +1289,8 @@ SplitSearchResult ScanSplitsRandomBuckets(
   SignedExampleIdx num_neg_examples;
   bool tried_one_split = false;
 
+  /* #endregion */
+
   const double weighted_num_examples = pos.WeightedNumExamples();
 
   double best_score =
@@ -1234,23 +1303,25 @@ SplitSearchResult ScanSplitsRandomBuckets(
   // List the non empty buckets.
   active_bucket_idxs.clear();
   const int n = example_bucket_set.items.size();
+
   for (int bucket_idx = 0; bucket_idx < n; bucket_idx++) {
     if (example_bucket_set.items[bucket_idx].label.count > 0) {
       active_bucket_idxs.push_back(bucket_idx);
     }
   }
-  if (active_bucket_idxs.size() <= 1) {
-    // All the examples have the same attribute value.
-    return SplitSearchResult::kInvalidAttribute;
-  }
+
+  // All the examples have the same attribute value.
+  if (active_bucket_idxs.size() <= 1) { return SplitSearchResult::kInvalidAttribute; }
 
   const auto num_trials = num_trials_fn(active_bucket_idxs.size());
 
   for (int trial_idx = 0; trial_idx < num_trials; trial_idx++) {
+
     pos_buckets.clear();
     num_pos_examples = 0;
     initializer.InitFull(&neg);
     initializer.InitEmpty(&pos);
+
     for (const int bucket_idx : active_bucket_idxs) {
       if (((*random)() & 1) == 0) {
         const auto& bucket = example_bucket_set.items[bucket_idx];
@@ -1260,6 +1331,8 @@ SplitSearchResult ScanSplitsRandomBuckets(
         pos_buckets.push_back(bucket_idx);
       }
     }
+
+    /* #region Check Exit Conditions, update BestSplit */
     num_neg_examples = num_examples - num_pos_examples;
 
     if (num_pos_examples < min_num_obs) {
@@ -1267,32 +1340,27 @@ SplitSearchResult ScanSplitsRandomBuckets(
       continue;
     }
 
-    if (num_neg_examples < min_num_obs) {
-      // Not enough examples in the negative branch.
-      continue;
-    }
+    // Not enough examples in the negative branch.
+    if (num_neg_examples < min_num_obs) { continue; }
 
-    if (!initializer.IsValidSplit(neg, pos)) {
-      continue;
-    }
+    if (!initializer.IsValidSplit(neg, pos)) { continue; }
 
     DCHECK(!pos_buckets.empty());
 
     const auto score = Score<>(initializer, weighted_num_examples, pos, neg);
     tried_one_split = true;
 
-    if (score > best_score) {
-      // Better split found. Memorize it.
+    if (score > best_score) { // Better split found. Memorize it.
       best_pos_buckets = pos_buckets;
       best_score = score;
       condition->set_num_pos_training_examples_without_weight(num_pos_examples);
       condition->set_num_pos_training_examples_with_weight(
           pos.WeightedNumExamples());
     }
+    /* #endregion */
   }
 
-  if (!best_pos_buckets.empty()) {
-    // Finalize the best found split.
+  if (!best_pos_buckets.empty()) { // Finalize the best found split.
     // Note: The bucket are sorted by index i.e. best_pos_buckets[i] ==
     // example_bucket_set.items[i].feature.value.
     feature_filler.SetConditionFinalWithBuckets(best_pos_buckets, condition);
@@ -1307,31 +1375,50 @@ SplitSearchResult ScanSplitsRandomBuckets(
   }
 }
 
+/* #endregion */
+
 // Find the best possible split (and update the condition accordingly) using
 // a simple "scan" of the buckets.  See "ScanSplits".
 template <typename ExampleBucketSet, typename LabelBucketSet,
           bool require_label_sorting, bool bucket_interpolation = false>
 SplitSearchResult FindBestSplit(
-    absl::Span<const UnsignedExampleIdx> selected_examples,
+    absl::Span<const UnsignedExampleIdx> selected_examples, // IMPORTANT: := dense_example_idxs from oblique.cc := iota(num_examples)
     const typename ExampleBucketSet::FeatureBucketType::Filler& feature_filler,
     const typename ExampleBucketSet::LabelBucketType::Filler& label_filler,
     const typename ExampleBucketSet::LabelBucketType::Initializer& initializer,
     const int min_num_obs, const int attribute_idx,
     proto::NodeCondition* condition, PerThreadCacheV2* cache) {
+  
   DCHECK(condition != nullptr);
-
-  // Create buckets.
+  
+  // Create buckets. - takes practically 0 time
   ExampleBucketSet& example_set_accumulator =
       *GetCachedExampleBucketSet<ExampleBucketSet>(cache);
+
+  // PRIORITY Ariel: This takes a bunch of time - 15-20% on its own
+  // Sorting within takes 45%!
   FillExampleBucketSet<ExampleBucketSet, require_label_sorting>(
       selected_examples, feature_filler, label_filler, &example_set_accumulator,
       cache);
 
-  // Scan buckets.
-  return ScanSplits<ExampleBucketSet, LabelBucketSet, bucket_interpolation>(
+  auto scan_splits_result = ScanSplits<ExampleBucketSet, LabelBucketSet, bucket_interpolation>(
       feature_filler, initializer, example_set_accumulator,
       selected_examples.size(), min_num_obs, attribute_idx, condition, cache);
+
+  return scan_splits_result;
 }
+
+// Adds the content's of "src" label bucket to "dst"'s label bucket.
+template <typename ExampleBucketSet>
+void AddLabelBucket(const ExampleBucketSet& src, ExampleBucketSet* dst) {
+  DCHECK_EQ(src.items.size(), dst->items.size());
+  for (size_t item_idx = 0; item_idx < src.items.size(); item_idx++) {
+    src.items[item_idx].label.AddToBucket(&dst->items[item_idx].label);
+  }
+}
+
+
+/* #region Many FindBestSplit() based on ML Task */
 
 // Find the best possible split (and update the condition accordingly) using
 // a random scan of the buckets.  See "ScanSplitsRandomBuckets".
@@ -1360,17 +1447,6 @@ SplitSearchResult FindBestSplitRandom(
       selected_examples.size(), min_num_obs, attribute_idx, num_trials_fn,
       condition, cache, random);
 }
-
-// Adds the content's of "src" label bucket to "dst"'s label bucket.
-template <typename ExampleBucketSet>
-void AddLabelBucket(const ExampleBucketSet& src, ExampleBucketSet* dst) {
-  DCHECK_EQ(src.items.size(), dst->items.size());
-  for (size_t item_idx = 0; item_idx < src.items.size(); item_idx++) {
-    src.items[item_idx].label.AddToBucket(&dst->items[item_idx].label);
-  }
-}
-
-// Pre-defined ExampleBucketSets
 
 // Label: Regression.
 
@@ -1599,6 +1675,8 @@ constexpr auto FindBestSplit_LabelUpliftNumericalFeatureCategoricalCart =
 constexpr auto FindBestSplit_LabelUpliftNumericalFeatureCategoricalRandom =
     FindBestSplitRandom<FeatureCategoricalLabelUpliftNumerical,
                         LabelUpliftNumericalScoreAccumulator>;
+
+/*#endregion*/                        
 
 }  // namespace decision_tree
 }  // namespace model

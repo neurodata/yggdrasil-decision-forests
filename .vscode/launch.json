@@ -1,0 +1,263 @@
+{
+  "configurations": [
+    {
+      "name": "Python ParallelChrono",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/benchmarks/src/parallel_chrono.py",
+      "console": "integratedTerminal",
+      "args": [
+        "--input_mode=trunk",
+        "--num_threads=1",
+        "--numerical_split_type=Dynamic Equal Width Histogramming"
+      ]
+    },
+    {
+      "name": "Trunk 10k - Debugging Parallel Chrono",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
+      "args": [
+        "--input_mode=trunk",
+        "--rows=5000",
+        "--cols=512",
+        "--num_trees=1",
+        "--num_threads=-1",
+        // "--numerical_split_type=Equal Width"
+        // "--compute_oob_performances=false"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
+      "name": "Oblique Forest Haberman",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
+      "args": [
+        "--input_mode=csv",
+        "--train_csv=${workspaceFolder}/benchmarks/data/haberman.csv",
+        "--label_col=survival_status",
+        "--projection_density_factor=3.0"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
+      "name": "Oblique Histogram Haberman",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
+      "args": [
+        "--input_mode=csv",
+        "--train_csv=${workspaceFolder}/benchmarks/datadata/haberman.csv",
+        "--label_col=survival_status",
+        "--projection_density_factor=3.0",
+        "--numerical_split_type=Random"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
+      "name": "Oblique Forest on MIGHT",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
+      "args": [
+        "--input_mode",
+        "csv",
+        "--num_trees",
+        "1"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
+      "name": "Oblique Equal Width Histogram on MIGHT",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
+      "args": [
+        "--input_mode",
+        "csv",
+        "--numerical_split_type",
+        "Equal Width"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
+      "name": "Synthetic 4096x4096 Parallel",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
+      "args": [
+        "--input_mode",
+        "synthetic",
+        "--cols",
+        "4096",
+        "--rows",
+        "4096",
+        "--projection_density_factor",
+        "3",
+        "--num_threads=3",
+        "--num_trees=5"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "sourceFileMap": {
+        "/proc/self/cwd/yggdrasil-decision-forests": "/home/ubuntu/yggdrasil-decision-forests"
+      },
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
+      "name": "1-split 1-tree Huge Synthetic",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/bazel-bin/examples/train_oblique_forest",
+      "args": [
+        "--input_mode",
+        "synthetic",
+        "--cols",
+        "1024",
+        "--rows",
+        "32000",
+        "--projection_density_factor",
+        "3",
+        "--num_trees",
+        "1",
+        "--tree_depth",
+        "2"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "sourceFileMap": {
+        "/proc/self/cwd/yggdrasil-decision-forests": "${workspaceFolder}/yggdrasil-decision-forests"
+      },
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": false,
+      "cwd": "/home/ariel/prog/yggdrasil-decision-forests/yggdrasil_decision_forests/learner/decision_tree",
+      "program": "/home/ariel/prog/yggdrasil-decision-forests/yggdrasil_decision_forests/learner/decision_tree/build/Debug/outDebug",
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    }
+  ],
+  "version": "2.0.0"
+}

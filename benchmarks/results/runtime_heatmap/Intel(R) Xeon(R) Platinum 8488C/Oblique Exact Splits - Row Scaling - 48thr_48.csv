@@ -1,0 +1,11 @@
+n,1024,,,,,,1024_std,,,Parameter,Value
+2048,2.0821,,,,,,0.0000,,,Benchmark,Oblique Exact Splits - Row Scaling - 48thr
+4096,5.7750,,,,,,0.0000,,,Projection Density Factor,3
+8192,14.4260,,,,,,0.0000,,,Trees,50
+16384,36.6904,,,,,,0.0000,,,depth,-1
+32768,89.2913,,,,,,0.0000,,,feature_split_type,Oblique
+65536,220.4600,,,,,,0.0000,,,numerical_split_type,Exact
+131072,530.7370,,,,,,0.0000,,,cpu_model,Intel(R) Xeon(R) Platinum 8488C
+262144,1208.8700,,,,,,0.0000,,,threads,48
+524288,3027.0300,,,,,,0.0000,,,repeats,1
+1048576,7282.1400,,,,,,0.0000,,,max_num_projections,1000

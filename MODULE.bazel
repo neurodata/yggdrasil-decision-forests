@@ -1,0 +1,12 @@
+# Hedron compile-commands extractor
+bazel_dep(name = "hedron_compile_commands", dev_dependency = True)  # dev_dependency → not shipped to prod
+
+git_override(
+    module_name = "hedron_compile_commands",
+    remote = "https://github.com/hedronvision/bazel-compile-commands-extractor.git",
+    commit = "abb61a688167623088f8768cc9264798df6a9d10",  # use the latest commit
+)
+
+
+bazel_dep(name = "platforms", version = "0.0.10")  # needed once
+register_toolchains("//toolchains:intel_toolchain")

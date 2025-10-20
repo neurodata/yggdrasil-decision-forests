@@ -45,7 +45,7 @@
 #include <optional>
 #include <vector>
 
-#include "absl/log/log.h"
+// #include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
@@ -146,9 +146,11 @@ absl::StatusOr<SplitSearchResult> EvaluateProjection(
     absl::Span<const UnsignedExampleIdx> dense_example_idxs,
     const std::vector<float>& selected_weights, const Labels& selected_labels,
     absl::Span<const float> projection_values,
+    const float* min_value,
+    const float* max_value,
     const InternalTrainConfig& internal_config, int first_attribute_idx,
     const NodeConstraints& constraints, int8_t monotonic_direction,
-    proto::NodeCondition* condition, SplitterPerThreadCache* cache);
+    proto::NodeCondition* condition, SplitterPerThreadCache* cache, utils::RandomEngine* random);
 
 namespace internal {
 
@@ -183,7 +185,9 @@ class ProjectionEvaluator {
   // training dataset. This is the same logic used during inference.
   absl::Status Evaluate(const Projection& projection,
                         absl::Span<const UnsignedExampleIdx> selected_examples,
-                        std::vector<float>* values) const;
+                        std::vector<float>* values,
+                          /* NEW */ float* min_value,
+    /* NEW */ float* max_value) const;
 
   absl::Status ExtractAttribute(
       int attribute_idx, absl::Span<const UnsignedExampleIdx> selected_examples,

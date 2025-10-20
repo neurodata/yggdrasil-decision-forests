@@ -37,6 +37,7 @@ cc_binary(
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",
+"//yggdrasil_decision_forests/dataset:csv_example_reader",
     ],
 )
 
@@ -63,4 +64,48 @@ cc_binary(
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",
     ],
+)
+
+
+cc_binary(
+    name = "train_oblique_forest",
+    srcs = ["train_oblique_forest.cc"],
+    # copts = ["-pg"], # Ariel - for profiling
+    # linkopts = ["-pg"],
+    # features = ["c++17"],
+    deps = [
+"//yggdrasil_decision_forests/learner/random_forest:random_forest",
+"//yggdrasil_decision_forests/learner:learner_library",
+
+"//yggdrasil_decision_forests/model/random_forest:random_forest",
+"//yggdrasil_decision_forests/model:model_library",
+
+        "//yggdrasil_decision_forests/dataset:data_spec",
+"//yggdrasil_decision_forests/dataset:csv_example_reader",
+    "//yggdrasil_decision_forests/utils:logging",
+    "//yggdrasil_decision_forests/utils:distribution",
+    "@com_google_absl//absl/log",
+
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+
+cc_binary(
+    name = "convert_csv_to_tfrecord",
+    srcs = ["convert_csv_to_tfrecord.cc"],
+    deps = [
+        # ── YDF helpers
+        "//yggdrasil_decision_forests/dataset:data_spec",
+        "//yggdrasil_decision_forests/dataset:csv_example_reader",
+        "//yggdrasil_decision_forests/dataset:data_spec_inference",
+        "//yggdrasil_decision_forests/dataset:vertical_dataset_io",
+        "//yggdrasil_decision_forests/dataset/tensorflow_no_dep:tf_record_tf_example",
+        # ── Abseil
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/log",
+    ],
+    features = ["c++17"],
 )

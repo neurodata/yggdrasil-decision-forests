@@ -293,6 +293,7 @@ class VerticalDataset {
     std::vector<std::pair<size_t, size_t>> values_;
   };
 
+  // Ariel: This is MIGHT data - regular numeric
   class NumericalColumn : public TemplateScalarStorage<float> {
    public:
     proto::ColumnType type() const override {
@@ -659,18 +660,23 @@ class VerticalDataset {
 
     // Gets a view to a vector. "sequence_idx" should be in [0, SequenceLength).
     absl::StatusOr<absl::Span<const float>> GetVector(
-        row_t row, uint32_t sequence_idx) const {
+        row_t row, uint32_t sequence_idx) const 
+    {
+      /* #region Sanity Checks */
       DCHECK_GE(row, 0);
       DCHECK_LT(row, nrows());
 
       DCHECK_GE(sequence_idx, 0);
       DCHECK_LT(sequence_idx, SequenceLength(row));
+      /* #endregion */
 
       const auto size = item_sizes_[row];
       if (size == -1) {
         return absl::InvalidArgumentError(
             "Trying to get a vector from a missing vector sequence.");
       }
+      
+      // Ariel: Access pattern
       return absl::Span<const float>(
           &bank_[item_begins_[row] + sequence_idx * vector_length_],
           vector_length_);

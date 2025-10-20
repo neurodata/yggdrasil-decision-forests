@@ -17,6 +17,7 @@ syntax = "proto2";
 
 package yggdrasil_decision_forests.model.decision_tree.proto;
 
+import "yggdrasil_decision_forests/learner/abstract_learner.proto";
 import "yggdrasil_decision_forests/utils/distribution.proto";
 
 option java_outer_classname = "DecisionTreeLearner";
@@ -35,6 +36,7 @@ message DecisionTreeTrainingConfig {
   optional int32 min_examples = 2 [default = 5];
 
   oneof control_num_candidate_attributes {
+    // TODO Ariel default = sqrt(p)
     // Number of unique valid attributes tested for each node. An attribute is
     // valid if it has at least a valid split. If
     // "num_candidate_attributes=0" the value is set to the classical default
@@ -43,6 +45,7 @@ message DecisionTreeTrainingConfig {
     // If "num_candidate_attributes=-1", all the attributes are tested.
     int32 num_candidate_attributes = 6 [default = 0];
 
+    // Ariel - similar to above
     // If set, replaces "num_candidate_attributes" with the
     // "number_of_input_features x num_candidate_attributes_ratio". The possible
     // values are between ]0, and 1] as well as -1. If not set or equal to -1,
@@ -624,4 +627,8 @@ message LabelStatistics {
         labels = 1;
     optional double sum_hessian = 2;
   }
+}
+
+extend yggdrasil_decision_forests.model.proto.TrainingConfig {
+  optional DecisionTreeTrainingConfig decision_tree_config = 9347;
 }

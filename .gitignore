@@ -1,6 +1,18 @@
 bazel*
 dist
-.vscode
+benchmarks/data/cc18_binary_csv
+# .vscode
 tmp_package
 __pycache__
 no_sync*
+.clwb/
+**/.idea
+**/.DS_Store
+**/tmp
+**/gmon.out
+*.cfg
+ariel_test_data/random_csvs/
+jupyter_notebooks/jupyter_env/
+intel_advisor_profile_results/*
+**/.venv/
+benchmarks/data/trunk_data

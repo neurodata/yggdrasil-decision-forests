@@ -545,6 +545,8 @@ absl::StatusOr<SplitSearchResult>
 FindSplitLabelClassificationFeatureNumericalHistogram(
     absl::Span<const UnsignedExampleIdx> selected_examples,
     const std::vector<float>& weights, absl::Span<const float> attributes,
+    const float* min_value,
+    const float* max_value,
     const std::vector<int32_t>& labels, int32_t num_label_classes,
     float na_replacement, UnsignedExampleIdx min_num_obs,
     const proto::DecisionTreeTrainingConfig& dt_config,

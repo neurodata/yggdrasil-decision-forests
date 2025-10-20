@@ -1,0 +1,11 @@
+n,1024,,,,,,1024_std,,,Parameter,Value
+1048576,102.8250,,,,,,0.0000,,,Benchmark,Amdahls Number for big Apply Projection
+,,,,,,,,,,Projection Density Factor,3
+,,,,,,,,,,Trees,48
+,,,,,,,,,,depth,2
+,,,,,,,,,,feature_split_type,Oblique
+,,,,,,,,,,numerical_split_type,Exact
+,,,,,,,,,,cpu_model,Intel(R) Xeon(R) Platinum 8488C
+,,,,,,,,,,threads,512
+,,,,,,,,,,repeats,1
+,,,,,,,,,,max_num_projections,1000

@@ -1,0 +1,18 @@
+Thread 136330371659456,,,,,,,,,,,Parameter,Value
+tree,depth,nodes,Active Samples,SampleProjection,ApplyProjection,EvaluateProjection,,,,,input_mode,trunk
+0,0,0,0,0.0,0.0,0.0,,,,,train_csv,benchmarks/data/processed_wise1_data.csv
+0,1,1,20000,0.000731412,0.0455928,0.959349,,,,,label_col,Cancer Status
+0,2,2,20000,0.0012549,0.0516951,0.990692,,,,,experiment_name,
+0,3,4,20000,0.00236434,0.0773627,1.05998,,,,,feature_split_type,Oblique
+0,4,8,20000,0.00465966,0.132616,1.18451,,,,,numerical_split_type,Dynamic Histogramming
+0,5,16,20000,0.00877711,0.198064,1.32156,,,,,tree_depth,
+0,6,32,20000,0.01517,0.242359,1.31979,,,,,num_threads,1
+0,7,64,20000,0.0267947,0.272501,1.26481,,,,,num_trees,1
+0,8,124,19807,0.0460034,0.309645,1.18836,,,,,projection_density_factor,
+0,9,194,17990,0.0650131,0.307993,1.03497,,,,,max_num_projections,1000
+0,10,240,14431,0.0746557,0.264344,0.790639,,,,,sample_projection_mode,Fast
+0,11,214,10203,0.0649314,0.20585,0.523512,,,,,rows,20000
+0,12,168,6064,0.0488047,0.128797,0.300806,,,,,cols,4096
+0,13,94,2284,0.0258846,0.0558814,0.105058,,,,,save_log,False
+0,14,28,633,0.00787627,0.0179288,0.026614,,,,,,
+0,15,6,20,0.00149821,0.00173471,0.000583087,,,,,,

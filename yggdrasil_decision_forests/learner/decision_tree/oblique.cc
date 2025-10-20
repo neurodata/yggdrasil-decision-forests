@@ -27,14 +27,12 @@
 #include <vector>
 
 #include "absl/container/btree_set.h"
-#include "absl/log/log.h"
 #include "absl/random/distributions.h"
 #include "absl/random/random.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "Eigen/Dense"
-#include "Eigen/Eigenvalues"
 #include "yggdrasil_decision_forests/dataset/data_spec.pb.h"
 #include "yggdrasil_decision_forests/dataset/types.h"
 #include "yggdrasil_decision_forests/dataset/vertical_dataset.h"
@@ -46,10 +44,30 @@
 #include "yggdrasil_decision_forests/model/decision_tree/decision_tree.pb.h"
 #include "yggdrasil_decision_forests/utils/logging.h"
 #include "yggdrasil_decision_forests/utils/random.h"
+#include "yggdrasil_decision_forests/utils/parallel_chrono.h"
+#include <fstream>
+
+
+#ifndef PRINT_PROJECTION_MATRICES_FLAG
+  #define PRINT_PROJECTION_MATRICES_FLAG 0
+#endif
+
+#ifndef ALLOW_EMPTY_PROJECTIONS_FLAG
+  #define ALLOW_EMPTY_PROJECTIONS_FLAG 1 // By default, match Treeple, which skips those projections
+#endif
+
+#ifndef SLOW_SAMPLE_PROJECTIONS_FLAG
+  #define SLOW_SAMPLE_PROJECTIONS_FLAG 0
+#endif
+
 
 namespace yggdrasil_decision_forests {
 namespace model {
 namespace decision_tree {
+
+static constexpr bool PRINT_PROJECTION_MATRICES = PRINT_PROJECTION_MATRICES_FLAG;
+static constexpr bool ALLOW_EMPTY_PROJECTIONS = ALLOW_EMPTY_PROJECTIONS_FLAG;
+static constexpr bool SLOW_SAMPLE_PROJECTIONS = SLOW_SAMPLE_PROJECTIONS_FLAG;
 
 namespace {
 using std::is_same;
@@ -57,8 +75,14 @@ using std::is_same;
 using Projection = internal::Projection;
 using ProjectionEvaluator = internal::ProjectionEvaluator;
 using LDACache = internal::LDACache;
+}
 
-}  // namespace
+
+// Already in splitter_scanner.h . Apparently it carries from all the way there
+// static constexpr bool MEASURE_CHRONO_TIMES = true;
+
+// TODO Ariel - important for access pattern
+/* #region Extract() - select out vector Indices at positions */
 
 template <typename T>
 std::vector<T> Extract(const std::vector<T>& values,
@@ -101,6 +125,9 @@ GradientAndHessian ExtractLabels(
           /*.hessian_data =*/Extract(labels.hessian_data, selected)};
 }
 
+/* #endregion */
+
+
 int GetNumProjections(const proto::DecisionTreeTrainingConfig& dt_config,
                       const int num_numerical_features) {
   if (num_numerical_features <= 1) {
@@ -123,6 +150,7 @@ int GetNumProjections(const proto::DecisionTreeTrainingConfig& dt_config,
                   min_num_projections);
 }
 
+// Ariel - Main Loop over Projections
 template <typename LabelStats>
 absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     const dataset::VerticalDataset& train_dataset,
@@ -131,43 +159,39 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     const model::proto::TrainingConfig& config,
     const model::proto::TrainingConfigLinking& config_link,
     const proto::DecisionTreeTrainingConfig& dt_config,
-    const proto::Node& parent, const InternalTrainConfig& internal_config,
+    const proto::Node& parent,
+    const InternalTrainConfig& internal_config,
     const LabelStats& label_stats,
     const std::optional<int>& override_num_projections,
-    const NodeConstraints& constraints, proto::NodeCondition* best_condition,
-    utils::RandomEngine* random, SplitterPerThreadCache* cache) {
+    const NodeConstraints& constraints,
+    proto::NodeCondition* best_condition,
+    utils::RandomEngine* random,
+    SplitterPerThreadCache* cache) {
+
+  /* #region Initializations */
+
+  // ---------- basic sanity‑checks --------------------
   if (!weights.empty()) {
     DCHECK_EQ(weights.size(), train_dataset.nrow());
   }
-
   if (config_link.numerical_features().empty()) {
     return false;
   }
 
-  // Effective number of projections to test.
-  int num_projections;
-  if (override_num_projections.has_value()) {
-    num_projections = override_num_projections.value();
-  } else {
-    num_projections =
-        GetNumProjections(dt_config, config_link.numerical_features_size());
-  }
+  // Decide Num Projections
+  int num_projections = override_num_projections.has_value()
+      ? override_num_projections.value()
+      : GetNumProjections(dt_config, config_link.numerical_features_size());
 
   const float projection_density =
       dt_config.sparse_oblique_split().projection_density_factor() /
       config_link.numerical_features_size();
 
-  // Best and current projections.
-  Projection best_projection;
-  float best_threshold;
-  Projection current_projection;
-  auto& projection_values = cache->projection_values;
-
   ProjectionEvaluator projection_evaluator(train_dataset,
                                            config_link.numerical_features());
 
-  // TODO: Cache.
   const auto selected_labels = ExtractLabels(label_stats, selected_examples);
+
   std::vector<float> selected_weights;
   if (!weights.empty()) {
     selected_weights = Extract(weights, selected_examples);
@@ -176,41 +200,310 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   std::vector<UnsignedExampleIdx> dense_example_idxs(selected_examples.size());
   std::iota(dense_example_idxs.begin(), dense_example_idxs.end(), 0);
 
-  for (int projection_idx = 0; projection_idx < num_projections;
-       projection_idx++) {
-    // Generate a current_projection.
-    int8_t monotonic_direction;
-    SampleProjection(config_link.numerical_features(), dt_config,
-                     train_dataset.data_spec(), config_link, projection_density,
-                     &current_projection, &monotonic_direction, random);
+  auto& projection_values = cache->projection_values;
 
-    // Pre-compute the result of the current_projection.
-    RETURN_IF_ERROR(projection_evaluator.Evaluate(
-        current_projection, selected_examples, &projection_values));
+  Projection best_projection, current_projection;
+  float best_threshold = 0.f;
+  const int num_features = config_link.numerical_features_size();
 
-    ASSIGN_OR_RETURN(
-        const auto result,
-        EvaluateProjection(
-            dt_config, label_stats, dense_example_idxs, selected_weights,
-            selected_labels, projection_values, internal_config,
-            current_projection.front().attribute_idx, constraints,
-            monotonic_direction, best_condition, cache));
+  static bool first_call = true;
+  static int node_counter = 0;
+  std::ofstream log;
 
-    if (result == SplitSearchResult::kBetterSplitFound) {
-      best_projection = current_projection;
-      best_threshold =
-          best_condition->condition().higher_condition().threshold();
+  // For printing Projection Matrix
+  using SparseProjection = std::vector<std::pair<int, float>>;
+  std::vector<SparseProjection> projection_buffer;
+  if constexpr (PRINT_PROJECTION_MATRICES) {
+    projection_buffer.reserve(num_projections);
+  }
+
+  if constexpr (HARD_CODE_1000_PROJECTIONS) { num_projections = 1000; }
+
+  /* #endregion */
+
+  proto::DecisionTreeTrainingConfig new_dt_config = dt_config; // TODO pick better name
+  
+  // Automatically swap betw. Histogramming and Sorting based on which is faster for given amount of data
+  if constexpr (ENABLE_DYNAMIC_HISTOGRAMMING != 0) {
+    // Magic number - chosen empirically https://docs.google.com/spreadsheets/d/1k0Td119py6Z_crJPdpt6iggWten86KRtYqSrQmcHhJM/edit?usp=sharing
+    if (dense_example_idxs.size() > 1536) {
+      if constexpr (ENABLE_DYNAMIC_HISTOGRAMMING == 2)
+        new_dt_config.mutable_numerical_split()->set_type(yggdrasil_decision_forests::model::decision_tree::proto::NumericalSplit_Type_HISTOGRAM_RANDOM);
+      else if (ENABLE_DYNAMIC_HISTOGRAMMING == 1)
+       new_dt_config.mutable_numerical_split()->set_type(yggdrasil_decision_forests::model::decision_tree::proto::NumericalSplit_Type_HISTOGRAM_EQUAL_WIDTH);
+      
+      new_dt_config.mutable_numerical_split()->set_num_candidates(256);
     }
   }
 
-  // Update with the actual current_projection definition.
+  // std::cout << "Num Projections: " << num_projections << std::endl;
+
+  /* #region ----------  MAIN LOOP  ------------------ */
+  for (int proj_idx = 0; proj_idx < num_projections; ++proj_idx) {
+      int8_t monotonic = 0;
+
+      SampleProjection(config_link.numerical_features(), new_dt_config,
+                      train_dataset.data_spec(), config_link, projection_density,
+                      &current_projection, &monotonic, random);
+
+      if constexpr (PRINT_PROJECTION_MATRICES) {
+        // store the current projection sparsely
+        SparseProjection& buf = projection_buffer.emplace_back();
+        buf.reserve(current_projection.size());
+        for (const auto& feat : current_projection) {
+          buf.emplace_back(feat.attribute_idx, feat.weight);
+        }
+      }
+
+      if constexpr (ALLOW_EMPTY_PROJECTIONS) {
+        // Skip empty projections, like Treeple
+        if (current_projection.empty()) continue;
+      }
+
+      float min_value, max_value;
+
+      RETURN_IF_ERROR( // ApplyProjection
+        projection_evaluator.Evaluate(current_projection, selected_examples, &projection_values, &min_value, &max_value)
+      );
+
+      ASSIGN_OR_RETURN(
+          const auto split_result,
+          EvaluateProjection(new_dt_config, label_stats, dense_example_idxs, selected_weights,
+                            selected_labels, projection_values, &min_value, &max_value, internal_config,
+                            current_projection.front().attribute_idx,
+                            constraints, monotonic,
+                            best_condition, cache, random// random needed for Histogramming
+                          ));
+
+      if (split_result == SplitSearchResult::kBetterSplitFound) {
+        best_projection = current_projection;
+        best_threshold = best_condition->condition().higher_condition().threshold();
+      }
+    }
+  /* #endregion */
+
+  /* #region update Best Threshold & Projection */
+
+  // Save projection matrix to file if desired
+  if constexpr (PRINT_PROJECTION_MATRICES) {
+      std::ofstream log("benchmarks/results/ydf_projection_matrices/projection_matrices.txt",
+                        std::ios::app);
+
+      log << "Node " << node_counter++ << " | "
+          << projection_buffer.size() << " projections\n";
+
+      // “edge-list” layout :  projection_id  feature_id  weight
+      for (size_t p = 0; p < projection_buffer.size(); ++p) {
+        for (const auto& [idx, w] : projection_buffer[p]) {
+          log << p << ' ' << idx << ' ' << w << '\n';
+        }
+      }
+      log << '\n';
+    }
+
   if (!best_projection.empty()) {
     RETURN_IF_ERROR(SetCondition(best_projection, best_threshold,
                                  train_dataset.data_spec(), best_condition));
+
     return true;
   }
-
+  
   return false;
+
+  /* #endregion */
+}
+
+struct ScoreAndThreshold {
+  float score;
+  float threhsold;
+};
+
+
+template <typename LabelStats, typename Labels>
+absl::StatusOr<SplitSearchResult> EvaluateProjection(
+    const proto::DecisionTreeTrainingConfig& dt_config,
+    const LabelStats& label_stats,
+    const absl::Span<const UnsignedExampleIdx> dense_example_idxs,
+    const std::vector<float>& selected_weights, const Labels& selected_labels,
+    const absl::Span<const float> projection_values,
+    const float* min_value,
+    const float* max_value,
+    const InternalTrainConfig& internal_config, const int first_attribute_idx,
+    const NodeConstraints& constraints, int8_t monotonic_direction,
+    proto::NodeCondition* condition, SplitterPerThreadCache* cache,
+    utils::RandomEngine* random) {
+  CHRONO_SCOPE(::yggdrasil_decision_forests::chrono_prof::kEvaluateProjection);
+  InternalTrainConfig effective_internal_config = internal_config;
+
+  // Choose sorting strategy
+  effective_internal_config.override_sorting_strategy =
+      proto::DecisionTreeTrainingConfig::Internal::SortingStrategy::
+          DecisionTreeTrainingConfig_Internal_SortingStrategy_IN_NODE;
+
+  const UnsignedExampleIdx min_num_obs =
+      dt_config.in_split_min_examples_check() ? dt_config.min_examples() : 1;
+
+  // Projection are never missing.
+  const float na_replacement = 0;
+  
+  // Ariel - don't need to check for isnan here. Was already done in ApplyProjection
+  
+  // Find a good split in the current_projection.
+  SplitSearchResult result;
+  if constexpr (is_same<LabelStats, ClassificationLabelStats>::value) {
+
+    // Histogram for big data, otherwise do Exact Splits
+    if (dt_config.numerical_split().type() == proto::NumericalSplit::EXACT) {
+    ASSIGN_OR_RETURN(
+        result,
+        FindSplitLabelClassificationFeatureNumericalCart(
+            dense_example_idxs, selected_weights,
+            projection_values,
+            selected_labels, label_stats.num_label_classes, na_replacement,
+            min_num_obs, dt_config, label_stats.label_distribution,
+            first_attribute_idx, effective_internal_config, condition, cache));
+    }
+    else {
+      ASSIGN_OR_RETURN(
+          result,
+          FindSplitLabelClassificationFeatureNumericalHistogram(
+              dense_example_idxs, selected_weights, projection_values, min_value, max_value,
+              selected_labels, label_stats.num_label_classes, na_replacement,
+              min_num_obs, dt_config, label_stats.label_distribution,
+              first_attribute_idx, random, condition));
+    }
+  }
+
+  /* #region Non-Numerical Methods */
+  else if constexpr (is_same<LabelStats,
+                               RegressionHessianLabelStats>::value)
+    {
+    if (!selected_weights.empty()) {
+      ASSIGN_OR_RETURN(
+          result,
+          FindSplitLabelHessianRegressionFeatureNumericalCart<
+              /*weighted=*/true>(
+              dense_example_idxs, selected_weights, projection_values,
+              selected_labels.gradient_data, selected_labels.hessian_data,
+              na_replacement, min_num_obs, dt_config, label_stats.sum_gradient,
+              label_stats.sum_hessian, label_stats.sum_weights,
+              first_attribute_idx, effective_internal_config, constraints,
+              monotonic_direction, condition, cache));
+
+    } else {
+      ASSIGN_OR_RETURN(
+          result,
+          FindSplitLabelHessianRegressionFeatureNumericalCart<
+              /*weighted=*/false>(
+              dense_example_idxs, selected_weights, projection_values,
+              selected_labels.gradient_data, selected_labels.hessian_data,
+              na_replacement, min_num_obs, dt_config, label_stats.sum_gradient,
+              label_stats.sum_hessian, label_stats.sum_weights,
+              first_attribute_idx, effective_internal_config, constraints,
+              monotonic_direction, condition, cache));
+    }
+  } else if constexpr (is_same<LabelStats, RegressionLabelStats>::value) {
+    if (!selected_weights.empty()) {
+      ASSIGN_OR_RETURN(
+          result,
+          FindSplitLabelRegressionFeatureNumericalCart</*weighted=*/true>(
+              dense_example_idxs, selected_weights, projection_values,
+              selected_labels, na_replacement, min_num_obs, dt_config,
+              label_stats.label_distribution, first_attribute_idx,
+              effective_internal_config, condition, cache));
+    } else {
+      ASSIGN_OR_RETURN(
+          result,
+          FindSplitLabelRegressionFeatureNumericalCart</*weighted=*/false>(
+              dense_example_idxs, selected_weights, projection_values,
+              selected_labels, na_replacement, min_num_obs, dt_config,
+              label_stats.label_distribution, first_attribute_idx,
+              effective_internal_config, condition, cache));
+    }
+
+    /* #endregion */
+  } else {
+    static_assert(!is_same<LabelStats, LabelStats>::value, "Not implemented.");
+  }
+
+  return result;
+}
+
+
+/* #region EvaluateProjection Irrelevant Alternatives */
+
+template absl::StatusOr<SplitSearchResult>
+EvaluateProjection<ClassificationLabelStats, std::vector<int32_t>>(
+    const proto::DecisionTreeTrainingConfig& dt_config,
+    const ClassificationLabelStats& label_stats,
+    const absl::Span<const UnsignedExampleIdx> dense_example_idxs,
+    const std::vector<float>& selected_weights,
+    const std::vector<int32_t>& selected_labels,
+    const absl::Span<const float> projection_values,
+    const float* min_value,
+    const float* max_value,
+    const InternalTrainConfig& internal_config, const int first_attribute_idx,
+    const NodeConstraints& constraints, int8_t monotonic_direction,
+    proto::NodeCondition* condition, SplitterPerThreadCache* cache,
+    utils::RandomEngine* random);
+
+template absl::StatusOr<SplitSearchResult>
+EvaluateProjection<RegressionLabelStats, std::vector<float>>(
+    const proto::DecisionTreeTrainingConfig& dt_config,
+    const RegressionLabelStats& label_stats,
+    const absl::Span<const UnsignedExampleIdx> dense_example_idxs,
+    const std::vector<float>& selected_weights,
+    const std::vector<float>& selected_labels,
+    const absl::Span<const float> projection_values,
+    const float* min_value,
+    const float* max_value,
+    const InternalTrainConfig& internal_config, const int first_attribute_idx,
+    const NodeConstraints& constraints, int8_t monotonic_direction,
+    proto::NodeCondition* condition, SplitterPerThreadCache* cache,
+    utils::RandomEngine* random);
+
+template absl::StatusOr<SplitSearchResult>
+EvaluateProjection<RegressionHessianLabelStats, GradientAndHessian>(
+    const proto::DecisionTreeTrainingConfig& dt_config,
+    const RegressionHessianLabelStats& label_stats,
+    const absl::Span<const UnsignedExampleIdx> dense_example_idxs,
+    const std::vector<float>& selected_weights,
+    const GradientAndHessian& selected_labels,
+    const absl::Span<const float> projection_values,
+    const float* min_value,
+    const float* max_value,
+    const InternalTrainConfig& internal_config, const int first_attribute_idx,
+    const NodeConstraints& constraints, int8_t monotonic_direction,
+    proto::NodeCondition* condition, SplitterPerThreadCache* cache,
+    utils::RandomEngine* random);
+
+
+template <typename LabelStats, typename Labels>
+absl::Status EvaluateProjectionAndSetCondition(
+    const dataset::proto::DataSpecification& dataspec,
+    const proto::DecisionTreeTrainingConfig& dt_config,
+    const LabelStats& label_stats,
+    const absl::Span<const UnsignedExampleIdx> dense_example_idxs,
+    const std::vector<float>& selected_weights, const Labels& selected_labels,
+    const absl::Span<const float> projection_values,
+    const Projection& projection, const InternalTrainConfig& internal_config,
+    const int first_attribute_idx, proto::NodeCondition* condition,
+    SplitterPerThreadCache* cache,
+    utils::RandomEngine* random) {
+  ASSIGN_OR_RETURN(
+      const auto result,
+      EvaluateProjection(dt_config, label_stats, dense_example_idxs,
+                         selected_weights, selected_labels, projection_values, nullptr, nullptr,
+                         internal_config, first_attribute_idx,
+                         /*constraints=*/{}, /*monotonic_direction=*/0,
+                         condition, cache, random));
+
+  if (result == SplitSearchResult::kBetterSplitFound) {
+    RETURN_IF_ERROR(SetCondition(
+        projection, condition->condition().higher_condition().threshold(),
+        dataspec, condition));
+  }
+  return absl::OkStatus();
 }
 
 absl::Status SolveLDA(const proto::DecisionTreeTrainingConfig& dt_config,
@@ -277,161 +570,6 @@ absl::Status SolveLDA(const proto::DecisionTreeTrainingConfig& dt_config,
   return absl::OkStatus();
 }
 
-struct ScoreAndThreshold {
-  float score;
-  float threhsold;
-};
-
-template <typename LabelStats, typename Labels>
-absl::StatusOr<SplitSearchResult> EvaluateProjection(
-    const proto::DecisionTreeTrainingConfig& dt_config,
-    const LabelStats& label_stats,
-    const absl::Span<const UnsignedExampleIdx> dense_example_idxs,
-    const std::vector<float>& selected_weights, const Labels& selected_labels,
-    const absl::Span<const float> projection_values,
-    const InternalTrainConfig& internal_config, const int first_attribute_idx,
-    const NodeConstraints& constraints, int8_t monotonic_direction,
-    proto::NodeCondition* condition, SplitterPerThreadCache* cache) {
-  InternalTrainConfig effective_internal_config = internal_config;
-  effective_internal_config.override_sorting_strategy =
-      proto::DecisionTreeTrainingConfig::Internal::SortingStrategy::
-          DecisionTreeTrainingConfig_Internal_SortingStrategy_IN_NODE;
-
-  const UnsignedExampleIdx min_num_obs =
-      dt_config.in_split_min_examples_check() ? dt_config.min_examples() : 1;
-
-  // Projection are never missing.
-  const float na_replacement = 0;
-#ifndef NDEBUG
-  for (const float v : projection_values) {
-    DCHECK(!std::isnan(v));
-  }
-#endif
-
-  // Find a good split in the current_projection.
-  SplitSearchResult result;
-  if constexpr (is_same<LabelStats, ClassificationLabelStats>::value) {
-    ASSIGN_OR_RETURN(
-        result,
-        FindSplitLabelClassificationFeatureNumericalCart(
-            dense_example_idxs, selected_weights, projection_values,
-            selected_labels, label_stats.num_label_classes, na_replacement,
-            min_num_obs, dt_config, label_stats.label_distribution,
-            first_attribute_idx, effective_internal_config, condition, cache));
-  } else if constexpr (is_same<LabelStats,
-                               RegressionHessianLabelStats>::value) {
-    if (!selected_weights.empty()) {
-      ASSIGN_OR_RETURN(
-          result,
-          FindSplitLabelHessianRegressionFeatureNumericalCart<
-              /*weighted=*/true>(
-              dense_example_idxs, selected_weights, projection_values,
-              selected_labels.gradient_data, selected_labels.hessian_data,
-              na_replacement, min_num_obs, dt_config, label_stats.sum_gradient,
-              label_stats.sum_hessian, label_stats.sum_weights,
-              first_attribute_idx, effective_internal_config, constraints,
-              monotonic_direction, condition, cache));
-
-    } else {
-      ASSIGN_OR_RETURN(
-          result,
-          FindSplitLabelHessianRegressionFeatureNumericalCart<
-              /*weighted=*/false>(
-              dense_example_idxs, selected_weights, projection_values,
-              selected_labels.gradient_data, selected_labels.hessian_data,
-              na_replacement, min_num_obs, dt_config, label_stats.sum_gradient,
-              label_stats.sum_hessian, label_stats.sum_weights,
-              first_attribute_idx, effective_internal_config, constraints,
-              monotonic_direction, condition, cache));
-    }
-  } else if constexpr (is_same<LabelStats, RegressionLabelStats>::value) {
-    if (!selected_weights.empty()) {
-      ASSIGN_OR_RETURN(
-          result,
-          FindSplitLabelRegressionFeatureNumericalCart</*weighted=*/true>(
-              dense_example_idxs, selected_weights, projection_values,
-              selected_labels, na_replacement, min_num_obs, dt_config,
-              label_stats.label_distribution, first_attribute_idx,
-              effective_internal_config, condition, cache));
-    } else {
-      ASSIGN_OR_RETURN(
-          result,
-          FindSplitLabelRegressionFeatureNumericalCart</*weighted=*/false>(
-              dense_example_idxs, selected_weights, projection_values,
-              selected_labels, na_replacement, min_num_obs, dt_config,
-              label_stats.label_distribution, first_attribute_idx,
-              effective_internal_config, condition, cache));
-    }
-  } else {
-    static_assert(!is_same<LabelStats, LabelStats>::value, "Not implemented.");
-  }
-
-  return result;
-}
-
-template absl::StatusOr<SplitSearchResult>
-EvaluateProjection<ClassificationLabelStats, std::vector<int32_t>>(
-    const proto::DecisionTreeTrainingConfig& dt_config,
-    const ClassificationLabelStats& label_stats,
-    const absl::Span<const UnsignedExampleIdx> dense_example_idxs,
-    const std::vector<float>& selected_weights,
-    const std::vector<int32_t>& selected_labels,
-    const absl::Span<const float> projection_values,
-    const InternalTrainConfig& internal_config, const int first_attribute_idx,
-    const NodeConstraints& constraints, int8_t monotonic_direction,
-    proto::NodeCondition* condition, SplitterPerThreadCache* cache);
-
-template absl::StatusOr<SplitSearchResult>
-EvaluateProjection<RegressionLabelStats, std::vector<float>>(
-    const proto::DecisionTreeTrainingConfig& dt_config,
-    const RegressionLabelStats& label_stats,
-    const absl::Span<const UnsignedExampleIdx> dense_example_idxs,
-    const std::vector<float>& selected_weights,
-    const std::vector<float>& selected_labels,
-    const absl::Span<const float> projection_values,
-    const InternalTrainConfig& internal_config, const int first_attribute_idx,
-    const NodeConstraints& constraints, int8_t monotonic_direction,
-    proto::NodeCondition* condition, SplitterPerThreadCache* cache);
-
-template absl::StatusOr<SplitSearchResult>
-EvaluateProjection<RegressionHessianLabelStats, GradientAndHessian>(
-    const proto::DecisionTreeTrainingConfig& dt_config,
-    const RegressionHessianLabelStats& label_stats,
-    const absl::Span<const UnsignedExampleIdx> dense_example_idxs,
-    const std::vector<float>& selected_weights,
-    const GradientAndHessian& selected_labels,
-    const absl::Span<const float> projection_values,
-    const InternalTrainConfig& internal_config, const int first_attribute_idx,
-    const NodeConstraints& constraints, int8_t monotonic_direction,
-    proto::NodeCondition* condition, SplitterPerThreadCache* cache);
-
-template <typename LabelStats, typename Labels>
-absl::Status EvaluateProjectionAndSetCondition(
-    const dataset::proto::DataSpecification& dataspec,
-    const proto::DecisionTreeTrainingConfig& dt_config,
-    const LabelStats& label_stats,
-    const absl::Span<const UnsignedExampleIdx> dense_example_idxs,
-    const std::vector<float>& selected_weights, const Labels& selected_labels,
-    const absl::Span<const float> projection_values,
-    const Projection& projection, const InternalTrainConfig& internal_config,
-    const int first_attribute_idx, proto::NodeCondition* condition,
-    SplitterPerThreadCache* cache) {
-  ASSIGN_OR_RETURN(
-      const auto result,
-      EvaluateProjection(dt_config, label_stats, dense_example_idxs,
-                         selected_weights, selected_labels, projection_values,
-                         internal_config, first_attribute_idx,
-                         /*constraints=*/{}, /*monotonic_direction=*/0,
-                         condition, cache));
-
-  if (result == SplitSearchResult::kBetterSplitFound) {
-    RETURN_IF_ERROR(SetCondition(
-        projection, condition->condition().higher_condition().threshold(),
-        dataspec, condition));
-  }
-  return absl::OkStatus();
-}
-
 template <typename LabelStats, typename Labels>
 absl::Status EvaluateMHLDCandidates(
     const dataset::proto::DataSpecification& dataspec,
@@ -467,7 +605,7 @@ absl::Status EvaluateMHLDCandidates(
           dataspec, dt_config, label_stats, dense_example_idxs,
           selected_weights, selected_labels, projection_values,
           {{attribute_idx, 1.f}}, internal_config, attribute_idx, &condition,
-          cache));
+          cache, random));
     } else {
       // Find best projection
       Projection projection;
@@ -487,24 +625,30 @@ absl::Status EvaluateMHLDCandidates(
 
       // Compute projection
       RETURN_IF_ERROR(projection_evaluator.Evaluate(
-          projection, selected_examples, &projection_values));
+          projection, selected_examples, &projection_values, nullptr, nullptr));
 
       // Evaluate projection quality
       RETURN_IF_ERROR(EvaluateProjectionAndSetCondition(
           dataspec, dt_config, label_stats, dense_example_idxs,
           selected_weights, selected_labels, projection_values, projection,
-          internal_config, candidate.front(), &condition, cache));
+          internal_config, candidate.front(), &condition, cache, random));
     }
   }
 
   return absl::OkStatus();
 }
 
+
+/* #endregion */
+
+/* #region NonInteresting semaphore functions for choosing MHLD or Regular Oblique, based on user call */
+
 absl::StatusOr<std::vector<int>> SampleAttributes(
     const model::proto::TrainingConfigLinking& config_link,
     const model::proto::TrainingConfig& config,
     const proto::DecisionTreeTrainingConfig& dt_config,
     utils::RandomEngine* random) {
+      // Is this the Bootstrapped data per-feature access? Or MHLD specific?
   std::vector<int> candidate_attributes{
       config_link.numerical_features().begin(),
       config_link.numerical_features().end()};
@@ -627,6 +771,8 @@ absl::StatusOr<bool> FindBestConditionMHLDObliqueTemplate(
   return found_better_global;
 }
 
+
+
 absl::StatusOr<bool> FindBestConditionOblique(
     const dataset::VerticalDataset& train_dataset,
     const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -641,6 +787,7 @@ absl::StatusOr<bool> FindBestConditionOblique(
     SplitterPerThreadCache* cache) {
   switch (dt_config.split_axis_case()) {
     case proto::DecisionTreeTrainingConfig::kSparseObliqueSplit:
+      // a.k.a SPORF
       return FindBestConditionSparseObliqueTemplate<ClassificationLabelStats>(
           train_dataset, selected_examples, weights, config, config_link,
           dt_config, parent, internal_config, label_stats,
@@ -715,6 +862,8 @@ absl::StatusOr<bool> FindBestConditionOblique(
   }
 }
 
+/* #endregion */
+
 namespace internal {
 
 void SampleProjection(const absl::Span<const int>& features,
@@ -725,9 +874,13 @@ void SampleProjection(const absl::Span<const int>& features,
                       internal::Projection* projection,
                       int8_t* monotonic_direction,
                       utils::RandomEngine* random) {
+  CHRONO_SCOPE(
+    ::yggdrasil_decision_forests::chrono_prof::kSampleProjection);
   *monotonic_direction = 0;
   projection->clear();
-  projection->reserve(projection_density * features.size());
+  if constexpr (SLOW_SAMPLE_PROJECTIONS) {
+    projection->reserve(projection_density * features.size());
+  }
   std::uniform_real_distribution<float> unif01;
   std::uniform_real_distribution<float> unif1m1(-1.f, 1.f);
   const auto& oblique_config = dt_config.sparse_oblique_split();
@@ -788,12 +941,44 @@ void SampleProjection(const absl::Span<const int>& features,
     }
   };
 
+#ifndef NDEBUG  // Keep DCHECK_EQ from for feature : features
   for (const auto feature : features) {
     DCHECK_EQ(data_spec.columns(feature).type(), dataset::proto::NUMERICAL);
-    if (unif01(*random) < projection_density) {
-      projection->push_back({feature, gen_weight(feature)});
+  }
+#endif
+
+  if constexpr (SLOW_SAMPLE_PROJECTIONS) {
+    for (const auto feature : features) {
+      if (unif01(*random) < projection_density) {
+        projection->push_back({feature, gen_weight(feature)});
+      }
     }
   }
+  else {
+    std::binomial_distribution<size_t> binom(features.size(), projection_density);
+
+    // Expectation[Binomial(p,projection_density)] = num_selected_features
+    const size_t num_selected_features = binom(*random);
+
+    // TODO: Try std::bitmap
+    absl::btree_set<size_t> picked_idx;
+
+    // Floyd's sampler to select k indices uniformly
+    for (size_t j = features.size() - num_selected_features; j < features.size();
+        ++j) {
+      size_t t = absl::Uniform<size_t>(*random, 0, j + 1);
+      if (!picked_idx.insert(t).second) picked_idx.insert(j);
+    }
+
+    projection->reserve(projection_density * features.size());
+    // O(k) minimal pass to fill in those indices
+    for (const auto idx : picked_idx) {
+      projection->push_back({features[idx], gen_weight(features[idx])});
+    }
+  }
+
+  // Treeple allows empty projections, which are useless. This is for consistency checks
+  if constexpr (! ALLOW_EMPTY_PROJECTIONS) {
   if (projection->empty()) {
     std::uniform_int_distribution<int> unif_feature_idx(0, features.size() - 1);
     projection->push_back(
@@ -802,6 +987,7 @@ void SampleProjection(const absl::Span<const int>& features,
   } else if (projection->size() == 1) {
     projection->front().weight = 1.f;
   }
+}
 
   int max_num_features = dt_config.sparse_oblique_split().max_num_features();
   int cur_num_projections = projection->size();
@@ -812,9 +998,10 @@ void SampleProjection(const absl::Span<const int>& features,
     // For a small number of features, a boolean vector is more efficient.
     // Re-evaluate if this becomes a bottleneck.
     absl::btree_set<size_t> sampled_features;
-    // Floyd's sampling algorithm.
+    // Floyd's sampling algorithm. TODO could reuse this
     for (size_t j = cur_num_projections - max_num_features;
          j < cur_num_projections; j++) {
+      // TODO: Try uint32.
       size_t t = absl::Uniform<size_t>(*random, 0, j + 1);
       if (!sampled_features.insert(t).second) {
         // t was already sampled, so insert j instead.
@@ -850,6 +1037,9 @@ absl::Status SetCondition(const Projection& projection, const float threshold,
   condition->set_na_value(false);
   return absl::OkStatus();
 }
+
+
+/* #region LDA-Specific f() */
 
 absl::Status LDACache::ComputeClassification(
     const proto::DecisionTreeTrainingConfig& dt_config,
@@ -1007,23 +1197,26 @@ absl::Status LDACache::GetSW(const std::vector<int>& selected_features,
   return Extract(selected_features, sw_, out);
 }
 
+/* #endregion */
+
+
 ProjectionEvaluator::ProjectionEvaluator(
     const dataset::VerticalDataset& train_dataset,
     const google::protobuf::RepeatedField<int32_t>& numerical_features) {
   DCHECK(!numerical_features.empty());
+
   const int max_feature_idx =
       *std::max_element(numerical_features.begin(), numerical_features.end());
 
   numerical_attributes_.assign(max_feature_idx + 1, nullptr);
   na_replacement_value_.assign(max_feature_idx + 1, 0.f);
 
+  // Loop over numerical features - select out columns
   for (const auto attribute_idx : numerical_features) {
     const auto column_or = train_dataset.ColumnWithCastWithStatus<
         dataset::VerticalDataset::NumericalColumn>(attribute_idx);
     constructor_status_.Update(column_or.status());
-    if (!constructor_status_.ok()) {
-      break;
-    }
+    if (!constructor_status_.ok()) { break; }
 
     numerical_attributes_[attribute_idx] = &column_or.value()->values();
     na_replacement_value_[attribute_idx] =
@@ -1031,33 +1224,58 @@ ProjectionEvaluator::ProjectionEvaluator(
   }
 }
 
+
+// Takes ~12% of multicore runtime | 4096 x various synthetic n_cols
+// Skip optimizing for now - bigger fish to fry
 absl::Status ProjectionEvaluator::Evaluate(
     const Projection& projection,
     const absl::Span<const UnsignedExampleIdx> selected_examples,
-    std::vector<float>* values) const {
+    std::vector<float>* values,
+    float* min_value,      // nullptr -> caller is not interested
+    float* max_value) const {
+
   RETURN_IF_ERROR(constructor_status_);
+
   values->resize(selected_examples.size());
+  CHRONO_SCOPE(
+      ::yggdrasil_decision_forests::chrono_prof::kProjectionEvaluate);
+
+  // Always maintain local extrema; they are updated at near-zero cost.
+  float local_min =  std::numeric_limits<float>::infinity();
+  float local_max = -std::numeric_limits<float>::infinity();
+
   for (size_t selected_idx = 0; selected_idx < selected_examples.size();
-       selected_idx++) {
-    float value = 0;
+       ++selected_idx) {
+
+    float value = 0.f;
     const auto example_idx = selected_examples[selected_idx];
+
     for (const auto& item : projection) {
-      DCHECK_LT(item.attribute_idx, numerical_attributes_.size());
-      DCHECK_GE(item.attribute_idx, 0);
-      // TODO: Move the indirection outside of the loop.
       const auto* attribute_values = numerical_attributes_[item.attribute_idx];
-      DCHECK(attribute_values != nullptr);
       float attribute_value = (*attribute_values)[example_idx];
       if (std::isnan(attribute_value)) {
         attribute_value = na_replacement_value_[item.attribute_idx];
       }
       value += attribute_value * item.weight;
     }
+
     (*values)[selected_idx] = value;
+
+    // Single-instruction min/max – no branches, tiny latency.
+    local_min = std::min(local_min, value);
+    local_max = std::max(local_max, value);
   }
+
+  // Store the results only if the caller asked for them and we saw data.
+  if (!selected_examples.empty()) {
+    if (min_value) *min_value = local_min;
+    if (max_value) *max_value = local_max;
+  }
+
   return absl::OkStatus();
 }
 
+// TODO Important - Loop over Bag, what happens?
 absl::Status ProjectionEvaluator::ExtractAttribute(
     const int attribute_idx,
     const absl::Span<const UnsignedExampleIdx> selected_examples,
@@ -1078,6 +1296,8 @@ absl::Status ProjectionEvaluator::ExtractAttribute(
   return absl::OkStatus();
 }
 
+
+/* #region SubtractTransposeMultiplyAdd Interesting Kernels! */
 void SubtractTransposeMultiplyAdd(double weight, absl::Span<double> a,
                                   absl::Span<double> b,
                                   std::vector<double>& output) {
@@ -1111,6 +1331,8 @@ void SubtractTransposeMultiplyAdd(
     }
   }
 }
+
+/* #endregion */
 
 }  // namespace internal
 }  // namespace decision_tree

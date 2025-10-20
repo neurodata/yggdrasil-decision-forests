@@ -1,3 +1,49 @@
+###############################################################################
+# Ariel Presets - Intel icx Compiler only!
+###############################################################################
+
+# Compile *all* C++ code (target and host) in C++17 mode.
+build --cxxopt=-std=c++17
+build --host_cxxopt=-std=c++17
+build --ui_event_filters=-warning
+
+# Breakpoints don't get hit without this!
+# Can't seem to add to bazel dbg using build:dbg!! Have to Define separate config
+build:intel_debug --strip=never          # keep symbols, don’t fiddle with fission
+build:intel_debug --cxxopt=-g --linkopt=-g
+build:intel_debug --cxxopt=-O0 --linkopt=-O0
+build:intel_debug --copt=-D_GLIBCXX_DEBUG # vector range checks
+
+
+###### INTEL VTUNE PROFILING ######
+# 2. VTune profiling (-O2 + DWARF symbols)
+#  USE: bazel build -c opt --config=intel_profiler //foo:bar
+build:intel_profiler --strip=never   # keep symbols
+build:intel_profiler --cxxopt=-g --linkopt=-g
+build:intel_profiler --cxxopt=-O2 --linkopt=-O2
+# Make sure split-DWARF is off – VTune hates .dwo/.dwp
+build:intel_profiler --features=-fission
+build:intel_profiler --cxxopt=-gno-split-dwarf
+# Disable debug checks - pretty expensive
+# build:intel_base --copt=-DNDEBUG --cxxopt=-DNDEBUG
+
+
+###### SPECIFIC FLAGS ######
+# Instrumentation & Information
+build:multithreaded_chrono_profile --cxxopt="-DCHRONO_ENABLED"
+build:disable_empty_projections --cxxopt="-DALLOW_EMPTY_PROJECTIONS_FLAG=0"
+build:slow_sample_projections --cxxopt="-DSLOW_SAMPLE_PROJECTIONS_FLAG=true"
+build:print_projection_matrices --cxxopt="-DPRINT_PROJECTION_MATRICES_FLAG=1"
+
+# Optimizations
+build:fixed_1000_projections --cxxopt="-DHARD_CODE_1000_PROJECTIONS_FLAG=true"
+build:enable_dynamic_equal_width_histogramming --cxxopt="-DENABLE_DYNAMIC_HISTOGRAMMING_FLAG=1"
+build:enable_dynamic_random_histogramming --cxxopt="-DENABLE_DYNAMIC_HISTOGRAMMING_FLAG=2"
+# Enabled by Default
+build:enable_fast_equal_width_binning --cxxopt="-DFAST_EQUAL_WIDTH_BINNING_FLAG=1"
+
+
+
 # Bazel configuration for Yggdrasil Decision Forests
 #
 # OPTIONS
@@ -29,10 +75,9 @@
 #   tensorflow_with_header_lib=1: Uses tensorflow header only library. Useful to
 #     use tensorflow dynamic linking. Otherwise, links tensorflow statically (if
 #     tensorflow is used).
-#
 
-# Common flags.
-common --experimental_repo_remote_exec
+
+build --incompatible_enable_cc_toolchain_resolution
 
 # Avoid long path issues on Windows
 # startup --output_user_root=C:/tmpbld
@@ -111,9 +156,9 @@ build:windows --copt=/GL
 build:windows --host_copt=/GL
 
 # Wasm
-build:wasm --crosstool_top=@emsdk//emscripten_toolchain:everything
+# build:wasm --crosstool_top=@emsdk//emscripten_toolchain:everything
 build:wasm --cpu=wasm
-build:wasm --host_crosstool_top=@bazel_tools//tools/cpp:toolchain
+# build:wasm --host_crosstool_top=@bazel_tools//tools/cpp:toolchain
 build:wasm --copt="-Wno-deprecated-non-prototype"
 build:wasm --copt="-Wno-unused-value"
 build:wasm --copt="-Wno-unused-function"

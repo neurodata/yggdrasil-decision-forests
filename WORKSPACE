@@ -5,6 +5,24 @@ workspace(name = "yggdrasil_decision_forests")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
+http_archive(
+    name = "hedron_compile_commands",
+    url = "https://github.com/hedronvision/bazel-compile-commands-extractor/archive/abb61a688167623088f8768cc9264798df6a9d10.tar.gz",
+    strip_prefix = "bazel-compile-commands-extractor-abb61a688167623088f8768cc9264798df6a9d10",
+)
+
+load("@hedron_compile_commands//:workspace_setup.bzl", "hedron_compile_commands_setup")
+hedron_compile_commands_setup()
+load("@hedron_compile_commands//:workspace_setup_transitive.bzl", "hedron_compile_commands_setup_transitive")
+hedron_compile_commands_setup_transitive()
+load("@hedron_compile_commands//:workspace_setup_transitive_transitive.bzl", "hedron_compile_commands_setup_transitive_transitive")
+hedron_compile_commands_setup_transitive_transitive()
+load("@hedron_compile_commands//:workspace_setup_transitive_transitive_transitive.bzl",
+     "hedron_compile_commands_setup_transitive_transitive_transitive")
+hedron_compile_commands_setup_transitive_transitive_transitive()
+
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
 # Load the dependencies of YDF
 # ============================
 
@@ -37,3 +55,6 @@ load("@emsdk//:deps.bzl", emsdk_deps = "deps")
 emsdk_deps()
 load("@emsdk//:emscripten_deps.bzl", emsdk_emscripten_deps = "emscripten_deps")
 emsdk_emscripten_deps()
+
+
+register_toolchains("//toolchains:intel_toolchain")

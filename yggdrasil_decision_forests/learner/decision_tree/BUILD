@@ -50,6 +50,7 @@ cc_library_ydf(
         "//yggdrasil_decision_forests/utils:logging",
         "//yggdrasil_decision_forests/utils:random",
         "//yggdrasil_decision_forests/utils:status_macros",
+        "//yggdrasil_decision_forests/utils:parallel_chrono",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:btree",
         "@com_google_absl//absl/log",
@@ -142,6 +143,7 @@ cc_library_ydf(
         "//yggdrasil_decision_forests/utils:logging",
         "//yggdrasil_decision_forests/utils:random",
         "//yggdrasil_decision_forests/utils:status_macros",
+        "//yggdrasil_decision_forests/utils:parallel_chrono",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status",
@@ -236,7 +238,10 @@ cc_library_ydf(
 all_proto_library(
     name = "decision_tree_proto",
     srcs = ["decision_tree.proto"],
-    deps = ["//yggdrasil_decision_forests/utils:distribution_proto"],
+        deps = [
+        "//yggdrasil_decision_forests/utils:distribution_proto",
+        "//yggdrasil_decision_forests/learner:abstract_learner_proto",  # <-- ✅ ADD THIS
+    ],
 )
 
 # Test

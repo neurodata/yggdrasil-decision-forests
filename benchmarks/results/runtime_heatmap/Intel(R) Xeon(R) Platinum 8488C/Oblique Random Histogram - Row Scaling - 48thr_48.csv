@@ -1,0 +1,11 @@
+n,1024,,,,,,1024_std,,,Parameter,Value
+524288,3774.2500,,,,,,0.0000,,,Benchmark,Oblique Random Histogram - Row Scaling - 48thr
+1048576,8197.4600,,,,,,0.0000,,,Projection Density Factor,3
+,,,,,,,,,,Trees,50
+,,,,,,,,,,depth,-1
+,,,,,,,,,,feature_split_type,Oblique
+,,,,,,,,,,numerical_split_type,Random
+,,,,,,,,,,cpu_model,Intel(R) Xeon(R) Platinum 8488C
+,,,,,,,,,,threads,48
+,,,,,,,,,,repeats,1
+,,,,,,,,,,max_num_projections,1000
