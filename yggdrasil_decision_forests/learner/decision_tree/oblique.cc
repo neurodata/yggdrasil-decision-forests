@@ -47,9 +47,16 @@
 #include "yggdrasil_decision_forests/utils/logging.h"
 #include "yggdrasil_decision_forests/utils/random.h"
 
+// By default, match Treeple, which skips those projections
+#ifndef ALLOW_EMPTY_PROJECTIONS_FLAG
+  #define ALLOW_EMPTY_PROJECTIONS_FLAG 1
+#endif
+
 namespace yggdrasil_decision_forests {
 namespace model {
 namespace decision_tree {
+
+static constexpr bool ALLOW_EMPTY_PROJECTIONS = ALLOW_EMPTY_PROJECTIONS_FLAG;
 
 namespace {
 using std::is_same;
@@ -183,6 +190,11 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
     SampleProjection(config_link.numerical_features(), dt_config,
                      train_dataset.data_spec(), config_link, projection_density,
                      &current_projection, &monotonic_direction, random);
+
+    if constexpr (ALLOW_EMPTY_PROJECTIONS) {
+     // Skip empty projections, like Treeple
+     if (current_projection.empty()) continue;
+    }
 
     // Pre-compute the result of the current_projection.
     RETURN_IF_ERROR(projection_evaluator.Evaluate(
@@ -814,13 +826,16 @@ void SampleProjection(const absl::Span<const int>& features,
     projection->push_back({features[idx], gen_weight(features[idx])});
   }
 
-  if (projection->empty()) {
-    std::uniform_int_distribution<int> unif_feature_idx(0, features.size() - 1);
-    projection->push_back(
-        {/*.attribute_idx =*/features[unif_feature_idx(*random)],
-         /*.weight =*/1.f});
-  } else if (projection->size() == 1) {
-    projection->front().weight = 1.f;
+  // Treeple allows empty projections. This is for consistency checks.
+  if constexpr (! ALLOW_EMPTY_PROJECTIONS) {
+    if (projection->empty()) {
+      std::uniform_int_distribution<int> unif_feature_idx(0, features.size() - 1);
+      projection->push_back(
+          {/*.attribute_idx =*/features[unif_feature_idx(*random)],
+           /*.weight =*/1.f});
+    } else if (projection->size() == 1) {
+      projection->front().weight = 1.f;
+    }
   }
 
   int max_num_features = dt_config.sparse_oblique_split().max_num_features();
