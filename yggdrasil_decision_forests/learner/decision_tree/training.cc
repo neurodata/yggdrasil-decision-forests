@@ -4699,49 +4699,6 @@ return found_split ? SplitSearchResult::kBetterSplitFound
 
 /* #endregion */
 
-void SplitHonestExamples(
-    const absl::Span<const UnsignedExampleIdx> selected_examples,
-    const float leaf_rate, utils::RandomEngine* random_engine,
-    std::vector<UnsignedExampleIdx>& leaf_examples,
-    std::vector<UnsignedExampleIdx>& working_selected_examples) {
-  std::uniform_real_distribution<float> dist_01;
-
-  // Reduce the risk of std::vector re-allocations.
-  const float error_margin = 1.1f;
-
-  // Reserve total size to avoid reallocations.
-  const size_t N = selected_examples.size();
-  leaf_examples.reserve(N * leaf_rate * error_margin);
-  working_selected_examples.reserve(N * (1.0f - leaf_rate) * error_margin);
-
-  // Collect unique IDs (keys) in insertion order.
-  std::unordered_set<UnsignedExampleIdx> seen;
-  std::vector<UnsignedExampleIdx> unique_ids;
-  unique_ids.reserve(N);
-  for (const auto& ex : selected_examples) {
-    if (seen.insert(ex).second) unique_ids.push_back(ex);
-  }
-
-  // Shuffle unique IDs for unbiased assignment.
-  std::shuffle(unique_ids.begin(), unique_ids.end(), *random_engine);
-
-  // Choose how many unique IDs go to leaf side.
-  const size_t U = unique_ids.size();
-  const size_t num_leaf_unique = static_cast<size_t>(U * leaf_rate);  // floor
-  std::unordered_set<UnsignedExampleIdx> leaf_set;
-  leaf_set.reserve(num_leaf_unique * error_margin);
-  for (size_t i = 0; i < num_leaf_unique; ++i) leaf_set.insert(unique_ids[i]);
-
-  // Stream original array; keep all duplicates on their side.
-  for (const auto& ex : selected_examples) {
-    if (leaf_set.count(ex)) {
-      leaf_examples.push_back(ex);
-    } else {
-      working_selected_examples.push_back(ex);
-    }
-  }
-}
-
   absl::Status GrowTreeBestFirstGlobal(
       const dataset::VerticalDataset &train_dataset,
       const model::proto::TrainingConfig &config,
@@ -5025,28 +4982,53 @@ void SplitHonestExamples(
       }
     }
 
-    if (dt_config.has_honest()) {
-      // Split the examples in two parts. One ("selected_examples_buffer")
-      // will be used to infer the structure of the trees while the second
-      // ("leaf_examples_buffer") will be used to determine the leaf values
-      // (i.e. the predictions).
+    if (dt_config.has_honest())
+    {
+      // Split the examples in two parts. One ("selected_examples_buffer") will be
+      // used to infer the structure of the trees while the second
+      // ("leaf_examples_buffer") will be used to determine the leaf values (i.e.
+      // the predictions).
+
+      const float leaf_rate = dt_config.honest().ratio_leaf_examples();
+
+      // Reduce the risk of std::vector re-allocations.
+      const float error_margin = 1.1f;
       leaf_examples = std::vector<UnsignedExampleIdx>();
-      // If the internal training config provides a special seed for the random
-      // split, use this seed with a new random engine. Otherwise, just use the
-      // default random engine.
-      if (internal_config.honest_split_seed.has_value()) {
-        utils::RandomEngine honest_split_random(
-            *internal_config.honest_split_seed);
-        SplitHonestExamples(selected_examples,
-                            dt_config.honest().ratio_leaf_examples(),
-                            &honest_split_random, leaf_examples.value(),
-                            working_selected_examples);
-      } else {
-        SplitHonestExamples(selected_examples,
-                            dt_config.honest().ratio_leaf_examples(), random,
-                            leaf_examples.value(), working_selected_examples);
+      auto& leaf_examples_value = leaf_examples.value();
+      leaf_examples_value.reserve(selected_examples.size() * leaf_rate *
+                                  error_margin);
+      working_selected_examples.reserve(selected_examples.size() *
+                                        (1.f - leaf_rate) * error_margin);
+
+      // Collect unique IDs (keys) in insertion order.
+      std::unordered_set<UnsignedExampleIdx> seen;
+      std::vector<UnsignedExampleIdx> unique_ids;
+      unique_ids.reserve(selected_examples.size());
+      for (const auto& ex : selected_examples) {
+        if (seen.insert(ex).second) unique_ids.push_back(ex);
       }
-    } else {
+
+      // Shuffle unique IDs for unbiased assignment.
+      std::shuffle(unique_ids.begin(), unique_ids.end(), *random);
+
+      // Choose how many unique IDs go to leaf side.
+      const size_t U = unique_ids.size();
+      const size_t num_leaf_unique = static_cast<size_t>(U * leaf_rate);  // floor
+      std::unordered_set<UnsignedExampleIdx> leaf_set;
+      leaf_set.reserve(num_leaf_unique * error_margin);
+      for (size_t i = 0; i < num_leaf_unique; ++i) leaf_set.insert(unique_ids[i]);
+
+      // Stream original array; keep all duplicates on their side.
+      for (const auto& ex : selected_examples) {
+        if (leaf_set.count(ex)) {
+          leaf_examples_value.push_back(ex);
+        } else {
+          working_selected_examples.push_back(ex);
+        }
+      }
+    }
+    else // non-Honest
+    {
       working_selected_examples.assign(selected_examples.begin(),
                                        selected_examples.end());
     }
