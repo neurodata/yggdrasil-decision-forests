@@ -930,6 +930,14 @@ int NumAttributesToTest(const proto::DecisionTreeTrainingConfig& dt_config,
 int8_t MonotonicConstraintSign(
     const model::proto::TrainingConfigLinking& config_link, int attribute_idx);
 
+// Splits the selected examples into training and leaf examples for honest
+// trees.
+void SplitHonestExamples(
+    absl::Span<const UnsignedExampleIdx> selected_examples, float leaf_rate,
+    utils::RandomEngine* random_engine,
+    std::vector<UnsignedExampleIdx>& leaf_examples,
+    std::vector<UnsignedExampleIdx>& working_selected_examples);
+
 namespace internal {
 
 // Initializes the item mask i.e. the bitmap of the items to consider or to
