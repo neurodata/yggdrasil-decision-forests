@@ -182,6 +182,10 @@ struct InternalTrainConfig {
   // Non owning pointer to pre-processing information.
   // Depending on the decision tree configuration this field might be required.
   const Preprocessing* preprocessing = nullptr;
+  
+  // Seed for the honest trees split. If not given, the default random engine is
+  // used.
+  std::optional<int64_t> honest_split_seed;
 
   decision_tree::gpu::VectorSequenceComputer* vector_sequence_computer =
       nullptr;
