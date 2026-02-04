@@ -812,15 +812,23 @@ void SampleProjection(const absl::Span<const int>& features,
 
   // TODO: Try std::bitmap
   absl::btree_set<size_t> picked_idx;
+  absl::btree_set<size_t> core;
 
   // Floyd's sampler to select k indices uniformly
   for (size_t j = features.size() - num_selected_features; j < features.size();
        ++j) {
     size_t t = absl::Uniform<size_t>(*random, 0, j + 1);
-    if (!picked_idx.insert(t).second) picked_idx.insert(j);
+    if (!core.insert(t).second) core.insert(j);
   }
 
-  projection->reserve(projection_density * features.size());
+  absl::btree_set<size_t> picked_idx = core;
+
+  for (size_t idx : core) {
+    if (idx > 0) picked_idx.insert(idx - 1);
+    if (idx + 1 < features.size()) picked_idx.insert(idx + 1);
+  }
+
+  projection->reserve(projection->size() + picked_idx.size());
   // O(k) minimal pass to fill in those indices
   for (const auto idx : picked_idx) {
     projection->push_back({features[idx], gen_weight(features[idx])});
