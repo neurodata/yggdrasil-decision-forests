@@ -811,7 +811,6 @@ void SampleProjection(const absl::Span<const int>& features,
   const size_t num_selected_features = binom(*random);
 
   // TODO: Try std::bitmap
-  absl::btree_set<size_t> picked_idx;
   absl::btree_set<size_t> core;
 
   // Floyd's sampler to select k indices uniformly
