@@ -36,6 +36,33 @@ TEST(GenericParameters, AllHyperparameters) {
   EXPECT_OK(GetGenericHyperParameterSpecification(config, &hparam_def));
 }
 
+TEST(GenericParameters, SavitzkyGolayWeights) {
+  proto::DecisionTreeTrainingConfig config;
+  model::proto::GenericHyperParameterSpecification hparam_def;
+  EXPECT_OK(GetGenericHyperParameterSpecification(config, &hparam_def));
+  EXPECT_THAT(hparam_def.fields()
+                  .at(kHParamSplitAxisSparseObliqueWeights)
+                  .categorical()
+                  .possible_values(),
+              testing::Contains(
+                  kHParamSplitAxisSparseObliqueWeightsSavitzkyGolay));
+
+  model::proto::GenericHyperParameters hparams;
+  auto* split_axis = hparams.add_fields();
+  split_axis->set_name(kHParamSplitAxis);
+  split_axis->mutable_value()->set_categorical(
+      kHParamSplitAxisSparseOblique);
+  auto* weights = hparams.add_fields();
+  weights->set_name(kHParamSplitAxisSparseObliqueWeights);
+  weights->mutable_value()->set_categorical(
+      kHParamSplitAxisSparseObliqueWeightsSavitzkyGolay);
+
+  absl::flat_hash_set<std::string> consumed_hparams;
+  utils::GenericHyperParameterConsumer consumer(hparams);
+  EXPECT_OK(SetHyperParameters(&consumed_hparams, &config, &consumer));
+  EXPECT_TRUE(config.sparse_oblique_split().has_savitzky_golay());
+}
+
 TEST(GenericParameters, GiveValidAndInvalidHyperparameters) {
   proto::DecisionTreeTrainingConfig config;
   model::proto::GenericHyperParameterSpecification hparam_def;

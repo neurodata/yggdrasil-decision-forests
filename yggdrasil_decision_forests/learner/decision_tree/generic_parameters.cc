@@ -331,6 +331,8 @@ Increasing this value increases training and inference time (on average). This v
         kHParamSplitAxisSparseObliqueWeightsPowerOfTwo);
     param->mutable_categorical()->add_possible_values(
         kHParamSplitAxisSparseObliqueWeightsInteger);
+    param->mutable_categorical()->add_possible_values(
+        kHParamSplitAxisSparseObliqueWeightsSavitzkyGolay);
     param->mutable_conditional()->set_control_field(kHParamSplitAxis);
     param->mutable_conditional()->mutable_categorical()->add_values(
         kHParamSplitAxisSparseOblique);
@@ -344,7 +346,9 @@ Possible values:
 - `CONTINUOUS`: The oblique weights are be sampled in [-1,1].
 - `POWER_OF_TWO`: The oblique weights are powers of two. The exponents are sampled
                   uniformly in [$0, $1], the sign is uniformly sampled.
-- `INTEGER`: The weights are integers sampled uniformly from the range [$2, $3].)",
+- `INTEGER`: The weights are integers sampled uniformly from the range [$2, $3].
+- `SAVITZKY_GOLAY`: The weights use a five-point, quadratic Savitzky-Golay
+                    smoothing filter.)",
         kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMinExponent,
         kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMaxExponent,
         kHParamSplitAxisSparseObliqueWeightsIntegerMinimum,
@@ -930,14 +934,18 @@ absl::Status SetHyperParameters(
           dt_config->mutable_sparse_oblique_split()->mutable_power_of_two();
         } else if (value == kHParamSplitAxisSparseObliqueWeightsInteger) {
           dt_config->mutable_sparse_oblique_split()->mutable_integer();
+        } else if (value ==
+                   kHParamSplitAxisSparseObliqueWeightsSavitzkyGolay) {
+          dt_config->mutable_sparse_oblique_split()->mutable_savitzky_golay();
         } else {
           return absl::InvalidArgumentError(absl::StrCat(
               "Unknown value for parameter ",
               kHParamSplitAxisSparseObliqueWeights, ". Possible values are: ",
               kHParamSplitAxisSparseObliqueWeightsBinary, ", ",
               kHParamSplitAxisSparseObliqueWeightsContinuous, ", ",
-              kHParamSplitAxisSparseObliqueWeightsPowerOfTwo, "and",
-              kHParamSplitAxisSparseObliqueWeightsInteger, "."));
+              kHParamSplitAxisSparseObliqueWeightsPowerOfTwo, ", ",
+              kHParamSplitAxisSparseObliqueWeightsInteger, ", and ",
+              kHParamSplitAxisSparseObliqueWeightsSavitzkyGolay, "."));
         }
       } else {
         return absl::InvalidArgumentError(
