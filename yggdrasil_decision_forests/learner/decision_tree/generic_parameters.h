@@ -78,6 +78,8 @@ constexpr char kHParamSplitAxisSparseObliqueWeightsBinary[] = "BINARY";
 constexpr char kHParamSplitAxisSparseObliqueWeightsContinuous[] = "CONTINUOUS";
 constexpr char kHParamSplitAxisSparseObliqueWeightsPowerOfTwo[] =
     "POWER_OF_TWO";
+constexpr char kHParamSplitAxisSparseObliqueWeightsSavitzkyGolay[] =
+    "SAVITZKY_GOLAY";
 constexpr char kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMinExponent[] =
     "sparse_oblique_weights_power_of_two_min_exponent";
 constexpr char kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMaxExponent[] =

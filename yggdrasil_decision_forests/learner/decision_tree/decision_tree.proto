@@ -235,6 +235,7 @@ message DecisionTreeTrainingConfig {
       ContinuousWeights continuous = 8;
       PowerOfTwoWeights power_of_two = 9;
       IntegerWeights integer = 10;
+      SavitzkyGolayWeights savitzky_golay = 12;
     }
 
     // Weights sampled in {-1, 1} (default in "Sparse Projection Oblique Random
@@ -259,6 +260,12 @@ message DecisionTreeTrainingConfig {
       optional int32 minimum = 1 [default = -5];
       optional int32 maximum = 2 [default = 5];
     }
+
+    // Weights from a five-point, quadratic Savitzky-Golay smoothing filter.
+    // For each sampled feature, the filter is centered on that feature and
+    // applied to it and its two nearest features on either side. Overlapping
+    // filter windows are accumulated.
+    message SavitzkyGolayWeights {}
 
     // Normalization applied on the features, before applying the sparse oblique
     // projections.

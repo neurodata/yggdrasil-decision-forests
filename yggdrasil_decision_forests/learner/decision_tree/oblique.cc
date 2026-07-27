@@ -16,6 +16,7 @@
 #include "yggdrasil_decision_forests/learner/decision_tree/oblique.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -26,6 +27,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/container/btree_map.h"
 #include "absl/container/btree_set.h"
 #include "absl/log/log.h"
 #include "absl/random/distributions.h"
@@ -739,9 +741,34 @@ void SampleProjection(const absl::Span<const int>& features,
                       utils::RandomEngine* random) {
   *monotonic_direction = 0;
   projection->clear();
-  std::uniform_real_distribution<float> unif01;
   std::uniform_real_distribution<float> unif1m1(-1.f, 1.f);
   const auto& oblique_config = dt_config.sparse_oblique_split();
+
+  const auto normalize_weight = [&](const int feature, float weight) -> float {
+    if (config_link.per_columns_size() > 0 &&
+        config_link.per_columns(feature).has_monotonic_constraint()) {
+      const bool direction_increasing =
+          config_link.per_columns(feature).monotonic_constraint().direction() ==
+          model::proto::MonotonicConstraint::INCREASING;
+      if (direction_increasing == (weight < 0)) {
+        weight = -weight;
+      }
+      // As soon as one selected feature is monotonic, the oblique split
+      // becomes monotonic.
+      *monotonic_direction = 1;
+    }
+
+    const auto& spec = data_spec.columns(feature).numerical();
+    switch (oblique_config.normalization()) {
+      case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::NONE:
+        return weight;
+      case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::
+          STANDARD_DEVIATION:
+        return weight / std::max(1e-6, spec.standard_deviation());
+      case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::MIN_MAX:
+        return weight / std::max(1e-6f, spec.max_value() - spec.min_value());
+    }
+  };
 
   const auto gen_weight = [&](const int feature) -> float {
     float weight = unif1m1(*random);
@@ -773,30 +800,7 @@ void SampleProjection(const absl::Span<const int>& features,
         break;
       }
     }
-
-    if (config_link.per_columns_size() > 0 &&
-        config_link.per_columns(feature).has_monotonic_constraint()) {
-      const bool direction_increasing =
-          config_link.per_columns(feature).monotonic_constraint().direction() ==
-          model::proto::MonotonicConstraint::INCREASING;
-      if (direction_increasing == (weight < 0)) {
-        weight = -weight;
-      }
-      // As soon as one selected feature is monotonic, the oblique split
-      // becomes monotonic.
-      *monotonic_direction = 1;
-    }
-
-    const auto& spec = data_spec.columns(feature).numerical();
-    switch (oblique_config.normalization()) {
-      case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::NONE:
-        return weight;
-      case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::
-          STANDARD_DEVIATION:
-        return weight / std::max(1e-6, spec.standard_deviation());
-      case proto::DecisionTreeTrainingConfig::SparseObliqueSplit::MIN_MAX:
-        return weight / std::max(1e-6f, spec.max_value() - spec.min_value());
-    }
+    return normalize_weight(feature, weight);
   };
 
 #ifndef NDEBUG  // Keep DCHECK_EQ from for feature : features
@@ -820,17 +824,43 @@ void SampleProjection(const absl::Span<const int>& features,
     if (!core.insert(t).second) core.insert(j);
   }
 
-  absl::btree_set<size_t> picked_idx = core;
-
-  for (size_t idx : core) {
-    if (idx > 0) picked_idx.insert(idx - 1);
-    if (idx + 1 < features.size()) picked_idx.insert(idx + 1);
-  }
-
-  projection->reserve(projection->size() + picked_idx.size());
-  // O(k) minimal pass to fill in those indices
-  for (const auto idx : picked_idx) {
-    projection->push_back({features[idx], gen_weight(features[idx])});
+  if (oblique_config.weights_case() ==
+      proto::DecisionTreeTrainingConfig::SparseObliqueSplit::WeightsCase::
+          kSavitzkyGolay) {
+    // Five-point, quadratic Savitzky-Golay smoothing coefficients.
+    static constexpr std::array<float, 5> kSavitzkyGolayCoefficients = {
+        -3.f / 35.f, 12.f / 35.f, 17.f / 35.f, 12.f / 35.f, -3.f / 35.f};
+    absl::btree_map<size_t, float> weights_by_feature;
+    for (const size_t center_idx : core) {
+      for (int offset = -2; offset <= 2; ++offset) {
+        const int64_t feature_idx =
+            static_cast<int64_t>(center_idx) + offset;
+        if (feature_idx >= 0 &&
+            feature_idx < static_cast<int64_t>(features.size())) {
+          weights_by_feature[feature_idx] +=
+              kSavitzkyGolayCoefficients[offset + 2];
+        }
+      }
+    }
+    projection->reserve(weights_by_feature.size());
+    for (const auto& [feature_idx, weight] : weights_by_feature) {
+      if (weight != 0.f) {
+        projection->push_back(
+            {features[feature_idx],
+             normalize_weight(features[feature_idx], weight)});
+      }
+    }
+  } else {
+    absl::btree_set<size_t> picked_idx = core;
+    for (const size_t idx : core) {
+      if (idx > 0) picked_idx.insert(idx - 1);
+      if (idx + 1 < features.size()) picked_idx.insert(idx + 1);
+    }
+    projection->reserve(picked_idx.size());
+    // O(k) minimal pass to fill in those indices.
+    for (const size_t idx : picked_idx) {
+      projection->push_back({features[idx], gen_weight(features[idx])});
+    }
   }
 
   // Treeple allows empty projections. This is for consistency checks.
