@@ -16,7 +16,6 @@
 #include "yggdrasil_decision_forests/learner/decision_tree/oblique.h"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -66,6 +65,32 @@ using std::is_same;
 using Projection = internal::Projection;
 using ProjectionEvaluator = internal::ProjectionEvaluator;
 using LDACache = internal::LDACache;
+
+std::vector<float> ComputeSavitzkyGolayCoefficients(const int window_size,
+                                                    const int polynomial_order) {
+  DCHECK_GT(window_size, 0);
+  DCHECK_EQ(window_size % 2, 1);
+  DCHECK_GE(polynomial_order, 0);
+  DCHECK_LT(polynomial_order, window_size);
+
+  Eigen::MatrixXd design(window_size, polynomial_order + 1);
+  const int half_window = window_size / 2;
+  for (int row = 0; row < window_size; ++row) {
+    const double position = row - half_window;
+    double value = 1.;
+    for (int column = 0; column <= polynomial_order; ++column) {
+      design(row, column) = value;
+      value *= position;
+    }
+  }
+
+  Eigen::VectorXd intercept = Eigen::VectorXd::Zero(polynomial_order + 1);
+  intercept(0) = 1.;
+  const Eigen::VectorXd coefficients =
+      design * (design.transpose() * design).ldlt().solve(intercept);
+  return std::vector<float>(coefficients.data(),
+                            coefficients.data() + coefficients.size());
+}
 
 }  // namespace
 
@@ -185,13 +210,22 @@ absl::StatusOr<bool> FindBestConditionSparseObliqueTemplate(
   std::vector<UnsignedExampleIdx> dense_example_idxs(selected_examples.size());
   std::iota(dense_example_idxs.begin(), dense_example_idxs.end(), 0);
 
+  std::vector<float> savitzky_golay_coefficients;
+  if (dt_config.sparse_oblique_split().has_savitzky_golay()) {
+    const auto& savitzky_golay =
+        dt_config.sparse_oblique_split().savitzky_golay();
+    savitzky_golay_coefficients = ComputeSavitzkyGolayCoefficients(
+        savitzky_golay.window_size(), savitzky_golay.polynomial_order());
+  }
+
   for (int projection_idx = 0; projection_idx < num_projections;
        projection_idx++) {
     // Generate a current_projection.
     int8_t monotonic_direction;
     SampleProjection(config_link.numerical_features(), dt_config,
                      train_dataset.data_spec(), config_link, projection_density,
-                     &current_projection, &monotonic_direction, random);
+                     &current_projection, &monotonic_direction, random,
+                     savitzky_golay_coefficients);
 
     if constexpr (ALLOW_EMPTY_PROJECTIONS) {
      // Skip empty projections, like Treeple
@@ -738,7 +772,8 @@ void SampleProjection(const absl::Span<const int>& features,
                       const float projection_density,
                       internal::Projection* projection,
                       int8_t* monotonic_direction,
-                      utils::RandomEngine* random) {
+                      utils::RandomEngine* random,
+                      absl::Span<const float> savitzky_golay_coefficients) {
   *monotonic_direction = 0;
   projection->clear();
   std::uniform_real_distribution<float> unif1m1(-1.f, 1.f);
@@ -827,18 +862,23 @@ void SampleProjection(const absl::Span<const int>& features,
   if (oblique_config.weights_case() ==
       proto::DecisionTreeTrainingConfig::SparseObliqueSplit::WeightsCase::
           kSavitzkyGolay) {
-    // Five-point, quadratic Savitzky-Golay smoothing coefficients.
-    static constexpr std::array<float, 5> kSavitzkyGolayCoefficients = {
-        -3.f / 35.f, 12.f / 35.f, 17.f / 35.f, 12.f / 35.f, -3.f / 35.f};
+    std::vector<float> owned_savitzky_golay_coefficients;
+    if (savitzky_golay_coefficients.empty()) {
+      const auto& savitzky_golay = oblique_config.savitzky_golay();
+      owned_savitzky_golay_coefficients = ComputeSavitzkyGolayCoefficients(
+          savitzky_golay.window_size(), savitzky_golay.polynomial_order());
+      savitzky_golay_coefficients = owned_savitzky_golay_coefficients;
+    }
+    const int half_window = savitzky_golay_coefficients.size() / 2;
     absl::btree_map<size_t, float> weights_by_feature;
     for (const size_t center_idx : core) {
-      for (int offset = -2; offset <= 2; ++offset) {
+      for (int offset = -half_window; offset <= half_window; ++offset) {
         const int64_t feature_idx =
             static_cast<int64_t>(center_idx) + offset;
         if (feature_idx >= 0 &&
             feature_idx < static_cast<int64_t>(features.size())) {
           weights_by_feature[feature_idx] +=
-              kSavitzkyGolayCoefficients[offset + 2];
+              savitzky_golay_coefficients[offset + half_window];
         }
       }
     }

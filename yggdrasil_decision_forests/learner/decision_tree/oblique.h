@@ -277,7 +277,8 @@ void SampleProjection(const absl::Span<const int>& features,
                       const model::proto::TrainingConfigLinking& config_link,
                       float projection_density,
                       internal::Projection* projection,
-                      int8_t* monotonic_direction, utils::RandomEngine* random);
+                      int8_t* monotonic_direction, utils::RandomEngine* random,
+                      absl::Span<const float> savitzky_golay_coefficients = {});
 
 // Converts a Projection object + float threshold into a proto condition of the
 // same semantic. `projection` cannot be empty.

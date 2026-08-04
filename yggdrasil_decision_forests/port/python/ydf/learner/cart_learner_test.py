@@ -202,6 +202,28 @@ class CARTLearnerTest(learner_test_utils.LearnerTest):
     acceptable_weights_2 = [x * y for x in (1.0, -1.0) for y in range(7, 15)]
     self.assertTrue(all(x in acceptable_weights_2 for x in root_weights_2))
 
+  def test_oblique_weights_savitzky_golay_parameters(self):
+    learner = specialized_learners.CartLearner(
+        label="label",
+        max_depth=2,
+        split_axis="SPARSE_OBLIQUE",
+        sparse_oblique_weights="SAVITZKY_GOLAY",
+        sparse_oblique_weights_savitzky_golay_window_size=7,
+        sparse_oblique_weights_savitzky_golay_polynomial_order=3,
+    )
+    self.assertEqual(
+        learner.hyperparameters[
+            "sparse_oblique_weights_savitzky_golay_window_size"
+        ],
+        7,
+    )
+    self.assertEqual(
+        learner.hyperparameters[
+            "sparse_oblique_weights_savitzky_golay_polynomial_order"
+        ],
+        3,
+    )
+
   def test_no_two_weight_definitions(self):
     with self.assertRaisesRegex(
         ValueError, "Cannot specify both `weights` and `class_weights`."

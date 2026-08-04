@@ -347,12 +347,46 @@ Possible values:
 - `POWER_OF_TWO`: The oblique weights are powers of two. The exponents are sampled
                   uniformly in [$0, $1], the sign is uniformly sampled.
 - `INTEGER`: The weights are integers sampled uniformly from the range [$2, $3].
-- `SAVITZKY_GOLAY`: The weights use a five-point, quadratic Savitzky-Golay
-                    smoothing filter.)",
+- `SAVITZKY_GOLAY`: The weights use a Savitzky-Golay smoothing filter controlled
+                    by `$4` and `$5`.)",
         kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMinExponent,
         kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMaxExponent,
         kHParamSplitAxisSparseObliqueWeightsIntegerMinimum,
-        kHParamSplitAxisSparseObliqueWeightsIntegerMaximum));
+        kHParamSplitAxisSparseObliqueWeightsIntegerMaximum,
+        kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayWindowSize,
+        kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayPolynomialOrder));
+  }
+
+  {
+    ASSIGN_OR_RETURN(
+        auto param,
+        get_params(
+            kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayWindowSize));
+    param->mutable_integer()->set_default_value(
+        config.sparse_oblique_split().savitzky_golay().window_size());
+    param->mutable_integer()->set_minimum(1);
+    param->mutable_conditional()->set_control_field(
+        kHParamSplitAxisSparseObliqueWeights);
+    param->mutable_conditional()->mutable_categorical()->add_values(
+        kHParamSplitAxisSparseObliqueWeightsSavitzkyGolay);
+    param->mutable_documentation()->set_description(
+        R"(For sparse oblique splits with `sparse_oblique_weights=SAVITZKY_GOLAY`. Positive odd number of coefficients in the Savitzky-Golay filter.)");
+  }
+
+  {
+    ASSIGN_OR_RETURN(
+        auto param,
+        get_params(
+            kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayPolynomialOrder));
+    param->mutable_integer()->set_default_value(
+        config.sparse_oblique_split().savitzky_golay().polynomial_order());
+    param->mutable_integer()->set_minimum(0);
+    param->mutable_conditional()->set_control_field(
+        kHParamSplitAxisSparseObliqueWeights);
+    param->mutable_conditional()->mutable_categorical()->add_values(
+        kHParamSplitAxisSparseObliqueWeightsSavitzkyGolay);
+    param->mutable_documentation()->set_description(
+        R"(For sparse oblique splits with `sparse_oblique_weights=SAVITZKY_GOLAY`. Polynomial order of the Savitzky-Golay filter. It must be smaller than the window size.)");
   }
 
   {
@@ -953,6 +987,66 @@ absl::Status SetHyperParameters(
                          " only works with sparse oblique trees "
                          "(split_axis=SPARSE_OBLIQUE)"));
       }
+    }
+  }
+
+  {
+    const auto hparam = generic_hyper_params->Get(
+        kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayWindowSize);
+    if (hparam.has_value()) {
+      const auto hparam_value = hparam.value().value().integer();
+      if (dt_config->has_sparse_oblique_split() &&
+          dt_config->sparse_oblique_split().has_savitzky_golay()) {
+        dt_config->mutable_sparse_oblique_split()
+            ->mutable_savitzky_golay()
+            ->set_window_size(hparam_value);
+      } else {
+        return absl::InvalidArgumentError(absl::StrCat(
+            kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayWindowSize,
+            " only works with sparse oblique trees "
+            "(`split_axis=SPARSE_OBLIQUE`) and Savitzky-Golay weights "
+            "(`sparse_oblique_weights=SAVITZKY_GOLAY`)"));
+      }
+    }
+  }
+
+  {
+    const auto hparam = generic_hyper_params->Get(
+        kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayPolynomialOrder);
+    if (hparam.has_value()) {
+      const auto hparam_value = hparam.value().value().integer();
+      if (dt_config->has_sparse_oblique_split() &&
+          dt_config->sparse_oblique_split().has_savitzky_golay()) {
+        dt_config->mutable_sparse_oblique_split()
+            ->mutable_savitzky_golay()
+            ->set_polynomial_order(hparam_value);
+      } else {
+        return absl::InvalidArgumentError(absl::StrCat(
+            kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayPolynomialOrder,
+            " only works with sparse oblique trees "
+            "(`split_axis=SPARSE_OBLIQUE`) and Savitzky-Golay weights "
+            "(`sparse_oblique_weights=SAVITZKY_GOLAY`)"));
+      }
+    }
+  }
+
+  if (dt_config->has_sparse_oblique_split() &&
+      dt_config->sparse_oblique_split().has_savitzky_golay()) {
+    const auto& savitzky_golay =
+        dt_config->sparse_oblique_split().savitzky_golay();
+    if (savitzky_golay.window_size() <= 0 ||
+        savitzky_golay.window_size() % 2 == 0) {
+      return absl::InvalidArgumentError(absl::StrCat(
+          "The Savitzky-Golay window size must be positive and odd. Got ",
+          savitzky_golay.window_size(), "."));
+    }
+    if (savitzky_golay.polynomial_order() < 0 ||
+        savitzky_golay.polynomial_order() >= savitzky_golay.window_size()) {
+      return absl::InvalidArgumentError(absl::StrCat(
+          "The Savitzky-Golay polynomial order must be non-negative and "
+          "smaller than the window size. Got polynomial order ",
+          savitzky_golay.polynomial_order(), " and window size ",
+          savitzky_golay.window_size(), "."));
     }
   }
 

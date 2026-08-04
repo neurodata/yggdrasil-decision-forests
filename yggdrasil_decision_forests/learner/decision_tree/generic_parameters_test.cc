@@ -46,6 +46,17 @@ TEST(GenericParameters, SavitzkyGolayWeights) {
                   .possible_values(),
               testing::Contains(
                   kHParamSplitAxisSparseObliqueWeightsSavitzkyGolay));
+  EXPECT_EQ(hparam_def.fields()
+                .at(kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayWindowSize)
+                .integer()
+                .default_value(),
+            5);
+  EXPECT_EQ(
+      hparam_def.fields()
+          .at(kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayPolynomialOrder)
+          .integer()
+          .default_value(),
+      2);
 
   model::proto::GenericHyperParameters hparams;
   auto* split_axis = hparams.add_fields();
@@ -56,11 +67,22 @@ TEST(GenericParameters, SavitzkyGolayWeights) {
   weights->set_name(kHParamSplitAxisSparseObliqueWeights);
   weights->mutable_value()->set_categorical(
       kHParamSplitAxisSparseObliqueWeightsSavitzkyGolay);
+  auto* window_size = hparams.add_fields();
+  window_size->set_name(
+      kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayWindowSize);
+  window_size->mutable_value()->set_integer(7);
+  auto* polynomial_order = hparams.add_fields();
+  polynomial_order->set_name(
+      kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayPolynomialOrder);
+  polynomial_order->mutable_value()->set_integer(3);
 
   absl::flat_hash_set<std::string> consumed_hparams;
   utils::GenericHyperParameterConsumer consumer(hparams);
   EXPECT_OK(SetHyperParameters(&consumed_hparams, &config, &consumer));
   EXPECT_TRUE(config.sparse_oblique_split().has_savitzky_golay());
+  EXPECT_EQ(config.sparse_oblique_split().savitzky_golay().window_size(), 7);
+  EXPECT_EQ(config.sparse_oblique_split().savitzky_golay().polynomial_order(),
+            3);
 }
 
 TEST(GenericParameters, GiveValidAndInvalidHyperparameters) {
@@ -103,6 +125,8 @@ TEST(GenericParameters, GiveValidAndInvalidHyperparameters) {
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMaxExponent,
       kHParamSplitAxisSparseObliqueWeightsIntegerMinimum,
       kHParamSplitAxisSparseObliqueWeightsIntegerMaximum,
+      kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayWindowSize,
+      kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayPolynomialOrder,
       kHParamNumericalVectorSequenceNumExamples,
       kHParamNumericalVectorSequenceNumRandomAnchors,
       kHParamNumericalVectorSequenceEnableCloserThanConditions,
@@ -155,6 +179,8 @@ TEST(GenericParameters, MissingValidHyperparameters) {
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMaxExponent,
       kHParamSplitAxisSparseObliqueWeightsIntegerMinimum,
       kHParamSplitAxisSparseObliqueWeightsIntegerMaximum,
+      kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayWindowSize,
+      kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayPolynomialOrder,
       kHParamNumericalVectorSequenceNumExamples,
       kHParamNumericalVectorSequenceNumRandomAnchors,
       kHParamNumericalVectorSequenceEnableCloserThanConditions,
@@ -205,6 +231,8 @@ TEST(GenericParameters, MissingInvalidHyperparameters) {
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMaxExponent,
       kHParamSplitAxisSparseObliqueWeightsIntegerMinimum,
       kHParamSplitAxisSparseObliqueWeightsIntegerMaximum,
+      kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayWindowSize,
+      kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayPolynomialOrder,
       kHParamNumericalVectorSequenceNumExamples,
       kHParamNumericalVectorSequenceNumRandomAnchors,
       kHParamNumericalVectorSequenceEnableCloserThanConditions,
@@ -256,6 +284,8 @@ TEST(GenericParameters, UnknownValidHyperparameter) {
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMaxExponent,
       kHParamSplitAxisSparseObliqueWeightsIntegerMinimum,
       kHParamSplitAxisSparseObliqueWeightsIntegerMaximum,
+      kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayWindowSize,
+      kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayPolynomialOrder,
       kHParamNumericalVectorSequenceNumExamples,
       kHParamNumericalVectorSequenceNumRandomAnchors,
       kHParamNumericalVectorSequenceEnableCloserThanConditions,
@@ -307,6 +337,8 @@ TEST(GenericParameters, UnknownInvalidHyperparameter) {
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMaxExponent,
       kHParamSplitAxisSparseObliqueWeightsIntegerMinimum,
       kHParamSplitAxisSparseObliqueWeightsIntegerMaximum,
+      kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayWindowSize,
+      kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayPolynomialOrder,
       kHParamNumericalVectorSequenceNumExamples,
       kHParamNumericalVectorSequenceNumRandomAnchors,
       "does_not_exist_invalid"};
@@ -357,6 +389,8 @@ TEST(GenericParameters, ExistingHyperparameter) {
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMaxExponent,
       kHParamSplitAxisSparseObliqueWeightsIntegerMinimum,
       kHParamSplitAxisSparseObliqueWeightsIntegerMaximum,
+      kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayWindowSize,
+      kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayPolynomialOrder,
       kHParamNumericalVectorSequenceNumExamples,
       kHParamNumericalVectorSequenceNumRandomAnchors,
       kHParamNumericalVectorSequenceEnableCloserThanConditions,

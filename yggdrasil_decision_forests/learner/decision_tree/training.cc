@@ -4735,6 +4735,25 @@ absl::Status DecisionTreeTrain(
           dt_config.sparse_oblique_split().integer().minimum(),
           dt_config.sparse_oblique_split().integer().maximum()));
     }
+    if (dt_config.sparse_oblique_split().has_savitzky_golay()) {
+      const auto& savitzky_golay =
+          dt_config.sparse_oblique_split().savitzky_golay();
+      if (savitzky_golay.window_size() <= 0 ||
+          savitzky_golay.window_size() % 2 == 0) {
+        return absl::InvalidArgumentError(absl::Substitute(
+            "The Savitzky-Golay window size must be positive and odd. Got $0.",
+            savitzky_golay.window_size()));
+      }
+      if (savitzky_golay.polynomial_order() < 0 ||
+          savitzky_golay.polynomial_order() >= savitzky_golay.window_size()) {
+        return absl::InvalidArgumentError(absl::Substitute(
+            "The Savitzky-Golay polynomial order must be non-negative and "
+            "smaller than the window size. Got polynomial order $0 and "
+            "window size $1.",
+            savitzky_golay.polynomial_order(),
+            savitzky_golay.window_size()));
+      }
+    }
   }
 
   if (dt_config.has_honest()) {

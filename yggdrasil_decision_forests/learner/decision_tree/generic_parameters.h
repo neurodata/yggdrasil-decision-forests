@@ -80,6 +80,12 @@ constexpr char kHParamSplitAxisSparseObliqueWeightsPowerOfTwo[] =
     "POWER_OF_TWO";
 constexpr char kHParamSplitAxisSparseObliqueWeightsSavitzkyGolay[] =
     "SAVITZKY_GOLAY";
+constexpr char
+    kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayWindowSize[] =
+        "sparse_oblique_weights_savitzky_golay_window_size";
+constexpr char
+    kHParamSplitAxisSparseObliqueWeightsSavitzkyGolayPolynomialOrder[] =
+        "sparse_oblique_weights_savitzky_golay_polynomial_order";
 constexpr char kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMinExponent[] =
     "sparse_oblique_weights_power_of_two_min_exponent";
 constexpr char kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMaxExponent[] =

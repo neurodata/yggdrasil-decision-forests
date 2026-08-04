@@ -261,11 +261,17 @@ message DecisionTreeTrainingConfig {
       optional int32 maximum = 2 [default = 5];
     }
 
-    // Weights from a five-point, quadratic Savitzky-Golay smoothing filter.
-    // For each sampled feature, the filter is centered on that feature and
-    // applied to it and its two nearest features on either side. Overlapping
-    // filter windows are accumulated.
-    message SavitzkyGolayWeights {}
+    // Weights from a Savitzky-Golay smoothing filter. For each sampled feature,
+    // the filter is centered on that feature and applied to the neighboring
+    // features in the window. Overlapping filter windows are accumulated.
+    message SavitzkyGolayWeights {
+      // Number of coefficients in the filter. Must be positive and odd.
+      optional int32 window_size = 1 [default = 5];
+
+      // Order of the fitted polynomial. Must be non-negative and smaller than
+      // window_size.
+      optional int32 polynomial_order = 2 [default = 2];
+    }
 
     // Normalization applied on the features, before applying the sparse oblique
     // projections.
