@@ -984,12 +984,13 @@ int8_t MonotonicConstraintSign(
     const model::proto::TrainingConfigLinking& config_link, int attribute_idx);
 
 // Splits the selected examples into training and leaf examples for honest
-// trees.
+// trees. If honest_flip is true, swap the two resulting groups.
 void SplitHonestExamples(
     absl::Span<const UnsignedExampleIdx> selected_examples, float leaf_rate,
     utils::RandomEngine* random_engine,
     std::vector<UnsignedExampleIdx>& leaf_examples,
-    std::vector<UnsignedExampleIdx>& working_selected_examples);
+    std::vector<UnsignedExampleIdx>& working_selected_examples,
+    bool honest_flip = false);
 
 namespace internal {
 

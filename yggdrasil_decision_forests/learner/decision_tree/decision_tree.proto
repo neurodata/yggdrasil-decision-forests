@@ -375,6 +375,10 @@ message DecisionTreeTrainingConfig {
     // If false, the same separation is used for all the trees (for examples,
     // in a Gradient Boosted Trees containing multiple trees).
     optional bool fixed_separation = 2 [default = false];
+
+    // Swap the structure and leaf example groups after the honest split.
+    // The ratio_leaf_examples setting applies before the swap.
+    optional bool flip = 3 [default = false];
   }
 
   message NumericalVectorSequence {

@@ -230,6 +230,9 @@ class RandomForestLearner(generic_learner.GenericCCLearner):
       new random separation is generated for each tree. If false, the same
       separation is used for all the trees (e.g., in Gradient Boosted Trees
       containing multiple trees). Default: False.
+    honest_flip: For honest trees only i.e. honest=true. If true, swap the
+      structure and leaf example groups after splitting. The
+      honest_ratio_leaf_examples setting applies before the swap. Default: False.
     honest_ratio_leaf_examples: For honest trees only i.e. honest=true. Ratio of
       examples used to set the leaf values. Default: 0.5.
     in_split_min_examples_check: Whether to check the `min_examples` constraint
@@ -501,6 +504,7 @@ class RandomForestLearner(generic_learner.GenericCCLearner):
       growing_strategy: str = "LOCAL",
       honest: bool = False,
       honest_fixed_separation: bool = False,
+      honest_flip: bool = False,
       honest_ratio_leaf_examples: float = 0.5,
       in_split_min_examples_check: bool = True,
       keep_non_leaf_label_distribution: bool = True,
@@ -572,6 +576,7 @@ class RandomForestLearner(generic_learner.GenericCCLearner):
         "growing_strategy": growing_strategy,
         "honest": honest,
         "honest_fixed_separation": honest_fixed_separation,
+        "honest_flip": honest_flip,
         "honest_ratio_leaf_examples": honest_ratio_leaf_examples,
         "in_split_min_examples_check": in_split_min_examples_check,
         "keep_non_leaf_label_distribution": keep_non_leaf_label_distribution,
@@ -1440,6 +1445,9 @@ class GradientBoostedTreesLearner(generic_learner.GenericCCLearner):
       new random separation is generated for each tree. If false, the same
       separation is used for all the trees (e.g., in Gradient Boosted Trees
       containing multiple trees). Default: False.
+    honest_flip: For honest trees only i.e. honest=true. If true, swap the
+      structure and leaf example groups after splitting. The
+      honest_ratio_leaf_examples setting applies before the swap. Default: False.
     honest_ratio_leaf_examples: For honest trees only i.e. honest=true. Ratio of
       examples used to set the leaf values. Default: 0.5.
     in_split_min_examples_check: Whether to check the `min_examples` constraint
@@ -1797,6 +1805,7 @@ class GradientBoostedTreesLearner(generic_learner.GenericCCLearner):
       growing_strategy: str = "LOCAL",
       honest: bool = False,
       honest_fixed_separation: bool = False,
+      honest_flip: bool = False,
       honest_ratio_leaf_examples: float = 0.5,
       in_split_min_examples_check: bool = True,
       keep_non_leaf_label_distribution: bool = True,
@@ -1894,6 +1903,7 @@ class GradientBoostedTreesLearner(generic_learner.GenericCCLearner):
         "growing_strategy": growing_strategy,
         "honest": honest,
         "honest_fixed_separation": honest_fixed_separation,
+        "honest_flip": honest_flip,
         "honest_ratio_leaf_examples": honest_ratio_leaf_examples,
         "in_split_min_examples_check": in_split_min_examples_check,
         "keep_non_leaf_label_distribution": keep_non_leaf_label_distribution,
@@ -2678,6 +2688,9 @@ class CartLearner(generic_learner.GenericCCLearner):
       new random separation is generated for each tree. If false, the same
       separation is used for all the trees (e.g., in Gradient Boosted Trees
       containing multiple trees). Default: False.
+    honest_flip: For honest trees only i.e. honest=true. If true, swap the
+      structure and leaf example groups after splitting. The
+      honest_ratio_leaf_examples setting applies before the swap. Default: False.
     honest_ratio_leaf_examples: For honest trees only i.e. honest=true. Ratio of
       examples used to set the leaf values. Default: 0.5.
     in_split_min_examples_check: Whether to check the `min_examples` constraint
@@ -2929,6 +2942,7 @@ class CartLearner(generic_learner.GenericCCLearner):
       growing_strategy: str = "LOCAL",
       honest: bool = False,
       honest_fixed_separation: bool = False,
+      honest_flip: bool = False,
       honest_ratio_leaf_examples: float = 0.5,
       in_split_min_examples_check: bool = True,
       keep_non_leaf_label_distribution: bool = True,
@@ -2990,6 +3004,7 @@ class CartLearner(generic_learner.GenericCCLearner):
         "growing_strategy": growing_strategy,
         "honest": honest,
         "honest_fixed_separation": honest_fixed_separation,
+        "honest_flip": honest_flip,
         "honest_ratio_leaf_examples": honest_ratio_leaf_examples,
         "in_split_min_examples_check": in_split_min_examples_check,
         "keep_non_leaf_label_distribution": keep_non_leaf_label_distribution,

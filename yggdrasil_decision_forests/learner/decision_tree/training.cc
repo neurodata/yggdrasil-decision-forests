@@ -4442,7 +4442,8 @@ void SplitHonestExamples(
     const absl::Span<const UnsignedExampleIdx> selected_examples,
     const float leaf_rate, utils::RandomEngine* random_engine,
     std::vector<UnsignedExampleIdx>& leaf_examples,
-    std::vector<UnsignedExampleIdx>& working_selected_examples) {
+    std::vector<UnsignedExampleIdx>& working_selected_examples,
+    const bool honest_flip) {
   std::uniform_real_distribution<float> dist_01;
 
   // Reduce the risk of std::vector re-allocations.
@@ -4478,6 +4479,9 @@ void SplitHonestExamples(
     } else {
       working_selected_examples.push_back(ex);
     }
+  }
+  if (honest_flip) {
+    leaf_examples.swap(working_selected_examples);
   }
 }
 
@@ -4752,11 +4756,12 @@ absl::Status DecisionTreeTrain(
       SplitHonestExamples(selected_examples,
                           dt_config.honest().ratio_leaf_examples(),
                           &honest_split_random, leaf_examples.value(),
-                          working_selected_examples);
+                          working_selected_examples, dt_config.honest().flip());
     } else {
       SplitHonestExamples(selected_examples,
                           dt_config.honest().ratio_leaf_examples(), random,
-                          leaf_examples.value(), working_selected_examples);
+                          leaf_examples.value(), working_selected_examples,
+                          dt_config.honest().flip());
     }
   } else {
     working_selected_examples.assign(selected_examples.begin(),
