@@ -627,6 +627,16 @@ The paper "Sparse Projection Oblique Random Forests" (Tomita et al, 2020) does n
   }
 
   {
+    ASSIGN_OR_RETURN(auto param, get_params(kHParamHonestFlip));
+    param->mutable_categorical()->set_default_value(
+        config.honest().flip() ? kTrue : kFalse);
+    param->mutable_categorical()->add_possible_values(kTrue);
+    param->mutable_categorical()->add_possible_values(kFalse);
+    param->mutable_documentation()->set_description(
+        R"(For honest trees only i.e. honest=true. If true, swap the structure and leaf example groups after splitting. The honest_ratio_leaf_examples setting applies before the swap.)");
+  }
+
+  {
     ASSIGN_OR_RETURN(auto param, get_params(kHParamHonestFixedSeparation));
     param->mutable_categorical()->set_default_value(
         config.honest().fixed_separation() ? kTrue : kFalse);
@@ -1282,6 +1292,14 @@ absl::Status SetHyperParameters(
         dt_config->mutable_honest()->set_ratio_leaf_examples(
             hparam.value().value().real());
       }
+    }
+  }
+
+  {
+    const auto hparam = generic_hyper_params->Get(kHParamHonestFlip);
+    if (hparam.has_value() && dt_config->has_honest()) {
+      dt_config->mutable_honest()->set_flip(
+          hparam.value().value().categorical() == kTrue);
     }
   }
 

@@ -136,6 +136,7 @@ constexpr char kHParamUpliftSplitScoreCEDAlt[] = "CED";
 constexpr char kHParamHonest[] = "honest";
 constexpr char kHParamHonestRatioLeafExamples[] = "honest_ratio_leaf_examples";
 constexpr char kHParamHonestFixedSeparation[] = "honest_fixed_separation";
+constexpr char kHParamHonestFlip[] = "honest_flip";
 
 constexpr char kHParamNumericalVectorSequenceNumExamples[] =
     "numerical_vector_sequence_num_examples";

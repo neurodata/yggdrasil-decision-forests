@@ -59,6 +59,37 @@ using ::yggdrasil_decision_forests::dataset::proto::ColumnType;
 // Margin of error for numerical tests.
 constexpr float kTestPrecision = 0.000001f;
 
+TEST(HonestSplit, FlipSwapsGroups) {
+  // Include duplicates and uneven splits to detect re-sampling or reversal
+  // within a group instead of exchanging the two groups.
+  const std::vector<UnsignedExampleIdx> selected = {0, 1, 1, 2, 3, 3, 3, 4};
+  for (const float leaf_rate : {0.0f, 0.25f, 0.5f, 0.75f, 1.0f}) {
+    utils::RandomEngine normal_random(1234);
+    utils::RandomEngine flipped_random(1234);
+    std::vector<UnsignedExampleIdx> normal_leaf, normal_structure;
+    std::vector<UnsignedExampleIdx> flipped_leaf, flipped_structure;
+    SplitHonestExamples(selected, leaf_rate, &normal_random, normal_leaf,
+                        normal_structure);
+    SplitHonestExamples(selected, leaf_rate, &flipped_random, flipped_leaf,
+                        flipped_structure, true);
+    EXPECT_EQ(normal_leaf, flipped_structure);
+    EXPECT_EQ(normal_structure, flipped_leaf);
+    EXPECT_EQ(normal_leaf.size() + normal_structure.size(), selected.size());
+    EXPECT_EQ(normal_random(), flipped_random());
+    for (const auto ex : normal_leaf) {
+      EXPECT_THAT(normal_structure, ::testing::Not(::testing::Contains(ex)));
+    }
+  }
+}
+
+TEST(HonestSplit, FlipEmptyInput) {
+  utils::RandomEngine random(1234);
+  std::vector<UnsignedExampleIdx> selected, leaf, structure;
+  SplitHonestExamples(selected, 0.5f, &random, leaf, structure, true);
+  EXPECT_TRUE(leaf.empty());
+  EXPECT_TRUE(structure.empty());
+}
+
 // Returns a simple datasets with gradients in the second column.
 absl::StatusOr<dataset::VerticalDataset> CreateToyGradientDataset() {
   dataset::VerticalDataset dataset;

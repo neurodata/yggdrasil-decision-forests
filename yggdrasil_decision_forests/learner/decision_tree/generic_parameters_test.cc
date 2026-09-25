@@ -36,6 +36,35 @@ TEST(GenericParameters, AllHyperparameters) {
   EXPECT_OK(GetGenericHyperParameterSpecification(config, &hparam_def));
 }
 
+TEST(GenericParameters, HonestFlip) {
+  proto::DecisionTreeTrainingConfig defaults;
+  EXPECT_FALSE(defaults.honest().flip());
+  model::proto::GenericHyperParameterSpecification spec;
+  ASSERT_OK(GetGenericHyperParameterSpecification(defaults, &spec));
+  EXPECT_EQ(spec.fields().at(kHParamHonestFlip).categorical().default_value(),
+            "false");
+  EXPECT_THAT(spec.fields().at(kHParamHonestFlip).categorical().possible_values(),
+              testing::UnorderedElementsAre("true", "false"));
+
+  for (const bool honest : {false, true}) {
+    for (const bool flip : {false, true}) {
+      proto::DecisionTreeTrainingConfig config;
+      model::proto::GenericHyperParameters hparams;
+      auto* honest_param = hparams.add_fields();
+      honest_param->set_name(kHParamHonest);
+      honest_param->mutable_value()->set_categorical(honest ? "true" : "false");
+      auto* flip_param = hparams.add_fields();
+      flip_param->set_name(kHParamHonestFlip);
+      flip_param->mutable_value()->set_categorical(flip ? "true" : "false");
+      absl::flat_hash_set<std::string> consumed_hparams;
+      utils::GenericHyperParameterConsumer consumer(hparams);
+      ASSERT_OK(SetHyperParameters(&consumed_hparams, &config, &consumer));
+      EXPECT_EQ(config.has_honest(), honest);
+      EXPECT_EQ(config.honest().flip(), honest && flip);
+    }
+  }
+}
+
 TEST(GenericParameters, SavitzkyGolayWeights) {
   proto::DecisionTreeTrainingConfig config;
   model::proto::GenericHyperParameterSpecification hparam_def;
@@ -120,6 +149,7 @@ TEST(GenericParameters, GiveValidAndInvalidHyperparameters) {
       kHParamHonest,
       kHParamHonestRatioLeafExamples,
       kHParamHonestFixedSeparation,
+      kHParamHonestFlip,
       kHParamSplitAxisSparseObliqueMaxNumFeatures,
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMinExponent,
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMaxExponent,
@@ -174,6 +204,7 @@ TEST(GenericParameters, MissingValidHyperparameters) {
       kHParamHonest,
       kHParamHonestRatioLeafExamples,
       kHParamHonestFixedSeparation,
+      kHParamHonestFlip,
       kHParamSplitAxisSparseObliqueMaxNumFeatures,
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMinExponent,
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMaxExponent,
@@ -226,6 +257,7 @@ TEST(GenericParameters, MissingInvalidHyperparameters) {
       kHParamHonest,
       kHParamHonestRatioLeafExamples,
       kHParamHonestFixedSeparation,
+      kHParamHonestFlip,
       kHParamSplitAxisSparseObliqueMaxNumFeatures,
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMinExponent,
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMaxExponent,
@@ -279,6 +311,7 @@ TEST(GenericParameters, UnknownValidHyperparameter) {
       kHParamHonest,
       kHParamHonestRatioLeafExamples,
       kHParamHonestFixedSeparation,
+      kHParamHonestFlip,
       kHParamSplitAxisSparseObliqueMaxNumFeatures,
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMinExponent,
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMaxExponent,
@@ -332,6 +365,7 @@ TEST(GenericParameters, UnknownInvalidHyperparameter) {
       kHParamHonest,
       kHParamHonestRatioLeafExamples,
       kHParamHonestFixedSeparation,
+      kHParamHonestFlip,
       kHParamSplitAxisSparseObliqueMaxNumFeatures,
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMinExponent,
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMaxExponent,
@@ -384,6 +418,7 @@ TEST(GenericParameters, ExistingHyperparameter) {
       kHParamHonest,
       kHParamHonestRatioLeafExamples,
       kHParamHonestFixedSeparation,
+      kHParamHonestFlip,
       kHParamSplitAxisSparseObliqueMaxNumFeatures,
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMinExponent,
       kHParamSplitAxisSparseObliqueWeightsPowerOfTwoMaxExponent,

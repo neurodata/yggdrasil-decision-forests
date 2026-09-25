@@ -243,6 +243,14 @@ reasonable time.
     generated for each tree. If false, the same separation is used for all the
     trees (e.g., in Gradient Boosted Trees containing multiple trees).
 
+#### [honest_flip](https://github.com/google/yggdrasil-decision-forests/blob/main/yggdrasil_decision_forests/learner/decision_tree/decision_tree.proto)
+
+-   **Type:** Categorical **Default:** false **Possible values:** true, false
+
+-   For honest trees only i.e. honest=true. If true, swap the structure and leaf
+    example groups after splitting. The honest_ratio_leaf_examples setting
+    applies before the swap.
+
 #### [honest_ratio_leaf_examples](https://github.com/google/yggdrasil-decision-forests/blob/main/yggdrasil_decision_forests/learner/decision_tree/decision_tree.proto)
 
 -   **Type:** Real **Default:** 0.5 **Possible values:** min:0 max:1
@@ -784,6 +792,14 @@ reasonable time.
     generated for each tree. If false, the same separation is used for all the
     trees (e.g., in Gradient Boosted Trees containing multiple trees).
 
+#### [honest_flip](https://github.com/google/yggdrasil-decision-forests/blob/main/yggdrasil_decision_forests/learner/decision_tree/decision_tree.proto)
+
+-   **Type:** Categorical **Default:** false **Possible values:** true, false
+
+-   For honest trees only i.e. honest=true. If true, swap the structure and leaf
+    example groups after splitting. The honest_ratio_leaf_examples setting
+    applies before the swap.
+
 #### [honest_ratio_leaf_examples](https://github.com/google/yggdrasil-decision-forests/blob/main/yggdrasil_decision_forests/learner/decision_tree/decision_tree.proto)
 
 -   **Type:** Real **Default:** 0.5 **Possible values:** min:0 max:1
@@ -1148,6 +1164,14 @@ The hyper-parameter protobuffers are used with the C++ and CLI APIs.
 -   For honest trees only i.e. honest=true. If true, a new random separation is
     generated for each tree. If false, the same separation is used for all the
     trees (e.g., in Gradient Boosted Trees containing multiple trees).
+
+#### [honest_flip](https://github.com/google/yggdrasil-decision-forests/blob/main/yggdrasil_decision_forests/learner/decision_tree/decision_tree.proto)
+
+-   **Type:** Categorical **Default:** false **Possible values:** true, false
+
+-   For honest trees only i.e. honest=true. If true, swap the structure and leaf
+    example groups after splitting. The honest_ratio_leaf_examples setting
+    applies before the swap.
 
 #### [honest_ratio_leaf_examples](https://github.com/google/yggdrasil-decision-forests/blob/main/yggdrasil_decision_forests/learner/decision_tree/decision_tree.proto)
 
